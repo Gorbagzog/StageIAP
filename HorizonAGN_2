@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+# -*-coding:Utf-8 -*
+
+import numpy as np
+import pyfits
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib import ticker
+import time
+
+
+
+zbins_Cone = np.array([0,1,2,3,6])
+numzbin = np.size(zbins_Cone)-1
+
+galdata = []
+for i in range(np.size(zbins_Cone)-1):
+    hdulist = pyfits.open('../Data/HorizonAGNLaigleCatalogs/Galaxies_'+
+    str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits')
+    galdata.append(hdulist[1].data)
+    hdulist.close()
+# cols = hdulist[1].columns
+# cols.info()
+
+# plt.hist(np.log10(galdata[0]['Mass']*10**11), bins=100)
+
+
+"""It looks like the good catalogs to use are the Haloes and not the Halos"""
+
+halodata = []
+for i in range(np.size(zbins_Cone)-1):
+    hdulist2 = pyfits.open('../Data/HorizonAGNLaigleCatalogs/Haloes_'+
+        str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits')
+    halodata.append(hdulist2[1].data)
+    hdulist2.close()
+
+
+# Haloes central gal
+## contains the ID of the central galaxy in each halo
+hal_centgal = [] 
+for i in range(np.size(zbins_Cone)-1):
+    hal_centgal.append(np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_'+
+        str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal.txt', 
+        dtype='i4'))
+
+
+"""Take only galaxies and haloes of level 1"""
+cent_haloes=[]
+cent_gal=[]
+for i in range(numzbin):
+    indices = np.logical_and(
+    np.logical_and(
+        halodata[i]['level']==1,
+        hal_centgal[i]>0), 
+    galdata[i]['level'][hal_centgal[i]]==1
+    )
+    cent_haloes.append(halodata[i][indices])
+    cent_gal.append(galdata[i][hal_centgal[i][indices]])
+
+
+plt.hist2d(np.log10(cent_haloes[0]['Mass']*10**11), np.log10(cent_gal[0]['Mass']*10**11)
+    , bins=100, cmin=1)
