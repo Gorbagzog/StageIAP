@@ -8,10 +8,12 @@ Load catalog and make a match with the true lightcone catalog.
 
 import numpy as np
 import pandas as pd
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pyfits
 from scipy.spatial import cKDTree
+from timeit import default_timer as timer
 
+start = timer()
 """Load Horizon-AGN Lightcone Photometric catalog."""
 col_names = ['Id', 'Ra', 'Dec', 'zphot', 'zphot_err', 'Mass', 'Mass_err', 'mag_u', 'magerr_u',
              'mag_B', 'magerr_B', 'mag_V', 'magerr_V', 'mag_r', 'magerr_r', 'mag_i', 'magerr_i',
@@ -23,22 +25,53 @@ Hphoto = pd.read_table(
     sep=' ', skipinitialspace=True, header=None, names=col_names)
 # Hphoto = Hphoto.sort_values('Ra')
 
-"""Load Horizon-AGN Lightcone true catalogs."""
+# Select only positive values of Hphoto.zphot
+# Hphoto = Hphoto.loc[Hphoto.zphot >= 0]
+
+"""Load Horizon-AGN Lightcone original galaxies catalogs."""
 zbins_Cone = np.array([0, 1, 2, 3, 6])
 numzbin = np.size(zbins_Cone)-1
-Htrue = [None]*numzbin
-
-for i in range(numzbin):
+Htrue = [None]*(numzbin-1)
+# The Photometric catalogs stops at z=3, so no need to take the last section of the lightcone.
+for i in range(numzbin-1):
     with pyfits.open('../Data/HorizonAGNLaigleCatalogs/Galaxies_' +
                      str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits') as data:
         Htrue[i] = pd.DataFrame(data[1].data)
         Htrue[i] = Htrue[i].apply(lambda x: x.values.byteswap().newbyteorder())
         Htrue[i].loc[:, 'zbin'] = i
 
-Htrue = pd.concat(Htrue[i] for i in range(numzbin))
+Htrue = pd.concat((Htrue[i] for i in range(numzbin-1)), ignore_index=True)
+end = timer()
+print(end - start)
 # Htrue = Htrue.sort_values('Ra')
 
-# Simple merge between Htrue and Hphoto, no results
+
+"""Load Horizon-AGN Lighcone Halos catalogs"""
+
+Hhalo = [None]*(numzbin-1)
+# The Photometric catalogs stops at z=3, so no need to take the last section of the lightcone.
+for i in range(numzbin-1):
+    with pyfits.open('../Data/HorizonAGNLaigleCatalogs/Haloes_' +
+                     str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits') as data:
+        Hhalo[i] = pd.DataFrame(data[1].data)
+        Hhalo[i] = Hhalo[i].apply(lambda x: x.values.byteswap().newbyteorder())
+        Hhalo[i].loc[:, 'zbin'] = i
+
+Hhalo = pd.concat((Hhalo[i] for i in range(numzbin-1)), ignore_index=True)
+
+
+"""Load catalog matching halos to their central galaxies"""
+# Contains the IDs (starts at 1) of the central galaxy of each halo
+hal_centgal = []
+for i in range(np.size(zbins_Cone)-1):
+    hal_centgal.append(
+        np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
+                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_new.txt',
+                   dtype='i4'))
+
+
+""" Simple merge between Htrue and Hphoto, no results"""
+
 # print(pd.merge(Htrue, Hphoto, on=['Ra', 'Dec'], how='inner').shape)
 
 # def find_nearest(ra, dec):
@@ -52,15 +85,90 @@ Htrue = pd.concat(Htrue[i] for i in range(numzbin))
 # Hphoto['Nearest_ID'], Hphoto['distance'] = Hphoto[['Ra', 'Dec']].apply(
 #     lambda x: find_nearest(*x), axis=1)
 
-"""Algorithm to find nearest value using a KDTree"""
+"""Algorithm to find nearest value using a KDTree.
 
+We make a match between nearest galaxies in projection on the sky.
+Maybe we should also take into account the third dimension, to have
+a better match. But it will give more importance to the error in redshift
+in the observed catalog."""
+
+start = timer()
 kdtree = cKDTree(np.transpose([Htrue.Ra, Htrue.Dec]))
 
 tmp = Hphoto[['Ra', 'Dec']].apply(lambda x: kdtree.query(x), axis=1)
 
 Hphoto['Distance'] = tmp.apply(lambda x: x[0])  # Need to do this to break the tuple
-Hphoto['Nearest_ID'] = tmp.apply(lambda x: x[1]+1)
-
+# Gives the index (starts at 0) of the nearest galaxy in th Htrue merged catalog (all redshifts)
+Hphoto['Nearest_index'] = tmp.apply(lambda x: x[1])
+end = timer()
+print(end - start)
 
 # Find if there are duplactes, ie two galaxies having the same closets neigbhour
-Hphoto.loc[Hphoto['Nearest_ID'].duplicated()]
+# Hphoto.loc[Hphoto['Nearest_index'].duplicated()]
+
+"""Plot Ztrue vs Zobserved"""
+
+# plt.hist2d(
+#     Htrue.iloc[Hphoto['Nearest_index']].z,
+#     Hphoto.zphot,
+#     bins=100, cmin=1)
+# plt.xlabel('True Z')
+# plt.ylabel('Observed Z')
+
+"""Plot Mtrue vs Mobserved"""
+
+# plt.figure()
+# plt.hist2d(
+#     np.log10(
+#         Htrue.iloc[Hphoto.loc[Hphoto.Mass > 0]['Nearest_index']].Mass*10**11),
+#     Hphoto.loc[Hphoto.Mass > 0].Mass,
+#     bins=100, cmin=1)
+# plt.xlabel('True Mass')
+# plt.ylabel('Observed Mass')
+
+"""Plot SFR_true vs SFR_observed"""
+
+# plt.figure()
+# plt.hist2d(
+#     Htrue.iloc[Hphoto['Nearest_index']].SFRcorr,
+#     Hphoto.SFR,
+#     bins=100, cmin=1)
+# plt.xlabel('True SFR')
+# plt.ylabel('Observed SFR')
+
+
+"""Link observed galaxies catalog to their DM halos"""
+
+
+# def find_nearest_phot(row):
+#     """
+#     Give the index of the galaxy in the observed catalog.
+
+#     Returns -1 if it is not oserved.
+#     """
+#     idx_phot = np.where(Hphoto['Nearest_index'] == row.name)[0]
+#     if idx_phot:
+#         return idx_phot[0]
+#     else:
+#         return -1
+
+
+# Htrue['Phot_gal'] = Htrue.apply(find_nearest_phot, axis=1)
+
+# Htrue['Photo_gal_idx'] = -1
+# Hphoto.Nearest_index = Hphoto.Nearest_index.astype('int')
+
+for idx_phot in range(Hphoto.shape[0]):
+    Htrue.set_value(
+        Hphoto.get_value(idx_phot, 'Nearest_index'),
+        'Photo_gal_idx',
+        idx_phot)
+
+# Haloes for observed central galaxies
+
+# Gives the index (starts at 0) of the Observed version of the central galaxy in each halo
+HaloToObs = Htrue[Htrue.zbin == 0].iloc[hal_centgal[0][hal_centgal[0] > 0]-1].Photo_gal_idx
+IsObserved = HaloToObs.notnull()  # True if the galaxy related to the halo is observedÒ
+Hphoto.iloc[HaloToObs.dropna().astype('int')]
+
+HhaloCentral0 = Hhalo[Hhalo.zbin == 0].loc[hal_centgal[0] > 0]
