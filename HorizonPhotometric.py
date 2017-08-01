@@ -160,15 +160,34 @@ print(end - start)
 
 for idx_phot in range(Hphoto.shape[0]):
     Htrue.set_value(
-        Hphoto.get_value(idx_phot, 'Nearest_index'),
-        'Photo_gal_idx',
-        idx_phot)
+        Hphoto.get_value(idx_phot, 'Nearest_index'), 'Photo_gal_idx', idx_phot)
 
 # Haloes for observed central galaxies
 
 # Gives the index (starts at 0) of the Observed version of the central galaxy in each halo
-HaloToObs = Htrue[Htrue.zbin == 0].iloc[hal_centgal[0][hal_centgal[0] > 0]-1].Photo_gal_idx
-IsObserved = HaloToObs.notnull()  # True if the galaxy related to the halo is observedÒ
-Hphoto.iloc[HaloToObs.dropna().astype('int')]
+# HaloToObs = Htrue[Htrue.zbin == 0].iloc[hal_centgal[0][hal_centgal[0] > 0]-1].Photo_gal_idx
+# IsObserved = HaloToObs.notnull()  # True if the galaxy related to the halo is observedÒ
+# Hphoto.iloc[HaloToObs.dropna().astype('int')]
 
-HhaloCentral0 = Hhalo[Hhalo.zbin == 0].loc[hal_centgal[0] > 0]
+# HhaloCentral0 = Hhalo[Hhalo.zbin == 0].loc[hal_centgal[0] > 0]
+
+# Hhalo['Obs_cent_gal'] =  # idx of the observed central galaxy if it exists.
+# en fait je perde de l'info au moment où je prends Htrue[hal_cent_gal] : on perd l'ID du halo
+# il faudrait faire un set_value sur les halos comme on l'a fait avant.
+
+# TODO: Faire un tableau à deux colonnes qui donne dans la première les indices des halos qui ont
+# Une galaxie observée et dans la deuxième l'indice de la galaxie observée correspondante.
+
+
+# Liste les galaxies centrales et observées pour chaque halo
+
+foo = [None]*(numzbin-1)
+for i in range(numzbin-1):
+    # for each redshift bin, gives the idx of the observed central galaxy of the halo
+    foo[i] = Htrue['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
+    foo[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
+
+# Concat all bins and add the columns to the Hhalo dataframe
+bar = pd.concat([foo[0], foo[1], foo[2]], axis=0).reset_index()
+bar.rename(columns={'index': 'Halo_idx'}, inplace=True)
+Hhalo = pd.concat([Hhalo, bar], axis=1)
