@@ -40,7 +40,7 @@ for i in range(numzbin-1):
         Htrue[i] = Htrue[i].apply(lambda x: x.values.byteswap().newbyteorder())
         Htrue[i].loc[:, 'zbin'] = i
 
-Htrue = pd.concat((Htrue[i] for i in range(numzbin-1)), ignore_index=True)
+Htrue = pd.concat((Htrue[i] for i in range(numzbin-1))).reset_index()
 end = timer()
 print(end - start)
 # Htrue = Htrue.sort_values('Ra')
@@ -57,7 +57,7 @@ for i in range(numzbin-1):
         Hhalo[i] = Hhalo[i].apply(lambda x: x.values.byteswap().newbyteorder())
         Hhalo[i].loc[:, 'zbin'] = i
 
-Hhalo = pd.concat((Hhalo[i] for i in range(numzbin-1)), ignore_index=True)
+Hhalo = pd.concat((Hhalo[i] for i in range(numzbin-1)))
 
 
 """Load catalog matching halos to their central galaxies"""
@@ -72,7 +72,7 @@ for i in range(np.size(zbins_Cone)-1):
 
 """ Simple merge between Htrue and Hphoto, no results"""
 
-# print(pd.merge(Htrue, Hphoto, on=['Ra', 'Dec'], how='inner').shape)
+print(pd.merge(np.round(Htrue, decimals=5), Hphoto, on=['Ra', 'Dec'], how='inner').shape)
 
 # def find_nearest(ra, dec):
 #     """Return the ID and the distance to the closest galaxy."""
@@ -139,55 +139,64 @@ print(end - start)
 
 """Link observed galaxies catalog to their DM halos"""
 
-
-# def find_nearest_phot(row):
-#     """
-#     Give the index of the galaxy in the observed catalog.
-
-#     Returns -1 if it is not oserved.
-#     """
-#     idx_phot = np.where(Hphoto['Nearest_index'] == row.name)[0]
-#     if idx_phot:
-#         return idx_phot[0]
-#     else:
-#         return -1
-
-
-# Htrue['Phot_gal'] = Htrue.apply(find_nearest_phot, axis=1)
-
-# Htrue['Photo_gal_idx'] = -1
-# Hphoto.Nearest_index = Hphoto.Nearest_index.astype('int')
-
+# Add a column in True catalog with the index of the observed galaxy.
 for idx_phot in range(Hphoto.shape[0]):
     Htrue.set_value(
         Hphoto.get_value(idx_phot, 'Nearest_index'), 'Photo_gal_idx', idx_phot)
 
-# Haloes for observed central galaxies
-
-# Gives the index (starts at 0) of the Observed version of the central galaxy in each halo
-# HaloToObs = Htrue[Htrue.zbin == 0].iloc[hal_centgal[0][hal_centgal[0] > 0]-1].Photo_gal_idx
-# IsObserved = HaloToObs.notnull()  # True if the galaxy related to the halo is observedÒ
-# Hphoto.iloc[HaloToObs.dropna().astype('int')]
-
-# HhaloCentral0 = Hhalo[Hhalo.zbin == 0].loc[hal_centgal[0] > 0]
-
-# Hhalo['Obs_cent_gal'] =  # idx of the observed central galaxy if it exists.
-# en fait je perde de l'info au moment où je prends Htrue[hal_cent_gal] : on perd l'ID du halo
-# il faudrait faire un set_value sur les halos comme on l'a fait avant.
-
-# TODO: Faire un tableau à deux colonnes qui donne dans la première les indices des halos qui ont
-# Une galaxie observée et dans la deuxième l'indice de la galaxie observée correspondante.
-
 
 # Liste les galaxies centrales et observées pour chaque halo
 
-foo = [None]*(numzbin-1)
+df_tmp = [None]*(numzbin-1)
 for i in range(numzbin-1):
     # for each redshift bin, gives the idx of the observed central galaxy of the halo
-    foo[i] = Htrue['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
-    foo[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
+    df_tmp[i] = Htrue['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
+    df_tmp[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
 
 # Concat all bins and add the columns to the Hhalo dataframe
-bar = pd.concat([foo[0], foo[1], foo[2]], axis=0).reset_index()
-bar.rename(columns={'index': 'Halo_idx'}, inplace=True)
-Hhalo = pd.concat([Hhalo, bar], axis=1)
+df_tmp2 = pd.concat([df_tmp[0], df_tmp[1], df_tmp[2]], axis=0)
+# df_tmp2.rename(columns={'index': 'Halo_idx'}, inplace=True)
+Hhalo = pd.concat([Hhalo, df_tmp2], axis=1)
+
+"""Plot Halo Mass vs Observed Central Galaxies Mass"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    plt.hist2d(
+        np.log10(Hhalo['Mass'].loc[
+            (Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())] * 10**11),
+        Hphoto['Mass'].iloc[Hhalo['Photo_gal_idx']],
+        bins=100,
+        cmin=1,
+        range=[[10, 14.5], [7, 12]])
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+    plt.ylabel('Observed Log($M_{*}$) [Log($M_{\odot}$)]', size=15)
+    plt.title('Observed central gal in halos, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HorizonAGN/ObservedCat/ObsMass_HaloMass' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+for i in range(numzbin-1):
+    plt.figure()
+    plt.hist2d(
+        np.log10(Hhalo['Mass'].loc[
+            (Hhalo['zbin'] == i) & (Hhalo['Central_gal_idx'] >= 0)] * 10**11),
+        np.log10(Htrue[Htrue.zbin == i]['Mass'].iloc[
+            Hhalo['Central_gal_idx'].loc[(Hhalo['zbin'] == i) & (Hhalo['Central_gal_idx'] >= 0)]]*10**11),
+        bins=100,
+        cmin=1,
+        range=[[10, 14.5], [7, 12]])
+
+
+Hphoto.loc[Hphoto.index.isin(Hhalo[Hhalo['zbin']==i]['Photo_gal_idx'])]
+
+test = Hhalo[['Mass', 'Photo_gal_idx']].loc[(Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
+
+for i in range(numzbin-1):
+    plt.figure()
+    test = Hhalo[['Mass', 'Photo_gal_idx']].loc[(Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
+    plt.hist2d(
+        np.log10(test['Mass'] * 10**11),
+        Hphoto['Mass'].iloc[test.Photo_gal_idx+1],
+        bins=100,
+        cmin=1,
+        range=[[10, 14.5], [7, 12]])
