@@ -96,7 +96,7 @@ haloToCentgal.rename(columns={'index': 'Halo_idx', 0: 'ID_cent_gal'}, inplace=Tr
 Hmerge.rename(columns={'ID': 'ID_cent_gal'}, inplace=True)
 test = pd.merge(Hmerge, haloToCentgal, how='inner', on='ID_cent_gal')
 
-test['Halo_idx'] = test['Halo_idx'] +1
+test['Halo_idx'] = test['Halo_idx']+1
 test.rename(columns={'Halo_idx': 'ID_halo'}, inplace=True)
 Hhalo.rename(columns={'ID': 'ID_halo'}, inplace=True)
 testor = pd.merge(test, Hhalo, how='inner', on='ID_halo')

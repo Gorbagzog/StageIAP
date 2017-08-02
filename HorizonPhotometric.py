@@ -33,7 +33,8 @@ zbins_Cone = np.array([0, 1, 2, 3, 6])
 numzbin = np.size(zbins_Cone)-1
 Htrue = [None]*(numzbin-1)
 # The Photometric catalogs stops at z=3, so no need to take the last section of the lightcone.
-for i in range(numzbin-1):
+#for i in range(1:numzbin-1):
+for i in [2]:
     with pyfits.open('../Data/HorizonAGNLaigleCatalogs/Galaxies_' +
                      str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits') as data:
         Htrue[i] = pd.DataFrame(data[1].data)
@@ -51,6 +52,7 @@ print(end - start)
 Hhalo = [None]*(numzbin-1)
 # The Photometric catalogs stops at z=3, so no need to take the last section of the lightcone.
 for i in range(numzbin-1):
+#for i in [2]:
     with pyfits.open('../Data/HorizonAGNLaigleCatalogs/Haloes_' +
                      str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits') as data:
         Hhalo[i] = pd.DataFrame(data[1].data)
@@ -72,7 +74,7 @@ for i in range(np.size(zbins_Cone)-1):
 
 """ Simple merge between Htrue and Hphoto, no results"""
 
-print(pd.merge(np.round(Htrue, decimals=5), Hphoto, on=['Ra', 'Dec'], how='inner').shape)
+# print(pd.merge(np.round(Htrue, decimals=5), Hphoto, on=['Ra', 'Dec'], how='inner').shape)
 
 # def find_nearest(ra, dec):
 #     """Return the ID and the distance to the closest galaxy."""
@@ -149,8 +151,11 @@ for idx_phot in range(Hphoto.shape[0]):
 
 df_tmp = [None]*(numzbin-1)
 for i in range(numzbin-1):
+#for i in [2]:
     # for each redshift bin, gives the idx of the observed central galaxy of the halo
-    df_tmp[i] = Htrue['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
+    # df_tmp[i] = Htrue[Htrue.zbin==i]['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
+    # df_tmp[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
+    df_tmp[i] = Htrue[Htrue.zbin==i].reset_index()['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
     df_tmp[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
 
 # Concat all bins and add the columns to the Hhalo dataframe
@@ -161,11 +166,11 @@ Hhalo = pd.concat([Hhalo, df_tmp2], axis=1)
 """Plot Halo Mass vs Observed Central Galaxies Mass"""
 
 for i in range(numzbin-1):
+#for i in [2]:
     plt.figure()
     plt.hist2d(
-        np.log10(Hhalo['Mass'].loc[
-            (Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())] * 10**11),
-        Hphoto['Mass'].iloc[Hhalo['Photo_gal_idx']],
+        np.log10(Hhalo[Hhalo['zbin'] == i]['Mass'].loc[(Hhalo[Hhalo['zbin'] == i]['Photo_gal_idx'].notnull())] * 10**11),
+        Hphoto['Mass'].iloc[Hhalo[Hhalo['zbin'] == i]['Photo_gal_idx'].dropna()],
         bins=100,
         cmin=1,
         range=[[10, 14.5], [7, 12]])
@@ -196,7 +201,7 @@ for i in range(numzbin-1):
     test = Hhalo[['Mass', 'Photo_gal_idx']].loc[(Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
     plt.hist2d(
         np.log10(test['Mass'] * 10**11),
-        Hphoto['Mass'].iloc[test.Photo_gal_idx+1],
+        Hphoto['Mass'].iloc[test.Photo_gal_idx],
         bins=100,
         cmin=1,
         range=[[10, 14.5], [7, 12]])
