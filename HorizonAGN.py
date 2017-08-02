@@ -584,9 +584,9 @@ for i in range(numzbin):
         m1 = stellarmassbins[j]
         m2 = stellarmassbins[j+1]
         indices.append(np.where(np.logical_and(
-        np.logical_and(gal_hal_mass[i][0,:]>m1, gal_hal_mass[i][0,:]<m2),
-        np.logical_and(gal_hal_mass[i][1,:]>first_per[i,j],
-            gal_hal_mass[i][1,:]<last_per[i,j])
+            np.logical_and(gal_hal_mass[i][0,:]>m1, gal_hal_mass[i][0,:]<m2),
+            np.logical_and(gal_hal_mass[i][1,:]>first_per[i,j],
+                gal_hal_mass[i][1,:]<last_per[i,j])
         ))[0])
     indices = np.hstack(indices)
     select_gal_hal_mass.append([gal_hal_mass[i][0,indices], gal_hal_mass[i][1,indices]])

@@ -14,6 +14,8 @@ from scipy.spatial import cKDTree
 from timeit import default_timer as timer
 
 start = timer()
+
+
 """Load Horizon-AGN Lightcone Photometric catalog."""
 col_names = ['Id', 'Ra', 'Dec', 'zphot', 'zphot_err', 'Mass', 'Mass_err', 'mag_u', 'magerr_u',
              'mag_B', 'magerr_B', 'mag_V', 'magerr_V', 'mag_r', 'magerr_r', 'mag_i', 'magerr_i',
@@ -23,10 +25,7 @@ col_names = ['Id', 'Ra', 'Dec', 'zphot', 'zphot_err', 'Mass', 'Mass_err', 'mag_u
 Hphoto = pd.read_table(
     '../Data/HorizonAGNLightconePhotometric/Salp_0.0-3.0_dust_v15c.in_Init_Small',
     sep=' ', skipinitialspace=True, header=None, names=col_names)
-# Hphoto = Hphoto.sort_values('Ra')
 
-# Select only positive values of Hphoto.zphot
-# Hphoto = Hphoto.loc[Hphoto.zphot >= 0]
 
 """Load Horizon-AGN Lightcone original galaxies catalogs."""
 zbins_Cone = np.array([0, 1, 2, 3, 6])
@@ -70,21 +69,6 @@ for i in range(np.size(zbins_Cone)-1):
                    str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_new.txt',
                    dtype='i4'))
 
-
-""" Simple merge between Htrue and Hphoto, no results"""
-
-# print(pd.merge(np.round(Htrue, decimals=5), Hphoto, on=['Ra', 'Dec'], how='inner').shape)
-
-# def find_nearest(ra, dec):
-#     """Return the ID and the distance to the closest galaxy."""
-#     index = (np.sqrt((Htrue.Ra - ra)**2 + (Htrue.Dec - dec)**2)).argmin()
-#     # print(index)
-#     distance = np.sqrt((Htrue.iloc[index].Ra - ra)**2 + (Htrue.iloc[index].Dec - dec)**2)
-#     return Htrue.iloc[index].ID, distance
-
-
-# Hphoto['Nearest_ID'], Hphoto['distance'] = Hphoto[['Ra', 'Dec']].apply(
-#     lambda x: find_nearest(*x), axis=1)
 
 """Algorithm to find nearest value using a KDTree.
 
@@ -151,8 +135,6 @@ for idx_phot in range(Hphoto.shape[0]):
 df_tmp = [None]*(numzbin-1)
 for i in range(numzbin-1):
     # for each redshift bin, gives the idx of the observed central galaxy of the halo
-    # df_tmp[i] = Htrue[Htrue.zbin==i]['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
-    # df_tmp[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
     df_tmp[i] = Htrue[Htrue.zbin == i].reset_index()[
         'Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
     df_tmp[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
@@ -163,22 +145,6 @@ df_tmp2 = pd.concat([df_tmp[0], df_tmp[1], df_tmp[2]], axis=0)
 Hhalo = pd.concat([Hhalo, df_tmp2], axis=1)
 
 """Plot Halo Mass vs Observed Central Galaxies Mass"""
-
-# for i in range(numzbin-1):
-#     plt.figure()
-#     plt.hist2d(
-#         np.log10(Hhalo['Mass'].loc[
-#             (Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
-#             * 10**11),
-#         Hphoto['Mass'].iloc[Hhalo[Hhalo['zbin'] == i]['Photo_gal_idx'].dropna()],
-#         bins=100,
-#         cmin=1,
-#         range=[[10, 14.5], [7, 12]])
-#     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
-#     plt.ylabel('Observed Log($M_{*}$) [Log($M_{\odot}$)]', size=15)
-#     plt.title('Observed central gal in halos, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-#     plt.savefig('../Plots/HAGN_Matching/ObsMass_HaloMass' +
-#                 str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 # for i in range(numzbin-1):
 #     plt.figure()
@@ -198,7 +164,7 @@ Hhalo = pd.concat([Hhalo, df_tmp2], axis=1)
 #                 str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
-""" Plot M*(Mh) HAGN with COSMOS to Compare"""
+""" Plot M*_true(Mh)"""
 
 for i in range(numzbin-1):
     plt.figure()
@@ -211,4 +177,35 @@ for i in range(numzbin-1):
         bins=100,
         cmin=1,
         range=[[10, 14.5], [7, 12]])
+    plt.colorbar()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+    plt.ylabel('Observed Log($M_{*}$) [Log($M_{\odot}$)]', size=15)
 
+"""Select Median of Halo Mass for each stellar mass bin"""
+
+stellarmassbins = np.linspace(8.1, 12, num=100)
+avHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
+medHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
+
+for i in range(numzbin):
+    for j in range(np.size(stellarmassbins)-1):
+        m1 = stellarmassbins[j]
+        m2 = stellarmassbins[j+1]
+        HtrueMassSelec = Htrue[Htrue.zbin == i].loc[
+            Htrue[Htrue.zbin == i]['True_gal_idx'].isin(Hhalo[Hhalo.zbin == i]['Central_gal_idx']),
+            'Mass']
+        Hhalo.loc[(HtrueMassSelec >= 10**(m1-11)) & (HtrueMassSelec < 10**(m2-11)), '']
+# NOT WORKING
+
+# for i in range(4):
+#     for j in range(np.size(stellarmassbins)-1):
+#         m1 = stellarmassbins[j]
+#         m2 = stellarmassbins[j+1]
+#         ## select indices of central galaxies with a mass
+#         ## between m1 and m2 :
+#         indices = np.where(np.logical_and(
+#         select_gal_hal_mass[i][0]>m1,
+#         select_gal_hal_mass[i][0]<m2))
+#         #indices_cent = np.intersect1d(indices, central_gal[i])
+#         sel_avHMperSM[i,j] = np.average(select_gal_hal_mass[i][1][indices])
+#         sel_medHMperSM[i,j] = np.median(select_gal_hal_mass[i][1][indices])
