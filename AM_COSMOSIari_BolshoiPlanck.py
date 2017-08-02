@@ -80,10 +80,10 @@ smf = []
 for i in range(10):
     smf.append(np.loadtxt(
         # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-        # '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
-        # + str(i) + '.dat')
-        '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
+        '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
         + str(i) + '.dat')
+        # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
+        # + str(i) + '.dat')
     )
 
 """Compute Galaxy Cumulative Density

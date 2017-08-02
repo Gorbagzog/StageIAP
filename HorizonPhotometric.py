@@ -34,7 +34,6 @@ numzbin = np.size(zbins_Cone)-1
 Htrue = [None]*(numzbin-1)
 # The Photometric catalogs stops at z=3, so no need to take the last section of the lightcone.
 for i in range(numzbin-1):
-#for i in [2]:
     with pyfits.open('../Data/HorizonAGNLaigleCatalogs/Galaxies_' +
                      str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits') as data:
         Htrue[i] = pd.DataFrame(data[1].data)
@@ -42,6 +41,7 @@ for i in range(numzbin-1):
         Htrue[i].loc[:, 'zbin'] = i
 
 Htrue = pd.concat((Htrue[i] for i in range(numzbin-1))).reset_index()
+Htrue.rename(columns={'index': 'True_gal_idx'}, inplace=True)
 end = timer()
 print(end - start)
 # Htrue = Htrue.sort_values('Ra')
@@ -52,7 +52,6 @@ print(end - start)
 Hhalo = [None]*(numzbin-1)
 # The Photometric catalogs stops at z=3, so no need to take the last section of the lightcone.
 for i in range(numzbin-1):
-#for i in [2]:
     with pyfits.open('../Data/HorizonAGNLaigleCatalogs/Haloes_' +
                      str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits') as data:
         Hhalo[i] = pd.DataFrame(data[1].data)
@@ -151,11 +150,11 @@ for idx_phot in range(Hphoto.shape[0]):
 
 df_tmp = [None]*(numzbin-1)
 for i in range(numzbin-1):
-#for i in [2]:
     # for each redshift bin, gives the idx of the observed central galaxy of the halo
     # df_tmp[i] = Htrue[Htrue.zbin==i]['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
     # df_tmp[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
-    df_tmp[i] = Htrue[Htrue.zbin==i].reset_index()['Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
+    df_tmp[i] = Htrue[Htrue.zbin == i].reset_index()[
+        'Photo_gal_idx'][hal_centgal[i] - 1].reset_index()
     df_tmp[i].rename(columns={'index': 'Central_gal_idx'}, inplace=True)
 
 # Concat all bins and add the columns to the Hhalo dataframe
@@ -165,44 +164,51 @@ Hhalo = pd.concat([Hhalo, df_tmp2], axis=1)
 
 """Plot Halo Mass vs Observed Central Galaxies Mass"""
 
-for i in range(numzbin-1):
-    plt.figure()
-    plt.hist2d(
-        np.log10(Hhalo['Mass'].loc[
-            (Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
-            * 10**11),
-        Hphoto['Mass'].iloc[Hhalo[Hhalo['zbin'] == i]['Photo_gal_idx'].dropna()],
-        bins=100,
-        cmin=1,
-        range=[[10, 14.5], [7, 12]])
-    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
-    plt.ylabel('Observed Log($M_{*}$) [Log($M_{\odot}$)]', size=15)
-    plt.title('Observed central gal in halos, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ObsMass_HaloMass' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+# for i in range(numzbin-1):
+#     plt.figure()
+#     plt.hist2d(
+#         np.log10(Hhalo['Mass'].loc[
+#             (Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
+#             * 10**11),
+#         Hphoto['Mass'].iloc[Hhalo[Hhalo['zbin'] == i]['Photo_gal_idx'].dropna()],
+#         bins=100,
+#         cmin=1,
+#         range=[[10, 14.5], [7, 12]])
+#     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+#     plt.ylabel('Observed Log($M_{*}$) [Log($M_{\odot}$)]', size=15)
+#     plt.title('Observed central gal in halos, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+#     plt.savefig('../Plots/HAGN_Matching/ObsMass_HaloMass' +
+#                 str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+# for i in range(numzbin-1):
+#     plt.figure()
+#     tmp = Hhalo[['Mass', 'Photo_gal_idx']].loc[
+#         (Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())
+#         ]
+#     plt.hist2d(
+#         np.log10(tmp.Mass * 10**11),
+#         Hphoto['Mass'].iloc[tmp.Photo_gal_idx],
+#         bins=100,
+#         cmin=1,
+#         range=[[10, 14.5], [7, 12]])
+#     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+#     plt.ylabel('Observed Log($M_{*}$) [Log($M_{\odot}$)]', size=15)
+#     plt.title('Observed central gal in halos, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+#     plt.savefig('../Plots/HAGN_Matching/ObsMass_HaloMass' +
+#                 str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+""" Plot M*(Mh) HAGN with COSMOS to Compare"""
 
 for i in range(numzbin-1):
     plt.figure()
+    tmp = Hhalo[['Mass', 'Central_gal_idx']].loc[
+        (Hhalo['zbin'] == i) & (Hhalo['Central_gal_idx'] >= 0)
+        ]
     plt.hist2d(
-        np.log10(Hhalo['Mass'].loc[
-            (Hhalo['zbin'] == i) & (Hhalo['Central_gal_idx'] >= 0)] * 10**11),
-        np.log10(Htrue[Htrue.zbin == i]['Mass'].iloc[
-            Hhalo['Central_gal_idx'].loc[(Hhalo['zbin'] == i) & (Hhalo['Central_gal_idx'] >= 0)]]*10**11),
+        np.log10(tmp.Mass * 10**11),
+        np.log10(Htrue[Htrue.zbin == i]['Mass'].iloc[tmp.Central_gal_idx]*10**11),
         bins=100,
         cmin=1,
         range=[[10, 14.5], [7, 12]])
 
-
-Hphoto.loc[Hphoto.index.isin(Hhalo[Hhalo['zbin']==i]['Photo_gal_idx'])]
-
-test = Hhalo[['Mass', 'Photo_gal_idx']].loc[(Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
-
-for i in range(numzbin-1):
-    plt.figure()
-    test = Hhalo[['Mass', 'Photo_gal_idx']].loc[(Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
-    plt.hist2d(
-        np.log10(test['Mass'] * 10**11),
-        Hphoto['Mass'].iloc[test.Photo_gal_idx],
-        bins=100,
-        cmin=1,
-        range=[[10, 14.5], [7, 12]])
