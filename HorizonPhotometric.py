@@ -33,8 +33,8 @@ zbins_Cone = np.array([0, 1, 2, 3, 6])
 numzbin = np.size(zbins_Cone)-1
 Htrue = [None]*(numzbin-1)
 # The Photometric catalogs stops at z=3, so no need to take the last section of the lightcone.
-#for i in range(1:numzbin-1):
-for i in [2]:
+for i in range(numzbin-1):
+#for i in [2]:
     with pyfits.open('../Data/HorizonAGNLaigleCatalogs/Galaxies_' +
                      str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'.fits') as data:
         Htrue[i] = pd.DataFrame(data[1].data)
@@ -166,10 +166,11 @@ Hhalo = pd.concat([Hhalo, df_tmp2], axis=1)
 """Plot Halo Mass vs Observed Central Galaxies Mass"""
 
 for i in range(numzbin-1):
-#for i in [2]:
     plt.figure()
     plt.hist2d(
-        np.log10(Hhalo[Hhalo['zbin'] == i]['Mass'].loc[(Hhalo[Hhalo['zbin'] == i]['Photo_gal_idx'].notnull())] * 10**11),
+        np.log10(Hhalo['Mass'].loc[
+            (Hhalo['zbin'] == i) & (Hhalo['Photo_gal_idx'].notnull())]
+            * 10**11),
         Hphoto['Mass'].iloc[Hhalo[Hhalo['zbin'] == i]['Photo_gal_idx'].dropna()],
         bins=100,
         cmin=1,
@@ -177,8 +178,8 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
     plt.ylabel('Observed Log($M_{*}$) [Log($M_{\odot}$)]', size=15)
     plt.title('Observed central gal in halos, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HorizonAGN/ObservedCat/ObsMass_HaloMass' +
-    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    plt.savefig('../Plots/HAGN_Matching/ObsMass_HaloMass' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 for i in range(numzbin-1):
     plt.figure()
