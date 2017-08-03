@@ -67,32 +67,105 @@ Maybe we should also take into account the third dimension, to have
 a better match. But it will give more importance to the error in redshift
 in the observed catalog."""
 
+# galdata_allz = np.concatenate((galdata[0], galdata[1], galdata[2]))
+
+# start = timer()
+
+# kdtree = cKDTree(np.transpose([galdata_allz['Ra'], galdata_allz['Dec']]))
+# obstotrue = np.apply_along_axis(kdtree.query, 0, [galphot['Ra'], galphot['Dec']])
+# obstotrue[1][:] = obstotrue[1][:].astype('int')
+# # add index of true gal corresponding to each observed gal
+# galphot = rfn.append_fields(galphot, ['Distance', 'True_gal_idx'],  obstotrue, usemask=False)
+
+# # add index of observed gal to each true gal
+# truetoobs = np.empty(galdata_allz.shape)
+# truetoobs[:] = np.nan
+# for idx_obs in range(len(obstotrue[0])):
+#     truetoobs[obstotrue[1][idx_obs].astype('int')] = idx_obs
+
+# galdata_allz = rfn.append_fields(galdata_allz, 'Obs_gal_idx',  truetoobs, usemask=False)
+
+
+# end = timer()
+# print('Positional match took :' + str(end - start))
+
+"""Use the match Catalaog of Clotilde"""
+
 galdata_allz = np.concatenate((galdata[0], galdata[1], galdata[2]))
 
-start = timer()
+obstotrue = np.loadtxt('../Data/HorizonAGNLightconePhotometric/Match.dat')
 
-kdtree = cKDTree(np.transpose([galdata_allz['Ra'], galdata_allz['Dec']]))
-obstotrue = np.apply_along_axis(kdtree.query, 0, [galphot['Ra'], galphot['Dec']]),
-obstotrue[1][:] = obstotrue[1][:].astype('int')
-# add index of true gal corresponding to each observed gal
-galphot = rfn.append_fields(galphot, ['Distance', 'True_gal_idx'],  obstotrue, usemask=False)
+obstotrue = obstotrue[:, 1] - 1
 
 # add index of observed gal to each true gal
 truetoobs = np.empty(galdata_allz.shape)
 truetoobs[:] = np.nan
-for idx_obs in range(len(obstotrue[0])):
-    truetoobs[obstotrue[1][idx_obs].astype('int')] = idx_obs
+for idx_obs in range(len(obstotrue)):
+    truetoobs[obstotrue[idx_obs].astype('int')] = idx_obs
 
 galdata_allz = rfn.append_fields(galdata_allz, 'Obs_gal_idx',  truetoobs, usemask=False)
 
 
-end = timer()
-print('Positional match took :' + str(end - start))
+
+"""Compute median, average and percentiles"""
+
+
+stellarmassbins = np.linspace(8.1, 12, num=100)
+avHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
+medHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
+for i in range(numzbin):
+    for j in range(np.size(stellarmassbins)-1):
+        m1 = stellarmassbins[j]
+        m2 = stellarmassbins[j+1]
+        # select indices of central galaxies with a mass
+        # between m1 and m2 :
+        # TODO : attention à l'indice 0 qui doit être enlevé
+        indices = np.where(
+            np.logical_and(
+                np.logical_and(
+                    np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) > m1,
+                    np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) <= m2
+                    ),
+                hal_centgal[i] > 0
+            )
+        )
+        avHMperSM[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
+        medHMperSM[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
+
+
+# stellarmassbins = np.linspace(8.1, 12, num=100)
+# first_per = np.zeros([numzbin, np.size(stellarmassbins)-1])
+# last_per = np.zeros([numzbin, np.size(stellarmassbins)-1])
+
+# for i in range(numzbin):
+#     for j in range(np.size(stellarmassbins)-1):
+#         m1 = stellarmassbins[j]
+#         m2 = stellarmassbins[j+1]
+#         # select indices of central galaxies with a mass
+#         # between m1 and m2 :
+#         indices = np.where(
+#             np.logical_and(
+#                 np.logical_and(
+#                     np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) > m1,
+#                     np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) <= m2
+#                     ),
+#                 hal_centgal[i] > 0
+#             )
+#         )
+#         if indices[0].size : #check if the array is not empty
+#             first_per[i,j] = np.percentile(np.log10(
+#             halodata[i]['Mass'][gal_mainhaloes[i][centGalInCentHalo[i][indices]]-1]*10**11), 10)
+#             last_per[i,j] = np.percentile(np.log10(
+#             halodata[i]['Mass'][gal_mainhaloes[i][centGalInCentHalo[i][indices]]-1]*10**11), 90)
+#         else:
+#             first_per[i,j] = numpy.nan
+#             last_per[i,j] = numpy.nan
+
 
 
 """Plot Ms(Mh) for true galaxies"""
 
-for i in range(4):
+for i in range(numzbin):
     plt.figure()
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
     # verification that all galaxies selected are central
@@ -102,6 +175,10 @@ for i in range(4):
         np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
         bins=100, cmin=1)
     plt.colorbar()
+    plt.scatter(avHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
+                color='black', label='Average HM for a given SM')
+    plt.scatter(medHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
+                color='pink', label='Median HM for a given SM')
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, hal_centralgal_new, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
@@ -131,5 +208,3 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, hal_centralgal_new, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-
-
