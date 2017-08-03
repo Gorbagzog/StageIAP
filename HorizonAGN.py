@@ -553,8 +553,8 @@ for i in range(numzbin):
         m2 = stellarmassbins[j+1]
         ## select indices of central galaxies with a mass
         ## between m1 and m2 :
-        indices = np.where(np.logical_and(np.log10(
-            galdata[i]['Mass'][centGalInCentHalo[i][:]]*10**11)>m1,
+        indices = np.where(np.logical_and(
+            np.log10(galdata[i]['Mass'][centGalInCentHalo[i][:]]*10**11)>m1,
             np.log10(galdata[i]['Mass'][centGalInCentHalo[i][:]]*10**11)<=m2))
         if indices[0].size : #check if the array is not empty
             first_per[i,j] = np.percentile(np.log10(
@@ -565,7 +565,7 @@ for i in range(numzbin):
             first_per[i,j] = numpy.nan
             last_per[i,j] = numpy.nan
 
-## Create the array containing the galaxy mass and the halo mass corresponding.
+# Create the array containing the galaxy mass and the halo mass corresponding.
 gal_hal_mass=[]
 for i in range(numzbin):
     gal_hal_mass.append(np.stack(
@@ -575,7 +575,7 @@ for i in range(numzbin):
     gal_hal_mass[i][:,gal_hal_mass[i][0,:].argsort()] #sort by galaxy mass
 
 
-##Select galaxies and haoes inside the percentiles
+# Select galaxies and haoes inside the percentiles
 
 select_gal_hal_mass = []
 for i in range(numzbin):

@@ -187,14 +187,18 @@ stellarmassbins = np.linspace(8.1, 12, num=100)
 avHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
 medHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
 
-for i in range(numzbin):
+for i in range(numzbin-1):
     for j in range(np.size(stellarmassbins)-1):
         m1 = stellarmassbins[j]
         m2 = stellarmassbins[j+1]
-        HtrueMassSelec = Htrue[Htrue.zbin == i].loc[
-            Htrue[Htrue.zbin == i]['True_gal_idx'].isin(Hhalo[Hhalo.zbin == i]['Central_gal_idx']),
+        HtrueMassSelec = Htrue[Htrue.zbin == i]['Mass'].iloc[
+            Hhalo[Hhalo.zbin == i]['Central_gal_idx']].reset_index()
+        # HtrueMassSelec.rename(columns={'index': 'Central_gal_idx'})
+        tmp = Hhalo[Hhalo.zbin == i].loc[
+            (HtrueMassSelec.Mass >= 10**(m1-11)) & (HtrueMassSelec.Mass < 10**(m2-11)),
             'Mass']
-        Hhalo.loc[(HtrueMassSelec >= 10**(m1-11)) & (HtrueMassSelec < 10**(m2-11)), '']
+        avHMperSM[i, j] = tmp.average()
+        medHMperSM[i, j] = tmp.median()
 # NOT WORKING
 
 # for i in range(4):
