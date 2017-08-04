@@ -95,6 +95,7 @@ galdata_allz = np.concatenate((galdata[0], galdata[1], galdata[2]))
 
 obstotrue = np.loadtxt('../Data/HorizonAGNLightconePhotometric/Match.dat')
 
+# I prefer to work with index (starts at 0) than with ID (starts at 1)
 obstotrue = obstotrue[:, 1] - 1
 
 # add index of observed gal to each true gal
@@ -196,6 +197,30 @@ for i in range(numzbin-1):
 #             first_per[i,j] = numpy.nan
 #             last_per[i,j] = numpy.nan
 
+"""Compute average and median Ms for a given Mh"""
+
+massbins = np.linspace(10, 15, num=100)
+avSMperHM = np.zeros([numzbin, np.size(massbins)-1])
+medSMperHM = np.zeros([numzbin, np.size(massbins)-1])
+
+for i in range(4):
+    for j in range(np.size(massbins)-1):
+        m1 = massbins[j]
+        m2 = massbins[j+1]
+        # select indices of galaxies contained in the haloes with a mass
+        # between m1 and m2 :
+        indices = np.where(np.logical_and(
+            np.log10(halodata[i]['Mass']*10**11) > m1,
+            np.log10(halodata[i]['Mass']*10**11) <= m2))[0]
+        # indices_cent = np.intersect1d(indices, halodata[i]['level'] == 1)
+        if len(indices)>0:
+            avSMperHM[i, j] = np.average(
+                np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11))
+            medSMperHM[i, j] = np.median(
+                np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11))
+        else:
+            avSMperHM[i, j] = np.nan
+            medSMperHM[i, j] = np.nan
 
 """Plot Ms(Mh) for true galaxies and level 1 halos"""
 
@@ -209,6 +234,10 @@ for i in range(numzbin):
         np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
         bins=100, cmin=1)
     plt.colorbar()
+    plt.scatter((massbins[:-1]+massbins[1:])/2, avSMperHM[i][:], color='red',
+                label='Average SM for a given HM')
+    plt.scatter((massbins[:-1]+massbins[1:])/2, medSMperHM[i][:],
+                color='green', label='Median SM for a given HM')
     plt.scatter(avHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
                 color='black', label='Average HM for a given SM')
     plt.scatter(medHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
@@ -217,7 +246,7 @@ for i in range(numzbin):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/ObsMass_HaloMass' +
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/TrueMass_HaloMass' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
@@ -275,3 +304,143 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
     plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
     plt.title('H-AGN, Central gal and level 1 halos')
+
+
+"""Plot sSFR vs Mh for true catalogs"""
+
+for i in range(numzbin):
+    plt.figure()
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    # verification that all galaxies selected are central
+    # print(galdata[i]['level'][hal_centgal[i][indices]-1].min())
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galdata[i]['SFRCorr'][hal_centgal[i][indices]-1] /
+                 (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
+        bins=100, cmin=1, range=[[10, 14], [-12, -8]])
+    plt.colorbar()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Log(sSFR) [Log($yr^{-1}$)]', size=12)
+    plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatch/TrueSpecificSFR_HaloMass' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+# TODO : compute median sSFR for true and photo galaxies
+
+"""Plot SFR vs Mh for photo catalogs"""
+
+# TODO plot only for Ms > 10**9
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+            ] > 0
+        )
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galphot['SFR'][
+            galdata_allz['Obs_gal_idx'][
+                hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+            ].astype('int')
+        ]),
+        bins=100, cmin=1)
+    plt.colorbar()
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Log(SFR) Photometric [Log($M_{\odot}/yr$)]', size=12)
+    plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoSFR_HaloMass' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+"""PLot sSFR vs Mh for photo cat"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+            ] > 0
+        )
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galphot['SFR'][
+            galdata_allz['Obs_gal_idx'][
+                hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+            ].astype('int')
+        ] / 10**(galphot['Mass'][
+            galdata_allz['Obs_gal_idx'][
+                hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+            ].astype('int')])
+        ),
+        bins=100, cmin=1, range=[[10, 14], [-13.5, -6.5]])
+    plt.colorbar()
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Log(sSFR) Photometric [Log($yr^{-1}$)]', size=12)
+    plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoSpecificSFR_HaloMass' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Gas Met vs Mh for photo catalog"""
+
+# Load gas mass and gas met
+gas_mass, gas_met = np.loadtxt('../Data/HorizonAGNLightconePhotometric/GasInfo.dat', unpack=True)
+
+# Add a column with gas mass and metalicity in galphot catalog
+
+galphot = rfn.append_fields(galphot, 'Gas_mass',  gas_mass, usemask=False)
+galphot = rfn.append_fields(galphot, 'Gas_met',  gas_met, usemask=False)
+
+
+def boost(z):
+    """Boost the metalicity of gas and stars because of the low resolution of H-AGN."""
+    return 4.08430 - 0.213574 * z - 0.111197 * z**2
+
+
+# Compute boosted Metalicity for photometric catalog
+gas_met_boost = np.empty(gas_met.shape)
+for idx_phot in range(len(gas_met_boost)):
+    gas_met_boost[idx_phot] = gas_met[idx_phot] * boost(
+        galdata_allz['z'][obstotrue[idx_phot].astype('int')])
+
+# Add a column on gal_phot
+galphot = rfn.append_fields(galphot, 'Gas_met_boost',  gas_met_boost, usemask=False)
+
+"""Plot Gas metalicity vs Mh"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+            ] > 0
+        )
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphot['Gas_met_boost'][
+            galdata_allz['Obs_gal_idx'][
+                hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+            ].astype('int')
+        ],
+        bins=100, cmin=1)
+    plt.colorbar()
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Gas Metalicity Photometric', size=12)
+    plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+
+
+
+"""Plot Stellar Met vs Mh for true and photo catalogs"""
