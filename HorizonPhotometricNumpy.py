@@ -99,17 +99,16 @@ obstotrue = obstotrue[:, 1] - 1
 
 # add index of observed gal to each true gal
 truetoobs = np.empty(galdata_allz.shape)
-truetoobs[:] = np.nan
+truetoobs[:] = -1
 for idx_obs in range(len(obstotrue)):
     truetoobs[obstotrue[idx_obs].astype('int')] = idx_obs
 
 galdata_allz = rfn.append_fields(galdata_allz, 'Obs_gal_idx',  truetoobs, usemask=False)
 
 
-
 """Compute median, average and percentiles"""
 
-
+# For true catalog
 stellarmassbins = np.linspace(8.1, 12, num=100)
 avHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
 medHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
@@ -119,7 +118,6 @@ for i in range(numzbin):
         m2 = stellarmassbins[j+1]
         # select indices of central galaxies with a mass
         # between m1 and m2 :
-        # TODO : attention à l'indice 0 qui doit être enlevé
         indices = np.where(
             np.logical_and(
                 np.logical_and(
@@ -131,6 +129,38 @@ for i in range(numzbin):
         )
         avHMperSM[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
         medHMperSM[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
+
+# TODO : For photometric catalog
+
+
+stellarmassbins = np.linspace(8.1, 12, num=100)
+avHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
+medHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
+for i in range(numzbin-1):
+    for j in range(np.size(stellarmassbins)-1):
+        m1 = stellarmassbins[j]
+        m2 = stellarmassbins[j+1]
+        # select indices of central galaxies with a mass
+        # between m1 and m2 :
+        indices = np.where(
+            np.logical_and(
+                np.logical_and(
+                    hal_centgal[i] > 0,
+                    galdata_allz['Obs_gal_idx'][
+                        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                    ] > 0
+                ),
+                np.logical_and(
+                    galphot['Mass'][
+                        galdata_allz['Obs_gal_idx'][hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))].astype('int')] > m1,
+                    galphot['Mass'][
+                        galdata_allz['Obs_gal_idx'][hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))].astype('int')] <= m2
+                ),
+            )
+        )
+        avHMperSMPhot[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
+        medHMperSMPhot[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
+
 
 
 # stellarmassbins = np.linspace(8.1, 12, num=100)
@@ -162,8 +192,7 @@ for i in range(numzbin):
 #             last_per[i,j] = numpy.nan
 
 
-
-"""Plot Ms(Mh) for true galaxies"""
+"""Plot Ms(Mh) for true galaxies and level 1 halos"""
 
 for i in range(numzbin):
     plt.figure()
@@ -179,21 +208,22 @@ for i in range(numzbin):
                 color='black', label='Average HM for a given SM')
     plt.scatter(medHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
                 color='pink', label='Median HM for a given SM')
+    plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, hal_centralgal_new, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
 
 
-"""Plot Ms_observed(Mh)"""
+"""Plot Ms_observed(Mh) and level 1 halos"""
 
 for i in range(numzbin-1):
     plt.figure()
     indices = np.where(
         np.logical_and(
             np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
-            ~np.isnan(galdata_allz['Obs_gal_idx'][
+            galdata_allz['Obs_gal_idx'][
                     hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
-            ])
+            ] > 0
         )
     )
     plt.hist2d(
@@ -203,8 +233,15 @@ for i in range(numzbin-1):
                     hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
                 ].astype('int')
         ],
-        bins=100, cmin=1, range=[[10, 14],[ 8, 12]])
+        bins=100, cmin=1, range=[[10, 14], [8, 12]])
     plt.colorbar()
+    plt.scatter(avHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
+                color='black', label='Average HM for a given SM')
+    plt.scatter(medHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
+                color='pink', label='Median HM for a given SM')
+    plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
-    plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
-    plt.title('HorizonAGN, hal_centralgal_new, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.ylabel('Log($M_{*}$) Photometric [Log($M_{\odot}$)]', size=12)
+    plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoMass_HaloMass' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
