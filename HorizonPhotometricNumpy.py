@@ -89,7 +89,7 @@ in the observed catalog."""
 # end = timer()
 # print('Positional match took :' + str(end - start))
 
-"""Use the match Catalaog of Clotilde"""
+"""Use the match Catalog of Clotilde"""
 
 galdata_allz = np.concatenate((galdata[0], galdata[1], galdata[2]))
 
@@ -135,6 +135,7 @@ for i in range(numzbin):
 stellarmassbins = np.linspace(9, 12, num=100)
 avHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
 medHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
+stdHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
 for i in range(numzbin-1):
     for j in range(np.size(stellarmassbins)-1):
         m1 = stellarmassbins[j]
@@ -167,7 +168,7 @@ for i in range(numzbin-1):
         )
         avHMperSMPhot[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
         medHMperSMPhot[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
-
+        stdHMperSMPhot[i, j] = np.std(np.log10(halodata[i]['Mass'][indices] * 10**11))
 
 # stellarmassbins = np.linspace(8.1, 12, num=100)
 # first_per = np.zeros([numzbin, np.size(stellarmassbins)-1])
@@ -213,7 +214,7 @@ for i in range(4):
             np.log10(halodata[i]['Mass']*10**11) > m1,
             np.log10(halodata[i]['Mass']*10**11) <= m2))[0]
         # indices_cent = np.intersect1d(indices, halodata[i]['level'] == 1)
-        if len(indices)>0:
+        if len(indices) > 0:
             avSMperHM[i, j] = np.average(
                 np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11))
             medSMperHM[i, j] = np.median(
@@ -269,12 +270,13 @@ for i in range(numzbin-1):
                     hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
                 ].astype('int')
         ],
-        bins=100, cmin=1, range=[[10, 14], [8, 12]])
+        bins=600, cmin=1, range=[[10, 14], [9, 12]])
     plt.colorbar()
-    plt.scatter(avHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
-                color='black', label='Average HM for a given SM')
-    plt.scatter(medHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
-                color='pink', label='Median HM for a given SM')
+    plt.errorbar(avHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
+                 xerr=stdHMperSMPhot[i],
+                 color='red', label='Average HM for a given SM')
+    # plt.scatter(medHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
+    #             color='pink', label='Median HM for a given SM')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) Photometric [Log($M_{\odot}$)]', size=12)
@@ -296,9 +298,49 @@ for i in range(numzbin-1):
     )
     plt.scatter(
         medHMperSMPhot[i],
-        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
+        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
         label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
         edgecolors=cmap[i], facecolors=cmap[i]
+    )
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+    plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
+    plt.title('H-AGN, Central gal and level 1 halos')
+
+
+"""Plot Ms/Mh for photometric catalog and with median found with Ms(Mh)"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            np.logical_and(
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                ] > 0,
+                galphot['Mass'][
+                    galdata_allz['Obs_gal_idx'][
+                        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                    ].astype('int')
+                ] > 9
+            )
+        )
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphot['Mass'][
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+                ].astype('int')
+        ] - np.log10(halodata[i]['Mass'][indices]*10**11),
+        bins=500, cmin=1, range=[[10, 14], [-2, -0.3]]
+    )
+    plt.plot(
+        medHMperSMPhot[i],
+        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
+        label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
+        color='red'
     )
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
@@ -415,6 +457,52 @@ for idx_phot in range(len(gas_met_boost)):
 # Add a column on gal_phot
 galphot = rfn.append_fields(galphot, 'Gas_met_boost',  gas_met_boost, usemask=False)
 
+"""Compute Median Metalicity per halo mass and 68% interval."""
+
+massbins = np.linspace(10, 15, num=100)
+medMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+avMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+stdMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+# supMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+# infMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+
+for i in range(numzbin-1):
+    indices_selec = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            np.logical_and(
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                ] > 0,
+                galphot['Gas_met_boost'][
+                    galdata_allz['Obs_gal_idx'][
+                        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                    ].astype('int')
+                ]
+            )
+        )
+    )
+    gal_gasmet = galphot['Gas_met_boost'][
+            galdata_allz['Obs_gal_idx'][
+                hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+            ].astype('int')]
+    for j in range(np.size(massbins)-1):
+        m1 = massbins[j]
+        m2 = massbins[j+1]
+        indices = np.where(np.logical_and(
+            np.log10(halodata[i]['Mass']*10**11) > m1,
+            np.log10(halodata[i]['Mass']*10**11) <= m2))[0]
+        indices = np.intersect1d(indices_selec, indices)
+        if len(indices) > 0:
+            avMetperHM[i, j] = np.average(gal_gasmet[indices])
+            medMetperHM[i, j] = np.median(gal_gasmet[indices])
+            stdMetperHM[i, j] = np.std(gal_gasmet[indices])
+        else:
+            avMetperHM[i, j] = np.nan
+            medMetperHM[i, j] = np.nan
+            stdMetperHM[i, j] = np.nan
+
+
 """Plot Gas metalicity vs Mh"""
 
 for i in range(numzbin-1):
@@ -422,9 +510,16 @@ for i in range(numzbin-1):
     indices = np.where(
         np.logical_and(
             np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
-            galdata_allz['Obs_gal_idx'][
+            np.logical_and(
+                galdata_allz['Obs_gal_idx'][
                     hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
-            ] > 0
+                ] > 0,
+                galphot['Gas_met_boost'][
+                    galdata_allz['Obs_gal_idx'][
+                        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                    ].astype('int')
+                ]
+            )
         )
     )
     plt.hist2d(
@@ -436,11 +531,23 @@ for i in range(numzbin-1):
         ],
         bins=100, cmin=1)
     plt.colorbar()
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHM[i],
+             color='red', label='Average Metalicity for a given HM, $\pm 1\sigma$')
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHM[i] + stdMetperHM[i],
+             color='red', linestyle='--')
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHM[i] - stdMetperHM[i],
+             color='red', linestyle='--')
+
+    # plt.errorbar((massbins[:-1]+massbins[1:])/2, avMetperHM[i][:],
+    #              color='red', yerr=stdMetperHM[i],
+    #              label='Average Metalicity for a given HM')
+    # plt.scatter((massbins[:-1]+massbins[1:])/2, medMetperHM[i][:],
+    #             color='green', label='Median Metalicity for a given HM')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
-    plt.ylabel('Gas Metalicity Photometric', size=12)
-    plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-
-
+    plt.ylabel('Gas Metalicity', size=12)
+    plt.title('Photometric HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatch/GasMet/gasmet_' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """Plot Stellar Met vs Mh for true and photo catalogs"""
