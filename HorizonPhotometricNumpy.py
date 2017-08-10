@@ -107,7 +107,7 @@ for idx_obs in range(len(obstotrue)):
 galdata_allz = rfn.append_fields(galdata_allz, 'Obs_gal_idx',  truetoobs, usemask=False)
 
 
-"""Compute median, average and percentiles"""
+"""Compute median, average and percentiles for masses."""
 
 # For true catalog
 stellarmassbins = np.linspace(9, 12, num=100)
@@ -460,9 +460,9 @@ galphot = rfn.append_fields(galphot, 'Gas_met_boost',  gas_met_boost, usemask=Fa
 """Compute Median Metalicity per halo mass and 68% interval."""
 
 massbins = np.linspace(10, 15, num=100)
-medMetperHM = np.zeros([numzbin, np.size(massbins)-1])
-avMetperHM = np.zeros([numzbin, np.size(massbins)-1])
-stdMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+medMetperHMPhot = np.zeros([numzbin, np.size(massbins)-1])
+avMetperHMPhot = np.zeros([numzbin, np.size(massbins)-1])
+stdMetperHMPhot = np.zeros([numzbin, np.size(massbins)-1])
 # supMetperHM = np.zeros([numzbin, np.size(massbins)-1])
 # infMetperHM = np.zeros([numzbin, np.size(massbins)-1])
 
@@ -494,17 +494,18 @@ for i in range(numzbin-1):
             np.log10(halodata[i]['Mass']*10**11) <= m2))[0]
         indices = np.intersect1d(indices_selec, indices)
         if len(indices) > 0:
-            avMetperHM[i, j] = np.average(gal_gasmet[indices])
-            medMetperHM[i, j] = np.median(gal_gasmet[indices])
-            stdMetperHM[i, j] = np.std(gal_gasmet[indices])
+            avMetperHMPhot[i, j] = np.average(gal_gasmet[indices])
+            medMetperHMPhot[i, j] = np.median(gal_gasmet[indices])
+            stdMetperHMPhot[i, j] = np.std(gal_gasmet[indices])
         else:
-            avMetperHM[i, j] = np.nan
-            medMetperHM[i, j] = np.nan
-            stdMetperHM[i, j] = np.nan
+            avMetperHMPhot[i, j] = np.nan
+            medMetperHMPhot[i, j] = np.nan
+            stdMetperHMPhot[i, j] = np.nan
 
 
-"""Plot Gas metalicity vs Mh"""
+"""Plot Gas metalicity vs Mh for photo galaxies"""
 
+# TODO: problem with certain galaxies having a gas metalicity of 0
 for i in range(numzbin-1):
     plt.figure()
     indices = np.where(
@@ -531,17 +532,17 @@ for i in range(numzbin-1):
         ],
         bins=100, cmin=1)
     plt.colorbar()
-    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHM[i],
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i],
              color='red', label='Average Metalicity for a given HM, $\pm 1\sigma$')
-    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHM[i] + stdMetperHM[i],
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] + stdMetperHMPhot[i],
              color='red', linestyle='--')
-    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHM[i] - stdMetperHM[i],
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] - stdMetperHMPhot[i],
              color='red', linestyle='--')
 
-    # plt.errorbar((massbins[:-1]+massbins[1:])/2, avMetperHM[i][:],
-    #              color='red', yerr=stdMetperHM[i],
+    # plt.errorbar((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i][:],
+    #              color='red', yerr=stdMetperHMPhot[i],
     #              label='Average Metalicity for a given HM')
-    # plt.scatter((massbins[:-1]+massbins[1:])/2, medMetperHM[i][:],
+    # plt.scatter((massbins[:-1]+massbins[1:])/2, medMetperHMPhot[i][:],
     #             color='green', label='Median Metalicity for a given HM')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
@@ -550,4 +551,132 @@ for i in range(numzbin-1):
     plt.savefig('../Plots/HAGN_Matching/ClotMatch/GasMet/gasmet_' +
                 str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
-"""Plot Stellar Met vs Mh for true and photo catalogs"""
+"""Evolution of photometric Gas metalicity with redshift"""
+
+plt.figure()
+for i in range(numzbin-1):
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i],
+             label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.fill_between(
+        (massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] + stdMetperHMPhot[i],
+        avMetperHMPhot[i] - stdMetperHMPhot[i], alpha=0.3,
+        linestyle='--')
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Gas Metalicity', size=12)
+    plt.title('Photometric HorizonAGN Gas metalicity')
+    plt.tight_layout()
+
+"""Boost stellar metalicity in True catalog"""
+
+stellar_met_boost = np.empty(galdata_allz['met'].shape)
+for idx_true in range(len(stellar_met_boost)):
+    stellar_met_boost[idx_true] = galdata_allz['met'][idx_true] * boost(
+        galdata_allz['z'][idx_true])
+galdata_allz = rfn.append_fields(galdata_allz, 'Stellar_met_boost',
+                                 stellar_met_boost, usemask=False)
+
+"""Compute average of stellar metalicity and standard deviation"""
+
+massbins = np.linspace(10, 15, num=100)
+medMetperHMtrue = np.zeros([numzbin, np.size(massbins)-1])
+avMetperHMtrue = np.zeros([numzbin, np.size(massbins)-1])
+stdMetperHMtrue = np.zeros([numzbin, np.size(massbins)-1])
+# supMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+# infMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+
+for i in range(numzbin-1):
+    indices_selec = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    gal_stemet = galdata_allz['Stellar_met_boost'][
+        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))]
+    for j in range(np.size(massbins)-1):
+        m1 = massbins[j]
+        m2 = massbins[j+1]
+        indices = np.where(np.logical_and(
+            np.log10(halodata[i]['Mass']*10**11) > m1,
+            np.log10(halodata[i]['Mass']*10**11) <= m2))[0]
+        indices = np.intersect1d(indices_selec, indices)
+        if len(indices) > 0:
+            avMetperHMtrue[i, j] = np.average(gal_stemet[indices])
+            medMetperHMtrue[i, j] = np.median(gal_stemet[indices])
+            stdMetperHMtrue[i, j] = np.std(gal_stemet[indices])
+        else:
+            avMetperHMtrue[i, j] = np.nan
+            medMetperHMtrue[i, j] = np.nan
+            stdMetperHMtrue[i, j] = np.nan
+
+
+"""Plot Stellar Met vs Mh for photo catalogs"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galdata_allz['Stellar_met_boost'][
+            hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))],
+        bins=100, cmin=1
+    )
+    plt.colorbar()
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMtrue[i],
+             color='red', label='Average Metalicity for a given HM, $\pm 1\sigma$')
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMtrue[i] + stdMetperHMtrue[i],
+             color='red', linestyle='--')
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMtrue[i] - stdMetperHMtrue[i],
+             color='red', linestyle='--')
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Stellar Metalicity', size=12)
+    plt.title('Original HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/StellarMet/stellarmet_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Evolution of stellar metalicity with redshift"""
+
+plt.figure()
+for i in range(numzbin-1):
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMtrue[i],
+             label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.fill_between(
+        (massbins[:-1]+massbins[1:])/2, avMetperHMtrue[i] + stdMetperHMtrue[i],
+        avMetperHMtrue[i] - stdMetperHMtrue[i], alpha=0.3,
+        linestyle='--')
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Stellar Metalicity', size=12)
+    plt.title('Original HorizonAGN Stellar metalicity')
+    plt.tight_layout()
+
+
+
+"""Evolution of stellar metalicity with environment density"""
+
+
+# TODO
+
+
+"""Compare Photometric Gas Metalicity and Original Stellar Metalicity"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i],
+             color='green', label='Photometric Gas Metalicity $\pm 1\sigma$')
+    plt.fill_between(
+        (massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] + stdMetperHMPhot[i],
+        avMetperHMPhot[i] - stdMetperHMPhot[i], alpha=0.3,
+        color='green', linestyle='--')
+    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMtrue[i],
+             color='red', label='True Stellar Metalicity $\pm 1\sigma$')
+    plt.fill_between(
+        (massbins[:-1]+massbins[1:])/2, avMetperHMtrue[i] + stdMetperHMtrue[i],
+        avMetperHMtrue[i] - stdMetperHMtrue[i], alpha=0.3,
+        color='red', linestyle='--')
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Metalicity', size=12)
+    plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Gas+StellarMet/gas+stellarmet_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
