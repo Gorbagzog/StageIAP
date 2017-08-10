@@ -59,6 +59,26 @@ for i in range(np.size(zbins_Cone)-1):
                    str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_new.txt',
                    dtype='i4'))
 
+"""Load halos environment.
+Header is #dens dfil dnod1 dnod2.
+
+"dens" est une estimation de la densité locale (basée sur la tesselation de delaunay)
+lissée à 3Mpc, "dfiil" est la distance au filament le plus proche, "dnod1" est la distance
+au noeud le plus proche, et "dnod2" la distance au noeud le plus proche en suivant le
+filament. Les distances sont en Mpc.
+
+Si tu veux pour commencer, tu pourrais separer les halos en fonction de leur distance
+au filament et au noeud, e.g:
+Noeuds: dnod1 < 5Mpc
+Filament: dfil < 2 Mpc
+Walls/voids: le reste des galaxies """
+
+haloes_env = []
+for i in range(3):
+    haloes_env.append(
+        np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Haloes_' +
+                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_env.txt'))
+
 
 """Algorithm to find nearest value using a KDTree.
 
@@ -651,13 +671,6 @@ for i in range(numzbin-1):
     plt.tight_layout()
 
 
-
-"""Evolution of stellar metalicity with environment density"""
-
-
-# TODO
-
-
 """Compare Photometric Gas Metalicity and Original Stellar Metalicity"""
 
 for i in range(numzbin-1):
@@ -680,3 +693,144 @@ for i in range(numzbin-1):
     plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
     # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Gas+StellarMet/gas+stellarmet_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Compute average stellar met for a given halo local density"""
+
+
+densbins = np.linspace(-2.5, 1, num=100)
+medMetperHDtrue = np.zeros([numzbin, np.size(densbins)-1])
+avMetperHDtrue = np.zeros([numzbin, np.size(densbins)-1])
+stdMetperHDtrue = np.zeros([numzbin, np.size(densbins)-1])
+# supMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+# infMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+
+for i in range(numzbin-1):
+    indices_selec = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    gal_stemet = galdata_allz['Stellar_met_boost'][
+        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))]
+    for j in range(np.size(densbins)-1):
+        d1 = densbins[j]
+        d2 = densbins[j+1]
+        indices = np.where(np.logical_and(
+            np.log10(haloes_env[i][:, 0]) > d1,
+            np.log10(haloes_env[i][:, 0]) <= d2))[0]
+        indices = np.intersect1d(indices_selec, indices)
+        if len(indices) > 0:
+            avMetperHDtrue[i, j] = np.average(gal_stemet[indices])
+            medMetperHDtrue[i, j] = np.median(gal_stemet[indices])
+            stdMetperHDtrue[i, j] = np.std(gal_stemet[indices])
+        else:
+            avMetperHDtrue[i, j] = np.nan
+            medMetperHDtrue[i, j] = np.nan
+            stdMetperHDtrue[i, j] = np.nan
+
+
+"""Evolution of stellar metalicity with environment density"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+    )
+    plt.hist2d(
+        np.log10(haloes_env[i][indices, 0][0]),
+        galdata_allz['Stellar_met_boost'][
+            hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))],
+        bins=100, cmin=1
+    )
+    plt.colorbar()
+    plt.plot((densbins[:-1]+densbins[1:])/2, avMetperHDtrue[i],
+             color='red', label='Average Original Stellar Metalicity $\pm 1\sigma$')
+    plt.fill_between(
+        (densbins[:-1]+densbins[1:])/2, avMetperHDtrue[i] + stdMetperHDtrue[i],
+        avMetperHDtrue[i] - stdMetperHDtrue[i], alpha=0.3,
+        color='red', linestyle='--')
+    plt.legend()
+    plt.xlabel('Halo local density smoothed at 3Mpc (log)', size=12)
+    plt.ylabel('Stellar Metalicity', size=12)
+    plt.title('Original HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.tight_layout()
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/StellarMet/Stellarmet_Density_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+"""Density of haloes versus halo mass"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    # Comment this if you want to plot all haloes and not only central haloes with central galaxies
+    indices = np.where(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(haloes_env[i][indices, 0][0]),
+        bins=100, cmin=1
+    )
+    plt.colorbar()
+    plt.legend()
+    plt.xlabel('Halo Mass', size=12)
+    plt.ylabel('Halo local density', size=12)
+    plt.title('Original HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.tight_layout()
+
+
+"""Original Ms/Mh versus density"""
+
+# compute average and std deviation
+
+densbins = np.linspace(-2.5, 1, num=100)
+medMSMHperHDtrue = np.zeros([numzbin, np.size(densbins)-1])
+avMSMHperHDtrue = np.zeros([numzbin, np.size(densbins)-1])
+stdMSMHperHDtrue = np.zeros([numzbin, np.size(densbins)-1])
+# supMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+# infMetperHM = np.zeros([numzbin, np.size(massbins)-1])
+
+for i in range(numzbin-1):
+    indices_selec = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    for j in range(np.size(densbins)-1):
+        d1 = densbins[j]
+        d2 = densbins[j+1]
+        indices = np.where(np.logical_and(
+            np.log10(haloes_env[i][:, 0]) > d1,
+            np.log10(haloes_env[i][:, 0]) <= d2))[0]
+        indices = np.intersect1d(indices_selec, indices)
+        if len(indices) > 0:
+            avMSMHperHDtrue[i, j] = np.average(
+                np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
+                         halodata[i]['Mass'][indices]))
+            medMSMHperHDtrue[i, j] = np.median(
+                np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
+                         halodata[i]['Mass'][indices]))
+            stdMSMHperHDtrue[i, j] = np.std(
+                np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
+                         halodata[i]['Mass'][indices]))
+        else:
+            avMSMHperHDtrue[i, j] = np.nan
+            medMSMHperHDtrue[i, j] = np.nan
+            stdMSMHperHDtrue[i, j] = np.nan
+
+"""Plot"""
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    # indices = np.where(hal_centgal[i] > 0)
+    plt.hist2d(
+        np.log10(haloes_env[i][indices, 0][0]),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
+                 halodata[i]['Mass'][indices]),
+        bins=100, cmin=1)
+    plt.colorbar()
+    plt.plot((densbins[:-1]+densbins[1:])/2, avMSMHperHDtrue[i],
+             color='red', label='Average $\pm 1\sigma$')
+    plt.fill_between(
+        (densbins[:-1]+densbins[1:])/2, avMSMHperHDtrue[i] + stdMSMHperHDtrue[i],
+        avMSMHperHDtrue[i] - stdMSMHperHDtrue[i], alpha=0.3,
+        color='red', linestyle='--')
+    plt.legend()
+    plt.xlabel('Log(Halo density)', size=12)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=12)
+    plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatch/Density/dens_msmh' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
