@@ -477,6 +477,8 @@ for idx_phot in range(len(gas_met_boost)):
 # Add a column on gal_phot
 galphot = rfn.append_fields(galphot, 'Gas_met_boost',  gas_met_boost, usemask=False)
 
+plt.close('all')
+
 """Compute Median Metalicity per halo mass and 68% interval."""
 
 massbins = np.linspace(10, 15, num=100)
@@ -695,8 +697,9 @@ for i in range(numzbin-1):
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
-"""Compute average stellar met for a given halo local density"""
+plt.close('all')
 
+"""Compute average stellar met for a given halo local density"""
 
 densbins = np.linspace(-2.5, 1, num=100)
 medMetperHDtrue = np.zeros([numzbin, np.size(densbins)-1])
@@ -810,7 +813,7 @@ for i in range(numzbin-1):
             medMSMHperHDtrue[i, j] = np.nan
             stdMSMHperHDtrue[i, j] = np.nan
 
-"""Plot"""
+"""Plot Original Ms/Mh versus density"""
 for i in range(numzbin-1):
     plt.figure()
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
@@ -831,6 +834,30 @@ for i in range(numzbin-1):
     plt.xlabel('Log(Halo density)', size=12)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=12)
     plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatch/Density/dens_msmh' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Density/dens_msmh' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
+
+"""Plot Average SFR variation with stellar mass and number density of halos"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    # indices = np.where(hal_centgal[i] > 0)
+    plt.hexbin(
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        # np.log10(haloes_env[i][indices, 0][0]),
+        np.log10(haloes_env[i][indices, 3][0]),
+        C=np.log10(
+            galdata[i]['Mass'][
+                hal_centgal[i][indices] - 1] /
+            (halodata[i]['Mass'][indices])),
+        gridsize=60, mincnt=1, cmap='jet'
+        )
+    cb = plt.colorbar()
+    cb.set_label('Average Log(Ms/Mh)', size=12)
+    plt.ylabel('Distance to nearest filaments (log)', size=12)
+    plt.xlabel('Log(Stellar mass) [Log($M_{sun}$)]', size=12)
+    plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HorizonAGN/Nodes/node1_mass_MSMH_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
