@@ -840,24 +840,71 @@ for i in range(numzbin-1):
 
 """Plot Average SFR variation with stellar mass and number density of halos"""
 
+# TODO : do it with photometrci catalog to have the gas metallicity
+
 for i in range(numzbin-1):
     plt.figure()
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
     # indices = np.where(hal_centgal[i] > 0)
     plt.hexbin(
-        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
-        # np.log10(haloes_env[i][indices, 0][0]),
-        np.log10(haloes_env[i][indices, 3][0]),
-        C=np.log10(
-            galdata[i]['Mass'][
-                hal_centgal[i][indices] - 1] /
-            (halodata[i]['Mass'][indices])),
-        gridsize=60, mincnt=1, cmap='jet'
+        # np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galdata_allz['Mass'][
+            hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))] /
+            halodata[i]['Mass'][indices]),
+        np.log10(haloes_env[i][indices, 2][0]),
+        # C=np.log10(
+        #     galdata[i]['Mass'][
+        #         hal_centgal[i][indices] - 1] /
+        #     (halodata[i]['Mass'][indices])),
+        C=np.log10(galdata_allz['SFRcorr'][
+            hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))] /
+            (galdata_allz['Mass'][
+             hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))]*10**11)),
+        gridsize=60, mincnt=5, cmap='jet', extent=[-3, 0, -2, 1.5]
         )
     cb = plt.colorbar()
-    cb.set_label('Average Log(Ms/Mh)', size=12)
-    plt.ylabel('Distance to nearest filaments (log)', size=12)
-    plt.xlabel('Log(Stellar mass) [Log($M_{sun}$)]', size=12)
+    cb.set_label('sSFR', size=12)
+    plt.xlabel('Log(SM/HM)', size=12)
+    plt.ylabel('Distance to Node', size=12)
     plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HorizonAGN/Nodes/node1_mass_MSMH_' +
+    # plt.savefig('../Plots/HorizonAGN/NodesFilaments/SMHM_sSFR_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+"""Plot sSFR versus Halo mass"""
+
+for i in range(numzbin):
+    plt.figure()
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    plt.hist2d(
+        np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
+            (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        range=[[-12, -8], [8, 14]], bins=100, cmin=1
+    )
+    plt.xlabel('sSFR', size=20)
+    plt.ylabel('HaloMass', size=20)
+
+
+"""Select galaxies with distance to node < 10**-0.5"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    # select halos with distance to node < 0.5 Mpc
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            haloes_env[i][:, 2] > 10**-0.5
+        )
+    )
+    plt.hist2d(
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
+                 halodata[i]['Mass'][indices]),
+        bins=100, cmin=1)
+    plt.colorbar()
+    plt.legend()
+    plt.xlabel('Log(Stellar Mass)', size=12)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=12)
+    plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Density/dens_msmh' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
