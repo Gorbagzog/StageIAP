@@ -384,8 +384,8 @@ for i in range(numzbin):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log(sSFR) [Log($yr^{-1}$)]', size=12)
     plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatch/TrueSpecificSFR_HaloMass' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/TrueSpecificSFR_HaloMass' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 # TODO : compute median sSFR for true and photo galaxies
 
@@ -416,8 +416,8 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log(SFR) Photometric [Log($M_{\odot}/yr$)]', size=12)
     plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoSFR_HaloMass' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoSFR_HaloMass' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """PLot sSFR vs Mh for photo cat"""
 
@@ -448,8 +448,8 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log(sSFR) Photometric [Log($yr^{-1}$)]', size=12)
     plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoSpecificSFR_HaloMass' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoSpecificSFR_HaloMass' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
 """Gas Met vs Mh for photo catalog"""
@@ -570,8 +570,8 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Gas Metalicity', size=12)
     plt.title('Photometric HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatch/GasMet/gasmet_' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/GasMet/gasmet_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """Evolution of photometric Gas metalicity with redshift"""
 
@@ -847,11 +847,13 @@ for i in range(numzbin-1):
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
     # indices = np.where(hal_centgal[i] > 0)
     plt.hexbin(
-        # np.log10(halodata[i]['Mass'][indices]*10**11),
+        # np.log10(halodata[i]['mass'][indices]*10**11),
+        # np.log10(galdata[i]['mass'][hal_centgal[i][indices]-1]*10**11),
+        np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
         np.log10(galdata_allz['Mass'][
             hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))] /
             halodata[i]['Mass'][indices]),
-        np.log10(haloes_env[i][indices, 2][0]),
+        # np.log10(haloes_env[i][indices, 2][0]),
         # C=np.log10(
         #     galdata[i]['Mass'][
         #         hal_centgal[i][indices] - 1] /
@@ -860,14 +862,15 @@ for i in range(numzbin-1):
             hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))] /
             (galdata_allz['Mass'][
              hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))]*10**11)),
-        gridsize=60, mincnt=5, cmap='jet', extent=[-3, 0, -2, 1.5]
+        # C=np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
+        gridsize=60, mincnt=100, cmap='jet', extent=[-1, 1, -2.5, -0.75]
         )
     cb = plt.colorbar()
-    cb.set_label('sSFR', size=12)
-    plt.xlabel('Log(SM/HM)', size=12)
-    plt.ylabel('Distance to Node', size=12)
+    cb.set_label('Log(sSFR)', size=12)
+    plt.xlabel('Log(Spin)', size=12)
+    plt.ylabel('Log(Ms/Mh)', size=12)
     plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HorizonAGN/NodesFilaments/SMHM_sSFR_' +
+    # plt.savefig('../Plots/HorizonAGN/Hexbins/Spin/spinMS_sSFR_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """Plot sSFR versus Halo mass"""
@@ -877,7 +880,7 @@ for i in range(numzbin):
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
     plt.hist2d(
         np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
-            (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
+                 (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
         np.log10(halodata[i]['Mass'][indices]*10**11),
         range=[[-12, -8], [8, 14]], bins=100, cmin=1
     )
@@ -907,4 +910,45 @@ for i in range(numzbin-1):
     plt.ylabel('Log($M_{*}/M_{h}$)', size=12)
     plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
     # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Density/dens_msmh' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Plot Hexbins for the photometric catalog"""
+
+# selection of relevant galaxies (central with level 1 halo and matched)
+indices_allz = []
+galphotselec = []
+for i in range(numzbin-1):
+    indices_allz.append(np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))] > 0
+        )
+    ))
+    galphotselec.append(galphot[
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                ].astype('int')
+        ])
+
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = indices_allz[i]
+    plt.hexbin(
+        galphotselec[i]['Mass'][indices],
+        # np.log10(haloes_env[i][indices, 2][0]),
+        galphotselec[i]['Mass'][indices] - np.log10(halodata[i]['Mass'][indices]*10**11),
+        # C=np.log10(galphotselec[i]['SFR'][indices]/(galphotselec[i]['Mass'][indices]*10**11)),
+        C=galphotselec[i]['Gas_met_boost'][indices],
+        # C=np.log10(haloes_env[i][indices, 2][0]),
+        gridsize=60, mincnt=10, cmap='jet', extent=[9, 12, -2.5, -0.5]
+        )
+    cb = plt.colorbar()
+    cb.set_label('Gas met', size=12)
+    plt.xlabel('Log(Stellar mass)', size=12)
+    plt.ylabel('Log(Ms/Mh)', size=12)
+    plt.title('Photometric HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMet/MSMH_gasmet_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
