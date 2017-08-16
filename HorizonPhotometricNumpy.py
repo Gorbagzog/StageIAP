@@ -840,37 +840,34 @@ for i in range(numzbin-1):
 
 """Plot Average SFR variation with stellar mass and number density of halos"""
 
-# TODO : do it with photometrci catalog to have the gas metallicity
 
-for i in range(numzbin-1):
+for i in range(numzbin):
     plt.figure()
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
     # indices = np.where(hal_centgal[i] > 0)
     plt.hexbin(
         # np.log10(halodata[i]['mass'][indices]*10**11),
         # np.log10(galdata[i]['mass'][hal_centgal[i][indices]-1]*10**11),
-        np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
-        np.log10(galdata_allz['Mass'][
-            hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))] /
-            halodata[i]['Mass'][indices]),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
+                 halodata[i]['Mass'][indices]),
         # np.log10(haloes_env[i][indices, 2][0]),
         # C=np.log10(
         #     galdata[i]['Mass'][
         #         hal_centgal[i][indices] - 1] /
         #     (halodata[i]['Mass'][indices])),
-        C=np.log10(galdata_allz['SFRcorr'][
-            hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))] /
-            (galdata_allz['Mass'][
-             hal_centgal[i][indices]-1 + sum(len(galdata[j]) for j in range(i))]*10**11)),
+        # C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
+        #           (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
         # C=np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
-        gridsize=60, mincnt=100, cmap='jet', extent=[-1, 1, -2.5, -0.75]
+        C=np.log10(galdata[i]['agegal2'][hal_centgal[i][indices]-1]),
+        gridsize=60, mincnt=200, cmap='jet', extent=[8, 12, -3, 0]
         )
     cb = plt.colorbar()
-    cb.set_label('Log(sSFR)', size=12)
-    plt.xlabel('Log(Spin)', size=12)
-    plt.ylabel('Log(Ms/Mh)', size=12)
+    cb.set_label('Log(Age gal)', size=12)
+    plt.xlabel('Log(Halo Mass)', size=12)
+    plt.ylabel('Log(SM/HM)', size=12)
     plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HorizonAGN/Hexbins/Spin/spinMS_sSFR_' +
+    # plt.savefig('../Plots/HorizonAGN/Hexbins/Agegal/SMHM_SM_Agegal_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """Plot sSFR versus Halo mass"""
@@ -887,6 +884,22 @@ for i in range(numzbin):
     plt.xlabel('sSFR', size=20)
     plt.ylabel('HaloMass', size=20)
 
+
+"""Plot sSFR vs SM/HM"""
+
+for i in range(numzbin):
+    plt.figure()
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    plt.hist2d(
+        np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1]),
+        galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices],
+        range=[[-2, 2], [-4, 0]], bins=100, cmin=20
+    )
+    plt.colorbar()
+    plt.xlabel('Log(SFR)', size=20)
+    plt.ylabel('Log(SM/HM)', size=20)
+    plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.tight_layout()
 
 """Select galaxies with distance to node < 10**-0.5"""
 
@@ -937,18 +950,117 @@ for i in range(numzbin-1):
     plt.figure()
     indices = indices_allz[i]
     plt.hexbin(
-        galphotselec[i]['Mass'][indices],
+        np.log10(halodata[i]['Mass'][indices]*10**11),
         # np.log10(haloes_env[i][indices, 2][0]),
-        galphotselec[i]['Mass'][indices] - np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphotselec[i]['Mass'][indices],
         # C=np.log10(galphotselec[i]['SFR'][indices]/(galphotselec[i]['Mass'][indices]*10**11)),
-        C=galphotselec[i]['Gas_met_boost'][indices],
+        C=np.log10(galphotselec[i]['Gas_mass'][indices]),
         # C=np.log10(haloes_env[i][indices, 2][0]),
-        gridsize=60, mincnt=10, cmap='jet', extent=[9, 12, -2.5, -0.5]
+        gridsize=60, mincnt=10, cmap='jet', extent=[10, 14, 9, 12]
         )
     cb = plt.colorbar()
-    cb.set_label('Gas met', size=12)
-    plt.xlabel('Log(Stellar mass)', size=12)
-    plt.ylabel('Log(Ms/Mh)', size=12)
-    plt.title('Photometric HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMet/MSMH_gasmet_' +
+    cb.set_label('Gas mass', size=12)
+    plt.xlabel('Log(Halo mass)', size=12)
+    plt.ylabel('Log(Stellar mass)', size=12)
+    plt.title('Photometric HorizonAGN, Central gal, z=' +
+              str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMet/MSMH_gasmass_' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Plot gas mass vs Halo mass"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = indices_allz[i]
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galphotselec[i]['Gas_mass'][indices] / (halodata[i]['Mass'][indices]*10**11)),
+        bins=50, cmin=20, range=[[10, 12], [-1.5, -0.5]]
+    )
+    plt.xlabel('Log(Halo mass)', size=12)
+    plt.ylabel('Log(Gas mass)', size=12)
+    plt.title('Photometric HorizonAGN, Central gal, z=' +
+              str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+""" Compute average gas mass per halo mass"""
+
+
+def averageperHM(data, data_name, indices_selec, numzbin, massbins):
+    """Retun average, median and standard eviation of the data per halo mass.
+
+    Routine to compute useful info on the data.
+    Warning : it is full of particular cases, as for instance for gas mass I take only
+    positiove masses, and I compute them on a logscale.
+    """
+    medperHM = np.zeros([numzbin, np.size(massbins)-1])
+    avperHM = np.zeros([numzbin, np.size(massbins)-1])
+    stdperHM = np.zeros([numzbin, np.size(massbins)-1])
+
+    for i in range(numzbin):
+        for j in range(np.size(massbins)-1):
+            m1 = massbins[j]
+            m2 = massbins[j+1]
+            indices = np.where(np.logical_and(
+                np.logical_and(
+                    np.log10(halodata[i]['Mass']*10**11) > m1,
+                    np.log10(halodata[i]['Mass']*10**11) <= m2),
+                data[i][data_name] > 0
+                ))[0]
+            indices = np.intersect1d(indices_selec[i], indices)
+            if len(indices) > 0:
+                avperHM[i, j] = np.average(np.log10(data[i][data_name][indices]))
+                medperHM[i, j] = np.median(np.log10(data[i][data_name][indices]))
+                stdperHM[i, j] = np.std(np.log10(data[i][data_name][indices]))
+            else:
+                avperHM[i, j] = np.nan
+                medperHM[i, j] = np.nan
+                stdperHM[i, j] = np.nan
+
+    return avperHM, medperHM, stdperHM
+
+
+massbins = np.linspace(10, 13, num=20)
+avGMperHM, medGMperHM, stdGMperHM = averageperHM(galphotselec, 'Gas_mass',
+                                                 indices_allz, 3, massbins)
+
+
+"""Plot Gas_mass versus Halo_mass"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = indices_allz[i]
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphotselec[i]['Gal_mass'][indices] / np.log10(halodata[i]['Mass'][indices]*10**11),
+        bins=100, cmin=1, range=[[10, 13], [0.6, 1.1]]
+    )
+    plt.colorbar()
+    # plt.errorbar(
+    #     (massbins[:-1]+massbins[1:])/2, avGMperHM[i],
+    #     yerr=stdGMperHM[i], color='red'
+    # )
+    plt.xlabel('Log(Halo mass)', size=12)
+    plt.ylabel('Log(Gas mass)/Log(Halo Mass)', size=12)
+    plt.title('Photometric HorizonAGN, Central gal, z=' +
+              str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMass/logGMonlogHM_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass']>0))
+    plt.hexbin(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galphotselec[i]['Gas_mass'][indices]) / np.log10(halodata[i]['Mass'][indices]*10**11),
+        C=galphotselec[i]['Mass'][indices],
+        gridsize=60, mincnt=10, cmap='jet', extent=[10, 13, 0.6, 1.1]
+    )
+    plt.colorbar()
+    plt.xlabel('Log(Halo mass)', size=12)
+    plt.ylabel('Log(Gas mass)/Log(Halo Mass)', size=12)
+    plt.title('Photometric HorizonAGN, Central gal, z=' +
+              str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMass/logGMonlogHM_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
