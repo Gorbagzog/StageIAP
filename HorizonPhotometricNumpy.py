@@ -838,37 +838,42 @@ for i in range(numzbin-1):
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
-"""Plot Average SFR variation with stellar mass and number density of halos"""
+"""Plot Hexbins of everything for original lightcone catalog"""
+
+# Trace a line for node distance vs halo mass
+# x = np.linspace(10, 14)
+# y = 0.375*x - 4.75
 
 
-for i in range(numzbin):
+for i in range(numzbin-1):
     plt.figure()
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    # indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] > 1))
     # indices = np.where(hal_centgal[i] > 0)
     plt.hexbin(
         # np.log10(halodata[i]['mass'][indices]*10**11),
         # np.log10(galdata[i]['mass'][hal_centgal[i][indices]-1]*10**11),
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        # np.log10(halodata[i]['mvir'][indices]*10**11),
         np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
-        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
-                 halodata[i]['Mass'][indices]),
-        # np.log10(haloes_env[i][indices, 2][0]),
-        # C=np.log10(
-        #     galdata[i]['Mass'][
-        #         hal_centgal[i][indices] - 1] /
-        #     (halodata[i]['Mass'][indices])),
+        # np.log10(haloes_env[i][indices, 1][0]),
         # C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
         #           (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
         # C=np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
-        C=np.log10(galdata[i]['agegal2'][hal_centgal[i][indices]-1]),
-        gridsize=60, mincnt=200, cmap='jet', extent=[8, 12, -3, 0]
-        )
+        # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices]),
+        # C=np.log10(haloes_env[i][indices, 1][0]),
+        # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]),
+        gridsize=60, mincnt=1, cmap='jet', extent=[8, 14, 8, 14]
+    )
     cb = plt.colorbar()
-    cb.set_label('Log(Age gal)', size=12)
+    cb.set_label('Log(Ms/Mh)', size=12)
     plt.xlabel('Log(Halo Mass)', size=12)
-    plt.ylabel('Log(SM/HM)', size=12)
-    plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HorizonAGN/Hexbins/Agegal/SMHM_SM_Agegal_' +
+    plt.ylabel('Log(Halo mvir)', size=12)
+    plt.title('Original HorizonAGN, Central haloes, z=' +
+              str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HorizonAGN/Hexbins/NodesFilaments/HM_Fil_MsMh_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
 
 """Plot sSFR versus Halo mass"""
 
@@ -945,27 +950,30 @@ for i in range(numzbin-1):
                 ].astype('int')
         ])
 
-
 for i in range(numzbin-1):
     plt.figure()
     indices = indices_allz[i]
     plt.hexbin(
-        np.log10(halodata[i]['Mass'][indices]*10**11),
-        # np.log10(haloes_env[i][indices, 2][0]),
         galphotselec[i]['Mass'][indices],
+        galphotselec[i]['mag_J'][indices]-galphotselec[i]['mag_u'][indices],
+        C=galphotselec[i]['Mass'][indices] - np.log10(halodata[i]['Mass'][indices]*10**11),
+        # np.log10(haloes_env[i][indices, 2][0]),
+        # galphotselec[i]['Mass'][indices],
         # C=np.log10(galphotselec[i]['SFR'][indices]/(galphotselec[i]['Mass'][indices]*10**11)),
-        C=np.log10(galphotselec[i]['Gas_mass'][indices]),
+        # C=np.log10(galphotselec[i]['SFR'][indices]),
         # C=np.log10(haloes_env[i][indices, 2][0]),
-        gridsize=60, mincnt=10, cmap='jet', extent=[10, 14, 9, 12]
-        )
+        # galphotselec[i]['mag_K'][indices],
+        # C=galphotselec[i]['mag_J'][indices]-galphotselec[i]['mag_u'][indices],
+        gridsize=60, mincnt=5, cmap='jet', extent=[9, 11.5, -5, 0]
+    )
     cb = plt.colorbar()
-    cb.set_label('Gas mass', size=12)
-    plt.xlabel('Log(Halo mass)', size=12)
-    plt.ylabel('Log(Stellar mass)', size=12)
+    cb.set_label('Log(Ms/Mh)', size=12)
+    plt.xlabel('Log(Stellar mass)', size=12)
+    plt.ylabel('J-U', size=12)
     plt.title('Photometric HorizonAGN, Central gal, z=' +
               str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMet/MSMH_gasmass_' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/Colors/Ms_MsMh_J-U_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
 """Plot gas mass vs Halo mass"""
@@ -1050,10 +1058,11 @@ for i in range(numzbin-1):
 
 for i in range(numzbin-1):
     plt.figure()
-    indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass']>0))
+    indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass'] > 0))
     plt.hexbin(
         np.log10(halodata[i]['Mass'][indices]*10**11),
-        np.log10(galphotselec[i]['Gas_mass'][indices]) / np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galphotselec[i]['Gas_mass'][indices]) / np.log10(
+            halodata[i]['Mass'][indices]*10**11),
         C=galphotselec[i]['Mass'][indices],
         gridsize=60, mincnt=10, cmap='jet', extent=[10, 13, 0.6, 1.1]
     )
@@ -1064,3 +1073,32 @@ for i in range(numzbin-1):
               str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
     # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMass/logGMonlogHM_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Test de faire des corner plot"""
+
+from getdist import plots, MCSamples
+
+i=0
+indices = indices_allz[i]
+indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass'] > 9))
+names = ['Ms', 'Mh', 'Ms/Mh', 'J-U', 'U-R']
+data = [
+    galphotselec[i]['Mass'][indices],
+    np.log10(halodata[i]['Mass'][indices]*10**11),
+    galphotselec[i]['Mass'][indices] - np.log10(halodata[i]['Mass'][indices]*10**11),
+    galphotselec[i]['mag_J'][indices] - galphotselec[i]['mag_u'][indices],
+    galphotselec[i]['mag_u'][indices] - galphotselec[i]['mag_r'][indices],
+    ]
+samples = MCSamples(samples=data, names=names)
+#Si l'on souhaite changer les zones de confiance des graphs,
+#par défaut ce sont les zones de confiance à 65% et 95%
+samples.contours = np.array([0.68, 0.95, 0.99])
+samples.updateBaseStatistics()
+
+
+g = plots.getSubplotPlotter()
+g.settings.num_plot_contours = 3
+g.triangle_plot(samples, filled=True, contours=0.2)
+g.export('statistiques')
+plt.close('all')
