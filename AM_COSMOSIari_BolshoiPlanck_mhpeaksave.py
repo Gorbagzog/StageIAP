@@ -26,20 +26,18 @@ from scipy.optimize import curve_fit
 # redshifts of the BolshoiPlanck files
 redshift_haloes = np.arange(0, 10, step=0.1)
 numredshift_haloes = np.size(redshift_haloes)
+smf_bolshoi = []
 
-"""Definition of smf_bolshoi columns :
+for i in range(numredshift_haloes):
+    smf_bolshoi.append(
+        np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
+                   '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
+
 # smf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
 # smf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
 # (density) [1/Mpc^3]
 # smf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
 # (density) [1/Mpc^3]
-"""
-
-smf_bolshoi = []
-for i in range(numredshift_haloes):
-    smf_bolshoi.append(
-        np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
-                   '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
 
 
 """ Plot"""
@@ -50,6 +48,7 @@ for i in range(numredshift_haloes):
 
 numpoints = np.size(smf_bolshoi[0][:, 0])
 Nbolshoi = []
+
 for i in range(numredshift_haloes):
     Nbolshoi.append([])
     for j in range(np.size(smf_bolshoi[i][:, 0])):
@@ -422,40 +421,42 @@ for i in range(numzbin):
     tmp_mstar = MstarIary[i](x[i][index_halopeak[i]])
     ind_Mstarplus = np.argmin(np.abs(MstarIaryPlus[i](x[i]) - tmp_mstar))
     ind_Mstarminus = np.argmin(np.abs(MstarIaryMinus[i](x[i]) - tmp_mstar))
-    MhaloPeakSigma[i, 0] = MhaloPeak[i] - Mhalo[i](x[i][ind_Mstarplus])
-    MhaloPeakSigma[i, 1] = Mhalo[i](x[i][ind_Mstarminus]) - MhaloPeak[i]
+    MhaloPeakSigma[i, 0] = np.log10(10**MhaloPeak[i] - 10**Mhalo[i](x[i][ind_Mstarplus]))
+    MhaloPeakSigma[i, 1] = np.log10(10**Mhalo[i](x[i][ind_Mstarminus]) - 10**MhaloPeak[i])
 
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak,
-             yerr=np.transpose(MhaloPeakSigma),
+plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, 10**MhaloPeak,
+             yerr=np.transpose(10**MhaloPeakSigma),
              fmt='o', capsize=5, label='This work')
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
 
 redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2])
-MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12]))
-MhaloSigmaLeauthaud = np.log10(np.array(
-    [1.05 * 10**12, 1.55 * 10**12, 1.5 * 10**12])) - MhaloPeakLeauthaud
+MhaloPeakLeauthaud = np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12])
+MhaloSigmaLeauthaud = np.array([0.5 * 10**11, 10**11, 10**11])
 MstarPeakLeauthaud = np.array([3.55 * 10**10, 4.9 * 10**10, 5.75 * 10**10])
 MstarSigmaLeauthaud = np.array([0.17, 0.15, 0.13])*10**10
 
 redshiftBehroozi = np.array([])
 
 redshiftCoupon15 = np.array([0.75])
-MhaloPeakCoupon15 = np.log10(np.array([1.92*10**12]))
-MhaloSigmaCoupon15 = np.array([[np.log10((1.92 + 0.17)) - np.log10(1.92)],
-                               [np.log10(1.92) - np.log10(1.92 - 0.14)]])
+MhaloPeakCoupon15 = np.array([1.9*10**12])
+MhaloSigmaCoupon15 = np.array([[0.1], [0.2]]) * 10**12
 
 redshiftCoupon12 = np.array([0.3, 0.5, 0.7, 1])
-MhaloPeakCoupon12 = np.array([11.65, 11.79, 11.88, 11.9]) - np.log10(0.7)
-MhaloSigmaCoupon12 = np.vstack([[0.05, 0.05, 0.06, 0.07], [0.05, 0.05, 0.06, 0.07]])
+MhaloPeakCoupon12 = 10**np.array([11.65, 11.79, 11.88, 11.9]) / 0.7
+MhaloSigmaCoupon12 = np.vstack(
+    [[MhaloPeakCoupon12 - 10**np.array([11.6, 11.71, 11.82, 11.83]) / 0.7],
+     10**np.array([11.71, 11.85, 11.92, 12]) / 0.7 - MhaloPeakCoupon12]
+     )
 
 redshiftMartinezManso2014 = 1.5
-MhaloPeakMartinezManso2014 = 12.44
-MhaloSigmaMartinezManso2014 = [[0.08], [0.08]]
+MhaloPeakMartinezManso2014 = 10**12.44
+MhaloSigmaMartinezManso2014 = [[10**12.44 - 10**(12.44 - 0.08)],
+                               [10**(12.44 + 0.08) - 10**12.44]]
 
 # Test graphic reading of McCracken+15 Mpeak
 redshiftMcCracken15 = np.array([0.65, 0.95, 1.3, 1.75, 2.25])
-MhaloPeakMcCracken15 = np.array([12.15, 12.1, 12.2, 12.35, 12.4])
+MhaloPeakMcCracken15 = 10**np.array([12.15, 12.1, 12.2, 12.35, 12.4])
 
 """Plot"""
 
@@ -475,17 +476,16 @@ MhaloPeakMcCracken15 = np.array([12.15, 12.1, 12.2, 12.35, 12.4])
 
 # Plot the MhaloPeak vs z evolution on a linear scale.
 plt.figure()
-# plt.yscale('log')
-# plt.xscale('log')
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak,
-             yerr=np.transpose(MhaloPeakSigma),
+plt.yscale('log')
+plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, 10**MhaloPeak,
+             yerr=np.transpose(10**MhaloPeakSigma),
              fmt='o', capsize=5, label='This work')
 plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud, yerr=MhaloSigmaLeauthaud,
              fmt='o', capsize=5, label='Leauthaud et al. 2011')
-plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12,
-             fmt='o', capsize=5, label='Coupon et al. 2012')
 plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15,
              fmt='o', capsize=5, label='Coupon et al. 2015')
+plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12,
+             fmt='o', capsize=5, label='Coupon et al. 2012')
 plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014,
              yerr=MhaloSigmaMartinezManso2014,
              fmt='o', capsize=5, label='Martinez-Manso et al. 2014')

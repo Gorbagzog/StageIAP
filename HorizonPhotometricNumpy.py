@@ -13,6 +13,7 @@ import pyfits
 # from scipy.spatial import cKDTree
 # from timeit import default_timer as timer
 import numpy.lib.recfunctions as rfn
+import matplotlib.mlab as mlab
 
 
 """Load true galdata from the H-AGN Lightcone"""
@@ -113,9 +114,14 @@ in the observed catalog."""
 
 galdata_allz = np.concatenate((galdata[0], galdata[1], galdata[2]))
 
+# Load the 2 columns matching catalog, first column is the ID of the galaxy in the Photo catalog,
+# the second is the ID in the original catalog, concatenated in one big catalog
+# Galaxies_0-1.fits, Galaxies_1-2.fits, Galaxies_2-3.fits.
 obstotrue = np.loadtxt('../Data/HorizonAGNLightconePhotometric/Match.dat')
 
-# I prefer to work with index (starts at 0) than with ID (starts at 1)
+# I prefer to work with index (starts at 0) than with ID (starts at 1), and the first column is
+# useless because it is just the position in the array.
+# galdata_allz[obstotrue[i]] = original galaxy corresponding to galphot[i]
 obstotrue = obstotrue[:, 1] - 1
 
 # add index of observed gal to each true gal
@@ -405,7 +411,7 @@ for i in range(numzbin-1):
     )
     plt.hist2d(
         np.log10(halodata[i]['Mass'][indices]*10**11),
-        np.log10(galphot['SFR'][
+        np.log10(galphot['Ra'][
             galdata_allz['Obs_gal_idx'][
                 hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
             ].astype('int')
@@ -866,9 +872,9 @@ for i in range(numzbin-1):
         gridsize=60, mincnt=1, cmap='jet', extent=[8, 14, 8, 14]
     )
     cb = plt.colorbar()
-    cb.set_label('Log(Ms/Mh)', size=12)
+    # cb.set_label('Log(Ms/Mh)', size=12)
     plt.xlabel('Log(Halo Mass)', size=12)
-    plt.ylabel('Log(Halo mvir)', size=12)
+    plt.ylabel('Log(Stellar Mass)', size=12)
     plt.title('Original HorizonAGN, Central haloes, z=' +
               str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
     # plt.savefig('../Plots/HorizonAGN/Hexbins/NodesFilaments/HM_Fil_MsMh_' +
@@ -908,26 +914,38 @@ for i in range(numzbin):
 
 """Select galaxies with distance to node < 10**-0.5"""
 
+d = 10**-0.5
 for i in range(numzbin-1):
     plt.figure()
-    # select halos with distance to node < 0.5 Mpc
+    # plot histogram for halos with distance to node > 10**-0.5 Mpc
     indices = np.where(
         np.logical_and(
             np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
-            haloes_env[i][:, 2] > 10**-0.5
+            haloes_env[i][:, 2] > d
         )
     )
     plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
         np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
-        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] /
-                 halodata[i]['Mass'][indices]),
         bins=100, cmin=1)
     plt.colorbar()
+    # add a scatter for haloes > 10**-0.5 Mpc
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            haloes_env[i][:, 2] < d
+        )
+    )
+    print('N haloes close to nodes : ' + str(len(indices[0])))
+    plt.scatter(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        c='red', label=('Haloes with d(Node)<10**-0.5 Mpc'))
     plt.legend()
-    plt.xlabel('Log(Stellar Mass)', size=12)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=12)
+    plt.xlabel('Log(Halo Mass)', size=12)
+    plt.ylabel('Log(Stellar Mass)', size=12)
     plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Density/dens_msmh' +
+    # plt.savefig('../Plots/HorizonAGN/Hexbins/NodesFilaments/Ms_Mh_distanceSeparation' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
@@ -952,10 +970,11 @@ for i in range(numzbin-1):
 
 for i in range(numzbin-1):
     plt.figure()
-    indices = indices_allz[i]
+    indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass'] > 9))
     plt.hexbin(
         galphotselec[i]['Mass'][indices],
-        galphotselec[i]['mag_J'][indices]-galphotselec[i]['mag_u'][indices],
+        # galphotselec[i]['mag_u'][indices],
+        galphotselec[i]['mag_J'][indices],
         C=galphotselec[i]['Mass'][indices] - np.log10(halodata[i]['Mass'][indices]*10**11),
         # np.log10(haloes_env[i][indices, 2][0]),
         # galphotselec[i]['Mass'][indices],
@@ -964,15 +983,15 @@ for i in range(numzbin-1):
         # C=np.log10(haloes_env[i][indices, 2][0]),
         # galphotselec[i]['mag_K'][indices],
         # C=galphotselec[i]['mag_J'][indices]-galphotselec[i]['mag_u'][indices],
-        gridsize=60, mincnt=5, cmap='jet', extent=[9, 11.5, -5, 0]
+        gridsize=60, mincnt=20, cmap='jet', extent=[9, 12, 20, 30]
     )
     cb = plt.colorbar()
     cb.set_label('Log(Ms/Mh)', size=12)
-    plt.xlabel('Log(Stellar mass)', size=12)
-    plt.ylabel('J-U', size=12)
+    plt.xlabel('Stellar mass', size=12)
+    plt.ylabel('Mag J', size=12)
     plt.title('Photometric HorizonAGN, Central gal, z=' +
               str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/Colors/Ms_MsMh_J-U_' +
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/Colors/J_U_MsMH_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
@@ -1040,7 +1059,8 @@ for i in range(numzbin-1):
     indices = indices_allz[i]
     plt.hist2d(
         np.log10(halodata[i]['Mass'][indices]*10**11),
-        galphotselec[i]['Gal_mass'][indices] / np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galphotselec[i]['Gas_mass'][indices]) / np.log10(
+            halodata[i]['Mass'][indices]*10**11),
         bins=100, cmin=1, range=[[10, 13], [0.6, 1.1]]
     )
     plt.colorbar()
@@ -1048,11 +1068,11 @@ for i in range(numzbin-1):
     #     (massbins[:-1]+massbins[1:])/2, avGMperHM[i],
     #     yerr=stdGMperHM[i], color='red'
     # )
-    plt.xlabel('Log(Halo mass)', size=12)
-    plt.ylabel('Log(Gas mass)/Log(Halo Mass)', size=12)
+    plt.xlabel('Log(Halo virial mass)', size=12)
+    plt.ylabel('Log(Gas virial mass)/Log(Halo Mass)', size=12)
     plt.title('Photometric HorizonAGN, Central gal, z=' +
               str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMass/logGMonlogHM_' +
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/Hexbins/GasMass/logGMonlogHVM_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
@@ -1060,13 +1080,15 @@ for i in range(numzbin-1):
     plt.figure()
     indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass'] > 0))
     plt.hexbin(
-        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(halodata[i]['mvir'][indices]*10**11),
         np.log10(galphotselec[i]['Gas_mass'][indices]) / np.log10(
-            halodata[i]['Mass'][indices]*10**11),
-        C=galphotselec[i]['Mass'][indices],
+            halodata[i]['mvir'][indices]*10**11),
+        # C=galphotselec[i]['Mass'][indices] - np.log10(
+        #     halodata[i]['Mass'][indices]*10**11) ,
         gridsize=60, mincnt=10, cmap='jet', extent=[10, 13, 0.6, 1.1]
     )
-    plt.colorbar()
+    cb = plt.colorbar()
+    cb.set_label('Log(Ms/Mh)', size=12)
     plt.xlabel('Log(Halo mass)', size=12)
     plt.ylabel('Log(Gas mass)/Log(Halo Mass)', size=12)
     plt.title('Photometric HorizonAGN, Central gal, z=' +
@@ -1075,24 +1097,73 @@ for i in range(numzbin-1):
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
+cut = 0.85
+for i in range(numzbin-1):
+    plt.figure()
+    # plot histogram for halos with distance to node > 10**-0.5 Mpc
+    indices = indices_allz[i]
+    indices = np.intersect1d(indices, np.where(galphotselec[i]['Mass'] > 9))
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphotselec[i]['Mass'][indices],
+        bins=100, cmin=1)
+    plt.colorbar()
+    # add a scatter for haloes > 10**-0.5 Mpc
+    indices = np.intersect1d(indices,
+            np.where(np.log10(galphotselec[i]['Gas_mass'][:]) / np.log10(
+                halodata[i]['mvir'][:]*10**11) < cut)
+        )
+    print('N haloes inferior at cut : ' + str(len(indices)))
+    plt.scatter(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphotselec[i]['Mass'][indices],
+        c='red', label=('Haloes with d(Node)<10**-0.5 Mpc'))
+    plt.legend()
+    plt.xlabel('Log(Halo Mass)', size=12)
+    plt.ylabel('Log(Stellar Mass)', size=12)
+    plt.title('Original HorizonAGN, Central gal, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HorizonAGN/Hexbins/NodesFilaments/Ms_Mh_distanceSeparation' +
+
+
+"""Plot colors"""
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass'] > 9))
+    plt.hist2d(
+        # galphotselec[i]['Mass'][indices],
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphotselec[i]['mag_u'][indices],
+        cmin=1, bins=50
+    )
+
+
 """Test de faire des corner plot"""
 
 from getdist import plots, MCSamples
 
-i=0
+i = 0
 indices = indices_allz[i]
 indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass'] > 9))
-names = ['Ms', 'Mh', 'Ms/Mh', 'J-U', 'U-R']
+indices = np.intersect1d(indices, np.where(galphotselec[i]['Gas_mass'] > 0) )
+# names = ['Ms', 'Mh', 'Ms/Mh', 'J-U', 'U-R']
+# data = [
+#     galphotselec[i]['Mass'][indices],
+#     np.log10(halodata[i]['Mass'][indices]*10**11),
+#     galphotselec[i]['Mass'][indices] - np.log10(halodata[i]['Mass'][indices]*10**11),
+#     galphotselec[i]['mag_J'][indices] - galphotselec[i]['mag_u'][indices],
+#     galphotselec[i]['mag_u'][indices] - galphotselec[i]['mag_r'][indices],
+#     ]
+names = ['Ms', 'Mh', 'Mg', 'log(Mg)/log(Mh)']
 data = [
     galphotselec[i]['Mass'][indices],
     np.log10(halodata[i]['Mass'][indices]*10**11),
-    galphotselec[i]['Mass'][indices] - np.log10(halodata[i]['Mass'][indices]*10**11),
-    galphotselec[i]['mag_J'][indices] - galphotselec[i]['mag_u'][indices],
-    galphotselec[i]['mag_u'][indices] - galphotselec[i]['mag_r'][indices],
+    np.log10(galphotselec[i]['Gas_mass'][indices]),
+    np.log10(galphotselec[i]['Gas_mass'][indices])/np.log10(halodata[i]['Mass'][indices]*10**11),
     ]
 samples = MCSamples(samples=data, names=names)
-#Si l'on souhaite changer les zones de confiance des graphs,
-#par défaut ce sont les zones de confiance à 65% et 95%
+# Si l'on souhaite changer les zones de confiance des graphs,
+# par défaut ce sont les zones de confiance à 65% et 95%
 samples.contours = np.array([0.68, 0.95, 0.99])
 samples.updateBaseStatistics()
 
@@ -1100,5 +1171,58 @@ samples.updateBaseStatistics()
 g = plots.getSubplotPlotter()
 g.settings.num_plot_contours = 3
 g.triangle_plot(samples, filled=True, contours=0.2)
-g.export('statistiques')
-plt.close('all')
+#g.export('statistiques')
+#plt.close('all')
+
+
+
+"""Try to do Principal component analysis on the data"""
+
+i=2
+indices = np.intersect1d(indices_allz[i], np.where(galphotselec[i]['Mass'] > 9))
+indices = np.intersect1d(indices, np.where(galphotselec[i]['Gas_mass'] > 0) )
+data = np.transpose(np.array([
+    galphotselec[i]['Mass'][indices],
+    np.log10(halodata[i]['Mass'][indices]*10**11),
+    np.log10(galphotselec[i]['Gas_mass'][indices]),
+    ]))
+
+# result = mlab.PCA(data)
+
+# from mpl_toolkits.mplot3d import Axes3D
+
+# x = []
+# y = []
+# z = []
+# for item in result.Y:
+#  x.append(item[0])
+#  y.append(item[1])
+#  z.append(item[2])
+
+# plt.close('all') # close all latent plotting windows
+# fig1 = plt.figure() # Make a plotting figure
+# ax = Axes3D(fig1) # use the plotting figure to create a Axis3D object.
+# pltData = [x,y,z]
+# ax.scatter(pltData[0], pltData[1], pltData[2], 'bo') # make a scatter plot of blue dots from the data
+
+# # make simple, bare axis lines through space:
+# xAxisLine = ((min(pltData[0]), max(pltData[0])), (0, 0), (0,0)) # 2 points make the x-axis line at the data extrema along x-axis
+# ax.plot(xAxisLine[0], xAxisLine[1], xAxisLine[2], 'r') # make a red line for the x-axis.
+# yAxisLine = ((0, 0), (min(pltData[1]), max(pltData[1])), (0,0)) # 2 points make the y-axis line at the data extrema along y-axis
+# ax.plot(yAxisLine[0], yAxisLine[1], yAxisLine[2], 'r') # make a red line for the y-axis.
+# zAxisLine = ((0, 0), (0,0), (min(pltData[2]), max(pltData[2]))) # 2 points make the z-axis line at the data extrema along z-axis
+# ax.plot(zAxisLine[0], zAxisLine[1], zAxisLine[2], 'r') # make a red line for the z-axis.
+
+# # label the axes
+# ax.set_xlabel("x-axis label")
+# ax.set_ylabel("y-axis label")
+# ax.set_zlabel("y-axis label")
+# ax.set_title("The title of the plot")
+# plt.show() # show the plot
+
+from sklearn.decomposition import PCA
+
+sk_pca = PCA(n_components=2)
+sklearn_result = sk_pca.fit_transform(data)
+
+plt.plot(sklearn_result[:, 0], sklearn_result[:, 1], '.')
