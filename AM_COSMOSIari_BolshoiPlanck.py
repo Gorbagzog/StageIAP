@@ -453,6 +453,11 @@ redshiftMartinezManso2014 = 1.5
 MhaloPeakMartinezManso2014 = 12.44
 MhaloSigmaMartinezManso2014 = [[0.08], [0.08]]
 
+# Graphic read of Coupon draft
+redshiftCoupon17 = [0.3, 0.5, 0.7, 0.9, 1.2, 1.5, 1.8, 2.1, 2.8, 3.4, 4, 4.8]
+MhaloPeakCoupon17 = [12.2, 12.5, 12.3, 12.25, 12.35, 12.3, 12.4, 12.45, 12.45, 11.95, 12.2, 12.25]
+MhaloSigmaCoupon17 = [0, 0.05, 0.05, 0.05, 0, 0, 0.05, 0, 0.1, 0.1, 0.3, 0.25]
+
 # Test graphic reading of McCracken+15 Mpeak
 redshiftMcCracken15 = np.array([0.65, 0.95, 1.3, 1.75, 2.25])
 MhaloPeakMcCracken15 = np.array([12.15, 12.1, 12.2, 12.35, 12.4])
@@ -479,7 +484,7 @@ plt.figure()
 # plt.xscale('log')
 plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak,
              yerr=np.transpose(MhaloPeakSigma),
-             fmt='o', capsize=5, label='This work')
+             fmt='o', color='red', capsize=5, label='This work')
 plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud, yerr=MhaloSigmaLeauthaud,
              fmt='o', capsize=5, label='Leauthaud et al. 2011')
 plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12,
@@ -489,6 +494,10 @@ plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15,
 plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014,
              yerr=MhaloSigmaMartinezManso2014,
              fmt='o', capsize=5, label='Martinez-Manso et al. 2014')
+plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17,
+             yerr=MhaloSigmaCoupon17,
+             fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
+
 # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
 #              fmt='o', capsize=5, label='"Revised" McCracken15')
 plt.xlabel('Reshift', size=20)
