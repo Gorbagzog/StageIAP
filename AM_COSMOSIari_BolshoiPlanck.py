@@ -20,7 +20,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
-
+#import get_Vmax
+from astropy.cosmology import LambdaCDM
 
 """Load files"""
 # redshifts of the BolshoiPlanck files
@@ -86,6 +87,23 @@ for i in range(10):
         # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
         # + str(i) + '.dat')
     )
+
+"""Adapt SMF to match the Bolshoi-Planck Cosmology"""
+# Bolshoi-Planck cosmo : (flat LCMD)
+# Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
+BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
+
+# Davidzon+17 SMF cosmo : (flat LCDM)
+# Om = 0.3, Ol = 0.7, h=0.7
+D17_Cosmo = LambdaCDM(H0=70, Om0=0.7, Ode0=0.3)
+
+for i in range(10):
+    # Correction of the Volume :
+    VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
+    VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+    smf[i][:, 1] = smf[i][:, 1] * VmaxD17/VmaxBP
+    smf[i][:, 2] = smf[i][:, 2] * VmaxD17/VmaxBP
+    smf[i][:, 3] = smf[i][:, 3] * VmaxD17/VmaxBP
 
 """Compute Galaxy Cumulative Density
 """
