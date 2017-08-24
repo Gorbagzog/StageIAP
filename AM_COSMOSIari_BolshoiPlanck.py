@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
-#import get_Vmax
+# import get_Vmax
 from astropy.cosmology import LambdaCDM
 
 """Load files"""
@@ -98,12 +98,32 @@ BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
 D17_Cosmo = LambdaCDM(H0=70, Om0=0.7, Ode0=0.3)
 
 for i in range(10):
-    # Correction of the Volume :
+    # Correction of the comoving Volume :
     VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
     VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
-    smf[i][:, 1] = smf[i][:, 1] * VmaxD17/VmaxBP
-    smf[i][:, 2] = smf[i][:, 2] * VmaxD17/VmaxBP
-    smf[i][:, 3] = smf[i][:, 3] * VmaxD17/VmaxBP
+    # Add the log, equivalent to multiply by VmaxD17/VmaxBP
+    smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+    smf[i][:, 2] = smf[i][:, 2] + np.log10(VmaxD17/VmaxBP)
+    smf[i][:, 3] = smf[i][:, 3] + np.log10(VmaxD17/VmaxBP)
+
+    # Correction of the measured stellar mass
+    # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
+    smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
+
+"""Plot SMF"""
+
+plt.figure()
+for i in range(10):
+    plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5,
+                     label=str(redshifts[i])+'<z<'+str(redshifts[i+1]))
+    plt.ylim(-6, -2)
+    plt.xlim(8, 14)
+    plt.title('Davidzon+17 Schechter fits')
+    plt.ylabel('Log($\phi$) [Log($Mpc^{-3}$)]')
+    plt.xlabel('Log($M_{*}$) [Log($M_{\odot}$)]')
+    plt.legend(loc=3)
+plt.show()
+
 
 """Compute Galaxy Cumulative Density
 """
@@ -209,10 +229,10 @@ for i in range(numzbin):
 
 """Plot interpolations Ms(N) and Mh(N)"""
 
-plt.figure()
-for i in range(numzbin):
-    plt.plot(x[i], MstarIary[i](x[i]))
-    plt.fill_between(x[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]))
+# plt.figure()
+# for i in range(numzbin):
+#     plt.plot(x[i], MstarIary[i](x[i]))
+#     plt.fill_between(x[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]))
 
 """Plot Ms/Mh vs Mh"""
 
@@ -227,179 +247,179 @@ plt.tight_layout()
 # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
 plt.show()
 
-"""Plot Mh/Ms vs Ms"""
+# """Plot Mh/Ms vs Ms"""
 
-plt.figure()
-for i in range(numzbin):
-    plt.plot(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIary[i](x[i]),
-             label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
-    plt.fill_between(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIaryMinus[i](x[i]),
-                     Mhalo[i](x[i]) - MstarIaryPlus[i](x[i]), alpha=0.5)
-plt.legend()
-plt.ylabel('$Log(M_{h}/M_{*})$', size=20)
-plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-plt.tight_layout()
-# plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
-plt.show()
+# plt.figure()
+# for i in range(numzbin):
+#     plt.plot(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIary[i](x[i]),
+#              label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+#     plt.fill_between(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIaryMinus[i](x[i]),
+#                      Mhalo[i](x[i]) - MstarIaryPlus[i](x[i]), alpha=0.5)
+# plt.legend()
+# plt.ylabel('$Log(M_{h}/M_{*})$', size=20)
+# plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+# plt.tight_layout()
+# # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
+# plt.show()
 
-"""Plot Ms vs Mh"""
+# """Plot Ms vs Mh"""
 
-plt.figure()
-for i in range(numzbin):
-    plt.plot(xm[i][:], MstarIary[i](x[i]), label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
-    plt.fill_between(xm[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]), alpha=0.5)
-plt.legend()
-plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
-plt.tight_layout()
-# plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
-plt.show()
+# plt.figure()
+# for i in range(numzbin):
+#     plt.plot(xm[i][:], MstarIary[i](x[i]), label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+#     plt.fill_between(xm[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]), alpha=0.5)
+# plt.legend()
+# plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+# plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+# plt.tight_layout()
+# # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
+# plt.show()
 
-""" Fit a Behroozi+10 law on Mh(Ms)"""
-
-
-def boo_MhMs(Ms, M1, Ms0, beta, delta, gamma):
-    """Behroozi et al. 2010 Mh(Ms) function. All masses are in logscale."""
-    return(M1 + beta * (Ms - Ms0) +
-           10 ** (delta * (Ms - Ms0)) / (1 + 10 ** (-gamma * (Ms - Ms0))) - 0.5)
+# """ Fit a Behroozi+10 law on Mh(Ms)"""
 
 
-boo_fit = np.empty([numzbin, 5])
-boo_cov = np.empty([numzbin, 5, 5])
-boo_sigma = np.empty([numzbin, 5])
-for i in range(numzbin):
-    print(i)
-    # For the low redshift cases, it seems that the SMHM for SM>10**12 causes
-    # problems for the fit, so we will cut at 10**12 for the first five bins.
-    if i < 5:
-        stop = np.argmin(np.abs(MstarIary[i](x[i]) - 12))
-        # stop=0
-    else:
-        stop = 0
-    boo_fit[i], boo_cov[i] = curve_fit(boo_MhMs, MstarIary[i](x[i][stop:]),
-                                       Mhalo[i](x[i][stop:]),
-                                       bounds=[[10, 8, 0, 0, 0], [15, 14, 5, 5, 5]])
-    boo_sigma[i] = np.sqrt(np.diag(boo_cov[i]))
-
-"""Plot"""
-
-# Plot Mh(Ms)
-for i in range(numzbin):
-    plt.figure()
-    ax = plt.subplot(111)
-    plt.plot(
-        MstarIary[i](x[i]),
-        xm[i][:],
-        label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1]))
-    if i < 5:
-        cut = 'cut at Log(Ms)<12'
-    else:
-        cut = 'no cut'
-    plt.plot(
-        MstarIary[i](x[i]),
-        boo_MhMs(MstarIary[i](x[i]), *boo_fit[i]),
-        label=str('Behroozi function fit, '+cut), c='r'
-        )
-    plt.legend()
-    plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-    plt.ylabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
-    plt.text(
-        0.6, 0.1,
-        '''
-        $log(M_{{1}})=${:.2f}
-        $log(M_{{*,0}})=${:.2f}
-        $\\beta=${:.2f}
-        $\delta=${:.2f}
-        $\gamma={:.2f}$'''.format(*boo_fit[i]),
-        transform=ax.transAxes
-        )
-    plt.show()
-    plt.tight_layout()
-    # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
-    #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
-
-# Plot Ms(Mh)
-for i in range(numzbin):
-    plt.figure()
-    ax = plt.subplot(111)
-    plt.plot(
-        xm[i][:],
-        MstarIary[i](x[i]),
-        label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1])
-        )
-    plt.fill_between(
-        xm[i],
-        MstarIaryMinus[i](x[i]),
-        MstarIaryPlus[i](x[i]),
-        alpha=0.5
-        )
-    if i < 5:
-        cut = 'cuted at Log(Ms)<12'
-    else:
-        cut = 'no cut'
-    plt.plot(
-        boo_MhMs(MstarIary[i](x[i]), *boo_fit[i]),
-        MstarIary[i](x[i]),
-        label=str('Behroozi function fit, '+cut), c='r')
-    plt.legend()
-    plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-    plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
-    plt.text(
-        0.6, 0.1,
-        '''
-        $log(M_{{1}})=${:.2f}
-        $log(M_{{*,0}})=${:.2f}
-        $\\beta=${:.2f}
-        $\delta=${:.2f}
-        $\gamma={:.2f}$'''.format(*boo_fit[i]),
-        transform=ax.transAxes)
-    plt.show()
-    plt.tight_layout()
-    # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
-    #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
+# def boo_MhMs(Ms, M1, Ms0, beta, delta, gamma):
+#     """Behroozi et al. 2010 Mh(Ms) function. All masses are in logscale."""
+#     return(M1 + beta * (Ms - Ms0) +
+#            10 ** (delta * (Ms - Ms0)) / (1 + 10 ** (-gamma * (Ms - Ms0))) - 0.5)
 
 
-"""Plot the evolution of the Behroozi+10 parameters as a function of redshift"""
+# boo_fit = np.empty([numzbin, 5])
+# boo_cov = np.empty([numzbin, 5, 5])
+# boo_sigma = np.empty([numzbin, 5])
+# for i in range(numzbin):
+#     print(i)
+#     # For the low redshift cases, it seems that the SMHM for SM>10**12 causes
+#     # problems for the fit, so we will cut at 10**12 for the first five bins.
+#     if i < 5:
+#         stop = np.argmin(np.abs(MstarIary[i](x[i]) - 12))
+#         # stop=0
+#     else:
+#         stop = 0
+#     boo_fit[i], boo_cov[i] = curve_fit(boo_MhMs, MstarIary[i](x[i][stop:]),
+#                                        Mhalo[i](x[i][stop:]),
+#                                        bounds=[[10, 8, 0, 0, 0], [15, 14, 5, 5, 5]])
+#     boo_sigma[i] = np.sqrt(np.diag(boo_cov[i]))
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 0], yerr=boo_sigma[:, 0],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$M_{1}$ of Behroozi+10 fit', size=20)
-plt.tight_layout()
-plt.show()
+# """Plot"""
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 1], yerr=boo_sigma[:, 1],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$M_{*,0}$ of Behroozi+10 fit', size=20)
-plt.tight_layout()
-plt.show()
+# # Plot Mh(Ms)
+# for i in range(numzbin):
+#     plt.figure()
+#     ax = plt.subplot(111)
+#     plt.plot(
+#         MstarIary[i](x[i]),
+#         xm[i][:],
+#         label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1]))
+#     if i < 5:
+#         cut = 'cut at Log(Ms)<12'
+#     else:
+#         cut = 'no cut'
+#     plt.plot(
+#         MstarIary[i](x[i]),
+#         boo_MhMs(MstarIary[i](x[i]), *boo_fit[i]),
+#         label=str('Behroozi function fit, '+cut), c='r'
+#         )
+#     plt.legend()
+#     plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+#     plt.ylabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+#     plt.text(
+#         0.6, 0.1,
+#         '''
+#         $log(M_{{1}})=${:.2f}
+#         $log(M_{{*,0}})=${:.2f}
+#         $\\beta=${:.2f}
+#         $\delta=${:.2f}
+#         $\gamma={:.2f}$'''.format(*boo_fit[i]),
+#         transform=ax.transAxes
+#         )
+#     plt.show()
+#     plt.tight_layout()
+#     # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
+#     #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 2], yerr=boo_sigma[:, 2],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$\\beta$ of Behroozi+10 fit', size=20)
-plt.tight_layout()
-plt.show()
+# # Plot Ms(Mh)
+# for i in range(numzbin):
+#     plt.figure()
+#     ax = plt.subplot(111)
+#     plt.plot(
+#         xm[i][:],
+#         MstarIary[i](x[i]),
+#         label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1])
+#         )
+#     plt.fill_between(
+#         xm[i],
+#         MstarIaryMinus[i](x[i]),
+#         MstarIaryPlus[i](x[i]),
+#         alpha=0.5
+#         )
+#     if i < 5:
+#         cut = 'cuted at Log(Ms)<12'
+#     else:
+#         cut = 'no cut'
+#     plt.plot(
+#         boo_MhMs(MstarIary[i](x[i]), *boo_fit[i]),
+#         MstarIary[i](x[i]),
+#         label=str('Behroozi function fit, '+cut), c='r')
+#     plt.legend()
+#     plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+#     plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+#     plt.text(
+#         0.6, 0.1,
+#         '''
+#         $log(M_{{1}})=${:.2f}
+#         $log(M_{{*,0}})=${:.2f}
+#         $\\beta=${:.2f}
+#         $\delta=${:.2f}
+#         $\gamma={:.2f}$'''.format(*boo_fit[i]),
+#         transform=ax.transAxes)
+#     plt.show()
+#     plt.tight_layout()
+#     # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
+#     #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 3], yerr=boo_sigma[:, 3],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$\\delta$ of Behroozi+10 fit', size=20)
-plt.tight_layout()
-plt.show()
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 4], yerr=boo_sigma[:, 4],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$\\gamma$ of Behroozi+10 fit', size=20)
-plt.tight_layout()
-plt.show()
+# """Plot the evolution of the Behroozi+10 parameters as a function of redshift"""
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 0], yerr=boo_sigma[:, 0],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$M_{1}$ of Behroozi+10 fit', size=20)
+# plt.tight_layout()
+# plt.show()
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 1], yerr=boo_sigma[:, 1],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$M_{*,0}$ of Behroozi+10 fit', size=20)
+# plt.tight_layout()
+# plt.show()
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 2], yerr=boo_sigma[:, 2],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$\\beta$ of Behroozi+10 fit', size=20)
+# plt.tight_layout()
+# plt.show()
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 3], yerr=boo_sigma[:, 3],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$\\delta$ of Behroozi+10 fit', size=20)
+# plt.tight_layout()
+# plt.show()
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 4], yerr=boo_sigma[:, 4],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$\\gamma$ of Behroozi+10 fit', size=20)
+# plt.tight_layout()
+# plt.show()
 
 """Find Mpeak and its uncertainties"""
 
@@ -443,11 +463,14 @@ for i in range(numzbin):
     MhaloPeakSigma[i, 0] = MhaloPeak[i] - Mhalo[i](x[i][ind_Mstarplus])
     MhaloPeakSigma[i, 1] = Mhalo[i](x[i][ind_Mstarminus]) - MhaloPeak[i]
 
+plt.figure()
 plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak,
              yerr=np.transpose(MhaloPeakSigma),
              fmt='o', capsize=5, label='This work')
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
+
+# TODO : check that there aure all in the same cosmo (h=0.7)
 
 redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2])
 MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12]))
@@ -500,7 +523,7 @@ MhaloPeakMcCracken15 = np.array([12.15, 12.1, 12.2, 12.35, 12.4])
 plt.figure()
 # plt.yscale('log')
 # plt.xscale('log')
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak,
+plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
              yerr=np.transpose(MhaloPeakSigma),
              fmt='o', color='red', capsize=5, label='This work')
 plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud, yerr=MhaloSigmaLeauthaud,
@@ -509,9 +532,9 @@ plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12,
              fmt='o', capsize=5, label='Coupon et al. 2012')
 plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15,
              fmt='o', capsize=5, label='Coupon et al. 2015')
-plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014,
-             yerr=MhaloSigmaMartinezManso2014,
-             fmt='o', capsize=5, label='Martinez-Manso et al. 2014')
+# plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014,
+#              yerr=MhaloSigmaMartinezManso2014,
+#              fmt='o', capsize=5, label='Martinez-Manso et al. 2014')
 plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17,
              yerr=MhaloSigmaCoupon17,
              fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
@@ -524,118 +547,118 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-# Verify that the Mpeak is at the correct position for Mh/Ms vs Ms
-plt.figure()
-for i in range(numzbin):
-    plt.plot(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIary[i](x[i]),
-             label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
-    plt.fill_between(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIaryMinus[i](x[i]),
-                     Mhalo[i](x[i]) - MstarIaryPlus[i](x[i]), alpha=0.5)
-    plt.scatter(MstarPeak[i], MhOnMsPeak[i])
-    plt.plot((MstarPeakMin[i], MstarPeakMax[i]), (MhOnMsPeak[i], MhOnMsPeak[i]))
-plt.legend()
-plt.ylabel('$M_{h}/M_{*}$', size=20)
-plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-plt.tight_layout()
-# plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
-plt.show()
-
-# Plot the MstarPeak vs z evolution
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MstarPeak,
-             yerr=[MstarPeak-MstarPeakMin, MstarPeakMax-MstarPeak], fmt='o', capsize=5)
-plt.xlabel('Reshift', size=20)
-plt.ylabel('Log($M_{star}^{peak}$) [Log($M_{\odot}$)]', size=20)
-plt.tight_layout()
-plt.show()
-
-# PLot MstarPeak vs z in a linear scale
-plt.figure()
-plt.yscale('log')
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, 10**MstarPeak,
-             yerr=[10**MstarPeak-10**MstarPeakMin, 10**MstarPeakMax-10**MstarPeak],
-             fmt='o', capsize=5, label='This work')
-plt.errorbar(redshiftLeauthaud, MstarPeakLeauthaud, yerr=MstarSigmaLeauthaud,
-             fmt='o', capsize=5, label='Leauthaud et al. 2011')
-plt.xlabel('Reshift', size=20)
-plt.ylabel('Log($M_{*}^{peak}$) [Log($M_{\odot}$)]', size=20)
-plt.legend()
-plt.tight_layout()
-plt.show()
-
-# Plot the evolution of Ms/Mh(peak) vs z
-yerr = [[ym[i][index_halopeak[i]]-yminus[i][index_halopeak[i]],
-        yplus[i][index_halopeak[i]] - ym[i][index_halopeak[i]]] for i in range(10)]
-plt.figure()
-plt.errorbar(
-    (redshifts[1:] + redshifts[:-1]) / 2,
-    MsOnMhaloPeak,
-    yerr=np.transpose(yerr),
-    fmt='o')
-plt.xlabel('Reshift', size=20)
-plt.ylabel('Log($[M_{*}/M_{h}]^{peak}$)', size=20)
-plt.tight_layout()
-plt.show()
-
-"""Fit a Yang law on Ms/Mh"""
-
-
-def mstar_over_mh_yang(x, A, m1, beta, gamma):
-    """Yang et al. 2004 function, see Moster et al. 2010. All masses are in logscale."""
-    return 2.0 * A / (10 ** ((x - m1) * (- beta)) + 10 ** ((x - m1) * gamma))
-
-
-n_fit = 1000
-yang_fit = np.empty([numzbin, 4])
-yang_cov = np.empty([numzbin, 4, 4])
-yang_sigma = np.empty([numzbin, 4])
-
-for i in range(numzbin):
-    print('Fiting a Yang law, z=' + str(i))
-    yang_fit[i], yang_cov[i] = curve_fit(mstar_over_mh_yang,
-                                         Mhalo[i](x[i]),
-                                         10**(MstarIary[i](x[i]) - Mhalo[i](x[i])),
-                                         # uncertainty on the data :
-                                         sigma=10**(yplus[i] - yminus[i]),
-                                         bounds=[[-np.inf, 8, 0, 0], [np.inf, 14, 5, 5]])
-    yang_sigma[i] = np.sqrt(np.diag(yang_cov[i]))
-
-"""Plot"""
-
-# Plot the Yang fit on the Ms/Mh ratio
-for i in range(numzbin):
-    plt.figure()
-    plt.plot(Mhalo[i](x[i]), MstarIary[i](x[i]) - Mhalo[i](x[i]))
-    plt.plot(Mhalo[i](x[i]), np.log10(mstar_over_mh_yang(Mhalo[i](x[i]), *yang_fit[i])), label='')
-    plt.fill_between(xm[i], yminus[i], yplus[i], alpha=0.5)
+# # Verify that the Mpeak is at the correct position for Mh/Ms vs Ms
+# plt.figure()
+# for i in range(numzbin):
+#     plt.plot(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIary[i](x[i]),
+#              label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+#     plt.fill_between(MstarIary[i](x[i]), Mhalo[i](x[i]) - MstarIaryMinus[i](x[i]),
+#                      Mhalo[i](x[i]) - MstarIaryPlus[i](x[i]), alpha=0.5)
+#     plt.scatter(MstarPeak[i], MhOnMsPeak[i])
+#     plt.plot((MstarPeakMin[i], MstarPeakMax[i]), (MhOnMsPeak[i], MhOnMsPeak[i]))
 # plt.legend()
-plt.xlabel('xlabel', size=20)
-plt.ylabel('ylabel', size=20)
-plt.tight_layout()
-plt.show()
+# plt.ylabel('$M_{h}/M_{*}$', size=20)
+# plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+# plt.tight_layout()
+# # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
+# plt.show()
 
-# PLot the evolution of the parameters of the Yang Fit
+# # Plot the MstarPeak vs z evolution
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MstarPeak,
+#              yerr=[MstarPeak-MstarPeakMin, MstarPeakMax-MstarPeak], fmt='o', capsize=5)
+# plt.xlabel('Reshift', size=20)
+# plt.ylabel('Log($M_{star}^{peak}$) [Log($M_{\odot}$)]', size=20)
+# plt.tight_layout()
+# plt.show()
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, yang_fit[:, 2], yerr=yang_sigma[:, 2],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$\\beta$ of Yang fit', size=20)
-plt.tight_layout()
-plt.show()
+# # PLot MstarPeak vs z in a linear scale
+# plt.figure()
+# plt.yscale('log')
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, 10**MstarPeak,
+#              yerr=[10**MstarPeak-10**MstarPeakMin, 10**MstarPeakMax-10**MstarPeak],
+#              fmt='o', capsize=5, label='This work')
+# plt.errorbar(redshiftLeauthaud, MstarPeakLeauthaud, yerr=MstarSigmaLeauthaud,
+#              fmt='o', capsize=5, label='Leauthaud et al. 2011')
+# plt.xlabel('Reshift', size=20)
+# plt.ylabel('Log($M_{*}^{peak}$) [Log($M_{\odot}$)]', size=20)
+# plt.legend()
+# plt.tight_layout()
+# plt.show()
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, yang_fit[:, 3], yerr=yang_sigma[:, 3],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$\\gamma$ of Yang fit', size=20)
-plt.tight_layout()
-plt.show()
+# # Plot the evolution of Ms/Mh(peak) vs z
+# yerr = [[ym[i][index_halopeak[i]]-yminus[i][index_halopeak[i]],
+#         yplus[i][index_halopeak[i]] - ym[i][index_halopeak[i]]] for i in range(10)]
+# plt.figure()
+# plt.errorbar(
+#     (redshifts[1:] + redshifts[:-1]) / 2,
+#     MsOnMhaloPeak,
+#     yerr=np.transpose(yerr),
+#     fmt='o')
+# plt.xlabel('Reshift', size=20)
+# plt.ylabel('Log($[M_{*}/M_{h}]^{peak}$)', size=20)
+# plt.tight_layout()
+# plt.show()
 
-plt.figure()
-plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, yang_fit[:, 1], yerr=yang_sigma[:, 1],
-             fmt='o', capsize=5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('$M_{1}$ of Yang fit', size=20)
-plt.tight_layout()
-plt.show()
+# """Fit a Yang law on Ms/Mh"""
+
+
+# def mstar_over_mh_yang(x, A, m1, beta, gamma):
+#     """Yang et al. 2004 function, see Moster et al. 2010. All masses are in logscale."""
+#     return 2.0 * A / (10 ** ((x - m1) * (- beta)) + 10 ** ((x - m1) * gamma))
+
+
+# n_fit = 1000
+# yang_fit = np.empty([numzbin, 4])
+# yang_cov = np.empty([numzbin, 4, 4])
+# yang_sigma = np.empty([numzbin, 4])
+
+# for i in range(numzbin):
+#     print('Fiting a Yang law, z=' + str(i))
+#     yang_fit[i], yang_cov[i] = curve_fit(mstar_over_mh_yang,
+#                                          Mhalo[i](x[i]),
+#                                          10**(MstarIary[i](x[i]) - Mhalo[i](x[i])),
+#                                          # uncertainty on the data :
+#                                          sigma=10**(yplus[i] - yminus[i]),
+#                                          bounds=[[-np.inf, 8, 0, 0], [np.inf, 14, 5, 5]])
+#     yang_sigma[i] = np.sqrt(np.diag(yang_cov[i]))
+
+# """Plot"""
+
+# # Plot the Yang fit on the Ms/Mh ratio
+# for i in range(numzbin):
+#     plt.figure()
+#     plt.plot(Mhalo[i](x[i]), MstarIary[i](x[i]) - Mhalo[i](x[i]))
+#     plt.plot(Mhalo[i](x[i]), np.log10(mstar_over_mh_yang(Mhalo[i](x[i]), *yang_fit[i])), label='')
+#     plt.fill_between(xm[i], yminus[i], yplus[i], alpha=0.5)
+# # plt.legend()
+# plt.xlabel('xlabel', size=20)
+# plt.ylabel('ylabel', size=20)
+# plt.tight_layout()
+# plt.show()
+
+# # PLot the evolution of the parameters of the Yang Fit
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, yang_fit[:, 2], yerr=yang_sigma[:, 2],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$\\beta$ of Yang fit', size=20)
+# plt.tight_layout()
+# plt.show()
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, yang_fit[:, 3], yerr=yang_sigma[:, 3],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$\\gamma$ of Yang fit', size=20)
+# plt.tight_layout()
+# plt.show()
+
+# plt.figure()
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, yang_fit[:, 1], yerr=yang_sigma[:, 1],
+#              fmt='o', capsize=5)
+# plt.xlabel('Redshift', size=20)
+# plt.ylabel('$M_{1}$ of Yang fit', size=20)
+# plt.tight_layout()
+# plt.show()
