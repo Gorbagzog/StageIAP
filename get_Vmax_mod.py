@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 # Jean coupon - 2014
+# Modified Louis Legrand 2017
 # script to compute 1/Vmax (weight) from zmax
 # and comoving volume
 
 import numpy
 import scipy.integrate as si
-
 import sys
 import getopt
 
@@ -40,37 +40,14 @@ ATTENTION: flat Universe approximation Vc = 4PI/3 DM^3!! \n\
 # ----------------------------------------------------- #
 
 
-def main(argv):
-    print(argv)
-    cosmo = [72.0, 0.258, 0.742]
+cosmo = [72.0, 0.258, 0.742]
 
-    try:
-        opts, args = getopt.getopt(sys.argv[3:], "hvc:", [
-                                   "help", "vol", "cosmo="])
-        print(opts)
-        print(args)
-    except getopt.GetoptError:
-        usage()
-        sys.exit(2)
-    if len(argv) < 3:
-        print(argv)
-        usage()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            sys.exit()
-        elif opt in ("-v", "--vol"):
-            global GET_VOL
-            GET_VOL = 1
-        elif opt in ("-c", "--cosmo"):
-            cosmo = [float(i) for i in arg.split(",")]
+
+def main(z_low, z_high, cosmo=cosmo):
 
     # ----------------------------------------------------- #
     # initialisation
     # ----------------------------------------------------- #
-
-    z_low = max(float(argv[0]), EPS)
-    z_high = float(argv[1])
 
     d_low, error = si.quad(drdz, 0.0, z_low, args=(cosmo), epsrel=EPS)
     d_high, error = si.quad(drdz, 0.0, z_high, args=(cosmo), epsrel=EPS)
@@ -79,33 +56,32 @@ def main(argv):
     # comoving volume
     # ----------------------------------------------------- #
 
-    if GET_VOL == 1:
-        print(4.0 * PI / 3.0 * (d_high**3 - d_low**3))
-        sys.exit(0)
+    return(4.0 * PI / 3.0 * (d_high**3 - d_low**3))
+    sys.exit(0)
 
     # ----------------------------------------------------- #
     # 1/vmax
     # ----------------------------------------------------- #
 
-    norm = d_high**3 - d_low**3
+    # norm = d_high**3 - d_low**3
 
-    for line in sys.stdin:
+    # for line in sys.stdin:
 
-        col = line.split()
-        z_max = float(col[len(col) - 1])
-        weight = 0.0
-        if(z_low + EPS < z_max and z_max < z_high - EPS):
-            d_low,  error = si.quad(drdz, 0.0, z_low, args=(cosmo), epsrel=EPS)
-            d_high, error = si.quad(drdz, 0.0, z_max, args=(cosmo), epsrel=EPS)
-            V_max = (d_high**3 - d_low**3) / norm
-            weight = 1.0 / V_max
-        else:
-            if(z_max > z_high):
-                weight = 1.0
+    #     col = line.split()
+    #     z_max = float(col[len(col) - 1])
+    #     weight = 0.0
+    #     if(z_low + EPS < z_max and z_max < z_high - EPS):
+    #         d_low,  error = si.quad(drdz, 0.0, z_low, args=(cosmo), epsrel=EPS)
+    #         d_high, error = si.quad(drdz, 0.0, z_max, args=(cosmo), epsrel=EPS)
+    #         V_max = (d_high**3 - d_low**3) / norm
+    #         weight = 1.0 / V_max
+    #     else:
+    #         if(z_max > z_high):
+    #             weight = 1.0
 
-        for value in col[:len(col) - 1]:
-            print(value),
-        print(weight)
+    #     for value in col[:len(col) - 1]:
+    #         print(value),
+    #     print(weight)
 
 
 # ----------------------------------------------------- #

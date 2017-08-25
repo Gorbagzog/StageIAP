@@ -25,52 +25,52 @@ from astropy.cosmology import LambdaCDM
 import get_Vmax_mod
 
 """Load files"""
-# redshifts of the BolshoiPlanck files
-redshift_haloes = np.arange(0, 10, step=0.1)
-numredshift_haloes = np.size(redshift_haloes)
 
-"""Definition of hmf_bolshoi columns :
-# hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
-# hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
-# (density) [1/Mpc^3]
-# hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
-# (density) [1/Mpc^3]
+redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
+numredshift_haloes = len(redshift_haloes)
+
+
+"""Load Tinker+08 HMF computed with HFMCalc of Murray+13
+parameters : Delta = 70, mean overdensity.
 """
 
-hmf_bolshoi = []
-for i in range(numredshift_haloes):
-    hmf_bolshoi.append(
-        np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
-                   '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
 
+hmf = []
+for i in range(numredshift_haloes):
+    hmf.append(
+        np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm170/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
+            redshift_haloes[i]), usecols=(0, 7)))
+    hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
+    hmf[i][:, 1] = hmf[i][:, 1] * (0.6774)**3
 
 """ Plot"""
 # for i in range(numredshift_haloes):
-#     plt.plot(hmf_bolshoi[i][:,0], hmf_bolshoi[i][:,1])
+#     plt.plot(hmf[i][:, 0], hmf[i][:, 1])
 
 """ Compute Halo cumulative density """
 
-numpoints = np.size(hmf_bolshoi[0][:, 0])
+numpoints = np.size(hmf[0][:, 0])
 Nbolshoi = []
 for i in range(numredshift_haloes):
     Nbolshoi.append([])
-    for j in range(np.size(hmf_bolshoi[i][:, 0])):
+    for j in range(np.size(hmf[i][:, 0])):
         Nbolshoi[i].append(
-            np.trapz(10 ** hmf_bolshoi[i][j:, 2], hmf_bolshoi[i][j:, 0]))
+            np.trapz( hmf[i][j:, 1], hmf[i][j:, 0]))
 for i in range(numredshift_haloes):
     Nbolshoi[i] = np.asarray(Nbolshoi[i])
 
 """Plots"""
 
+# plt.figure()
 # for i in range(numredshift_haloes):
-#     plt.plot(hmf_bolshoi[i][:,0], Nbolshoi[i][:])
+#     plt.plot(hmf[i][:, 0], Nbolshoi[i][:])
 # plt.ylim(10**-7, 1)
-# plt.xlim(8,16)
+# plt.xlim(8, 16)
 # plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]')
 # plt.ylabel('N(>M) [$Mpc^{-3}$]')
 # plt.yscale('log')
 # plt.title('Abundances for Bolshoï Planck 0<z<9.9')
-
+# plt.show()
 
 """Load the SMF from Iary Davidzon+17"""
 
@@ -118,17 +118,17 @@ for i in range(10):
 
 """Plot SMF"""
 
-plt.figure()
-for i in range(10):
-    plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5,
-                     label=str(redshifts[i])+'<z<'+str(redshifts[i+1]))
-    plt.ylim(-6, -2)
-    plt.xlim(8, 14)
-    plt.title('Davidzon+17 Schechter fits')
-    plt.ylabel('Log($\phi$) [Log($Mpc^{-3}$)]')
-    plt.xlabel('Log($M_{*}$) [Log($M_{\odot}$)]')
-    plt.legend(loc=3)
-plt.show()
+# plt.figure()
+# for i in range(10):
+#     plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5,
+#                      label=str(redshifts[i])+'<z<'+str(redshifts[i+1]))
+#     plt.ylim(-6, -2)
+#     plt.xlim(8, 14)
+#     plt.title('Davidzon+17 Schechter fits')
+#     plt.ylabel('Log($\phi$) [Log($Mpc^{-3}$)]')
+#     plt.xlabel('Log($M_{*}$) [Log($M_{\odot}$)]')
+#     plt.legend(loc=3)
+# plt.show()
 
 
 """Compute Galaxy Cumulative Density
@@ -145,18 +145,6 @@ for i in range(numzbin):
         Nstar[i, j] = np.trapz(10 ** smf[i][j:, 1], smf[i][j:, 0])
         Nstarminus[i, j] = np.trapz(10 ** smf[i][j:, 2], smf[i][j:, 0])
         Nstarplus[i, j] = np.trapz(10 ** smf[i][j:, 3], smf[i][j:, 0])
-
-"""Select redshifts of haloes to match with Davidzon intervals"""
-
-redshift_id_selec = np.empty(numzbin)
-for i in range(numzbin):
-    redshift_id_selec[i] = np.argmin(
-        np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
-
-redshift_id_selec = redshift_id_selec.astype(int)
-print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
-print('Closest redshifts for Bolshoi HMFs : '
-      + str(redshift_haloes[redshift_id_selec]))
 
 """Do interpolation for abundance matching"""
 
@@ -181,8 +169,8 @@ for i in range(numzbin):
         smf[i][Nstarplus[i, :] > 0, 0],
         kind='cubic'))
     Mhalo.append(interp1d(np.log10(
-        Nbolshoi[redshift_id_selec[i]][Nbolshoi[redshift_id_selec[i]] > 0]),
-        hmf_bolshoi[redshift_id_selec[i]][Nbolshoi[redshift_id_selec[i]] > 0, 0],
+        Nbolshoi[i][Nbolshoi[i] > 0]),
+        hmf[i][Nbolshoi[i] > 0, 0],
         kind='cubic'))
 
 """Compute M*/Mh with uncertainties coming only from the uncertainties on the M*."""
@@ -202,13 +190,13 @@ for i in range(numzbin):
             min(np.log10(Nstar[i, Nstar[i, :] > 0])),
             np.log10(Nstarminus[i, Nstarminus[i, :] > 0][-1]),
             np.log10(Nstarplus[i, Nstarplus[i, :] > 0][-1]),
-            np.log10(Nbolshoi[redshift_id_selec[i]][-1])
+            np.log10(Nbolshoi[i][-1])
             ),
         min(
             np.log10(Nstar[i, 0]),
             np.log10(Nstarminus[i, 0]),
             np.log10(Nstarplus[i, 0]),
-            np.log10(Nbolshoi[redshift_id_selec[i]][0])
+            np.log10(Nbolshoi[i][0])
             ),
         n_fit)
     # to ensure that geomspace respects the given boundaries :
@@ -216,13 +204,13 @@ for i in range(numzbin):
         min(np.log10(Nstar[i, Nstar[i, :] > 0])),
         np.log10(Nstarminus[i, Nstarminus[i, :] > 0][-1]),
         np.log10(Nstarplus[i, Nstarplus[i, :] > 0][-1]),
-        np.log10(Nbolshoi[redshift_id_selec[i]][-1])
+        np.log10(Nbolshoi[i][-1])
         )
     x[i][-1] = min(
         np.log10(Nstar[i, 0]),
         np.log10(Nstarminus[i, 0]),
         np.log10(Nstarplus[i, 0]),
-        np.log10(Nbolshoi[redshift_id_selec[i]][0])
+        np.log10(Nbolshoi[i][0])
         )
     xm[i] = Mhalo[i](x[i])
     ym[i] = MstarIary[i](x[i]) - Mhalo[i](x[i])  # minus because we are divinding two log
