@@ -14,6 +14,7 @@ import pyfits
 # from timeit import default_timer as timer
 import numpy.lib.recfunctions as rfn
 import matplotlib.mlab as mlab
+from scipy.optimize import curve_fit
 
 
 """Load true galdata from the H-AGN Lightcone"""
@@ -360,7 +361,7 @@ for i in range(numzbin-1):
                     hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
                 ].astype('int')
         ] - np.log10(halodata[i]['Mass'][indices]*10**11),
-        bins=500, cmin=1, range=[[10, 14], [-2, -0.3]]
+        bins=100, cmin=1, range=[[10, 14], [-2, -0.3]]
     )
     plt.plot(
         medHMperSMPhot[i],
@@ -373,6 +374,44 @@ for i in range(numzbin-1):
     plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
     plt.title('H-AGN, Central gal and level 1 halos')
 
+
+"""Fit the Yang relation on the M*/Mh relation"""
+
+
+def mstar_over_mh_yang(x, A, m1, beta, gamma):
+    """Yang et al. 2004 function, see Moster et al. 2010."""
+    return 2.0 * A * ((x / m1)**(-beta) + (x / m1)**gamma)**(-1)
+
+
+# xm =subHaloMass*10**11
+# ym = galdata[:]['Mass']/subHaloMass[:]
+yang_fit = np.empty([numzbin, 4])
+yang_cov = np.empty([numzbin, 4, 4])
+
+
+for i in range(numzbin):
+    yang_fit[i], yang_cov[i] = curve_fit(
+        mstar_over_mh_yang,
+        10**medHMperSM[i][~np.isnan(medHMperSM[i])],
+        10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSM[i])] -
+         medHMperSM[i][~np.isnan(medHMperSM[i])]),
+        p0=[0.01, 10**12, 0.1, 0.1],
+        bounds=[[0, 10**9, 0, 0], [0.5, 10**14, 5, 5]], method='trf')
+
+
+"""Plot Yang fit"""
+
+x = np.logspace(10, 14, num=1000)
+plt.figure()
+for i in range(numzbin):
+    p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit[i])))
+    plt.scatter(
+        medHMperSM[i],
+        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
+        facecolors='none', edgecolors=p[0].get_color(),
+        label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
+    )
+plt.show()
 
 """Plot sSFR vs Mh for true catalogs"""
 
