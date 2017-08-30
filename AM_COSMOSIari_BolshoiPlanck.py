@@ -48,6 +48,20 @@ for i in range(numredshift_haloes):
 # for i in range(numredshift_haloes):
 #     plt.plot(hmf_bolshoi[i][:,0], hmf_bolshoi[i][:,1])
 
+# for i in range(numredshift_haloes):
+plt.close('all')
+plt.figure()
+for i in [0, 20, 40, 60]:
+    p = plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 2], label='z='+str(redshift_haloes[i]))
+    plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 1], linestyle='--', color=p[0].get_color())
+plt.ylim(10**-6, 10**-0.5)
+plt.xlim(9.5, 15)
+plt.yscale('log')
+plt.legend()
+plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]')
+plt.ylabel('dN/dlog($M_{vir}$)   [$Mpc^{-3}$]')
+# plt.title('HMF for Bolshoï Planck')
+
 """ Compute Halo cumulative density """
 
 numpoints = np.size(hmf_bolshoi[0][:, 0])
@@ -88,6 +102,9 @@ for i in range(10):
         # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
         # + str(i) + '.dat')
     )
+    # Add errors in the case of Vmax
+    # smf[i][:, 2] = smf[i][:, 1] + smf[i][:, 2]
+    # smf[i][:, 3] = smf[i][:, 1] - smf[i][:, 3]
 
 """Adapt SMF to match the Bolshoi-Planck Cosmology"""
 # Bolshoi-Planck cosmo : (flat LCMD)
