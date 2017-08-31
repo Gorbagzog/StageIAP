@@ -134,12 +134,27 @@ for idx_obs in range(len(obstotrue)):
 galdata_allz = rfn.append_fields(galdata_allz, 'Obs_gal_idx',  truetoobs, usemask=False)
 
 
+"""Plot MsObserved vs MsTrue"""
+
+plt.figure()
+x = np.arange(5, 13)
+plt.hist2d(
+    np.log10(galdata_allz['Mass'][galdata_allz['Obs_gal_idx'] > 0]*10**11),
+    galphot['Mass'][galdata_allz[galdata_allz['Obs_gal_idx'] > 0]['Obs_gal_idx'].astype('int')],
+    cmin=1, bins=100, range=[[9, 12], [9, 12]], norm=mpl.colors.LogNorm(), cmap='jet'
+)
+plt.colorbar()
+# plt.plot(x, x, lab='y=x')
+plt.xlabel('Original Mass', size=12)
+plt.ylabel('Photometric mass', size=12)
+plt.title('H-AGN, stellar photometric mass dispersion')
+
 """Compute median, average and percentiles for masses."""
 
 # For true catalog
 stellarmassbins = np.linspace(9, 12, num=100)
-avHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
-medHMperSM = np.zeros([numzbin, np.size(stellarmassbins)-1])
+avHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
+medHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
 for i in range(numzbin):
     for j in range(np.size(stellarmassbins)-1):
         m1 = stellarmassbins[j]
@@ -155,14 +170,15 @@ for i in range(numzbin):
                 hal_centgal[i] > 0
             )
         )
-        avHMperSM[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
-        medHMperSM[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
+        if np.size(indices) > 1 :
+            avHMperSM[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
+            medHMperSM[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
 
 # For photometric catalog
 stellarmassbins = np.linspace(9, 12, num=100)
-avHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
-medHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
-stdHMperSMPhot = np.zeros([numzbin, np.size(stellarmassbins)-1])
+avHMperSMPhot = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
+medHMperSMPhot = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
+stdHMperSMPhot = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
 for i in range(numzbin-1):
     for j in range(np.size(stellarmassbins)-1):
         m1 = stellarmassbins[j]
@@ -193,9 +209,11 @@ for i in range(numzbin-1):
                 ),
             )
         )
-        avHMperSMPhot[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
-        medHMperSMPhot[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
-        stdHMperSMPhot[i, j] = np.std(np.log10(halodata[i]['Mass'][indices] * 10**11))
+        if np.size(indices) > 2:
+            print(np.size(indices))
+            avHMperSMPhot[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
+            medHMperSMPhot[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
+            stdHMperSMPhot[i, j] = np.std(np.log10(halodata[i]['Mass'][indices] * 10**11))
 
 # stellarmassbins = np.linspace(8.1, 12, num=100)
 # first_per = np.zeros([numzbin, np.size(stellarmassbins)-1])
@@ -383,33 +401,47 @@ def mstar_over_mh_yang(x, A, m1, beta, gamma):
     return 2.0 * A * ((x / m1)**(-beta) + (x / m1)**gamma)**(-1)
 
 
-# xm =subHaloMass*10**11
-# ym = galdata[:]['Mass']/subHaloMass[:]
-yang_fit = np.empty([numzbin, 4])
-yang_cov = np.empty([numzbin, 4, 4])
-
-
+yang_fit_true = np.empty([numzbin, 4])
+yang_cov_true = np.empty([numzbin, 4, 4])
 for i in range(numzbin):
-    yang_fit[i], yang_cov[i] = curve_fit(
+    yang_fit_true[i], yang_cov_true[i] = curve_fit(
         mstar_over_mh_yang,
         10**medHMperSM[i][~np.isnan(medHMperSM[i])],
         10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSM[i])] -
-         medHMperSM[i][~np.isnan(medHMperSM[i])]),
+             medHMperSM[i][~np.isnan(medHMperSM[i])]),
         p0=[0.01, 10**12, 0.1, 0.1],
         bounds=[[0, 10**9, 0, 0], [0.5, 10**14, 5, 5]], method='trf')
 
+yang_fit_phot = np.empty([numzbin-1, 4])
+yang_cov_phot = np.empty([numzbin-1, 4, 4])
+for i in range(numzbin-1):
+    yang_fit_phot[i], yang_cov_phot[i] = curve_fit(
+        mstar_over_mh_yang,
+        10**medHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])],
+        10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSMPhot[i])] -
+             medHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])]),
+        p0=[0.01, 10**12, 0.5, 0.1],
+        bounds=[[0, 10**10, 0, 0], [0.5, 10**13, 5, 5]], method='trf')
+print(yang_fit_phot)
 
 """Plot Yang fit"""
 
 x = np.logspace(10, 14, num=1000)
 plt.figure()
-for i in range(numzbin):
-    p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit[i])))
+for i in range(numzbin-1):
+    #p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])))
+    p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_phot[i])))
+    # plt.scatter(
+    #     medHMperSM[i],
+    #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
+    #     facecolors='none', edgecolors=p[0].get_color(),
+    #     label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
+    # )
     plt.scatter(
         medHMperSM[i],
-        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
-        facecolors='none', edgecolors=p[0].get_color(),
-        label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
+        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
+        facecolors=p[0].get_color(), edgecolors=p[0].get_color(),
+        label='Photo catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
     )
 plt.show()
 
