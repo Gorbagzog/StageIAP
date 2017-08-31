@@ -30,13 +30,13 @@ redshift_haloes = np.arange(0, 10, step=0.1)
 numredshift_haloes = np.size(redshift_haloes)
 
 """Definition of hmf_bolshoi columns :
-# hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
-# hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
-# (density) [1/Mpc^3]
-# hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
-# (density) [1/Mpc^3]
-"""
 
+hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
+hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
+(density) [1/Mpc^3]
+hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
+(density) [1/Mpc^3]
+"""
 hmf_bolshoi = []
 for i in range(numredshift_haloes):
     hmf_bolshoi.append(
@@ -44,11 +44,11 @@ for i in range(numredshift_haloes):
                    '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
 
 
-""" Plot"""
+"""Plot"""
 # for i in range(numredshift_haloes):
 #     plt.plot(hmf_bolshoi[i][:,0], hmf_bolshoi[i][:,1])
 
-# for i in range(numredshift_haloes):
+# Plot central HMF and central+satellite HMF
 plt.close('all')
 plt.figure()
 for i in [0, 20, 40, 60]:
