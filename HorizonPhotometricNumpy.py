@@ -155,6 +155,7 @@ plt.title('H-AGN, stellar photometric mass dispersion')
 stellarmassbins = np.linspace(9, 12, num=100)
 avHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
 medHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
+stdHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
 for i in range(numzbin):
     for j in range(np.size(stellarmassbins)-1):
         m1 = stellarmassbins[j]
@@ -170,9 +171,10 @@ for i in range(numzbin):
                 hal_centgal[i] > 0
             )
         )
-        if np.size(indices) > 1 :
+        if np.size(indices) > 2:
             avHMperSM[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
             medHMperSM[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
+            stdHMperSM[i, j] = np.std(np.log10(halodata[i]['Mass'][indices] * 10**11))
 
 # For photometric catalog
 stellarmassbins = np.linspace(9, 12, num=100)
@@ -409,6 +411,7 @@ for i in range(numzbin):
         10**medHMperSM[i][~np.isnan(medHMperSM[i])],
         10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSM[i])] -
              medHMperSM[i][~np.isnan(medHMperSM[i])]),
+        sigma=stdHMperSM[i][~np.isnan(medHMperSM[i])],
         p0=[0.01, 10**12, 0.1, 0.1],
         bounds=[[0, 10**9, 0, 0], [0.5, 10**14, 5, 5]], method='trf')
 
@@ -420,6 +423,7 @@ for i in range(numzbin-1):
         10**medHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])],
         10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSMPhot[i])] -
              medHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])]),
+        sigma=stdHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])],
         p0=[0.01, 10**12, 0.5, 0.1],
         bounds=[[0, 10**10, 0, 0], [0.5, 10**13, 5, 5]], method='trf')
 print(yang_fit_phot)
@@ -429,8 +433,9 @@ print(yang_fit_phot)
 x = np.logspace(10, 14, num=1000)
 plt.figure()
 for i in range(numzbin-1):
-    #p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])))
+    # p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])))
     p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_phot[i])))
+    #          color=p[0].get_color())
     # plt.scatter(
     #     medHMperSM[i],
     #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
@@ -440,10 +445,60 @@ for i in range(numzbin-1):
     plt.scatter(
         medHMperSM[i],
         (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
-        facecolors=p[0].get_color(), edgecolors=p[0].get_color(),
+        facecolors='none', edgecolors=p[0].get_color(),
         label='Photo catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
     )
+plt.legend()
+plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
 plt.show()
+
+"""Find MhPeak with the Yanf fit"""
+
+MhaloPeak_true = np.zeros(numzbin)
+for i in range(numzbin):
+    MhaloPeak_true[i] = np.log10(x[np.argmax(mstar_over_mh_yang(x, *yang_fit_true[i]))])
+
+MhaloPeak_phot = np.zeros(numzbin-1)
+for i in range(numzbin-1):
+    MhaloPeak_phot[i] = np.log10(x[np.argmax(mstar_over_mh_yang(x, *yang_fit_phot[i]))])
+
+"""Plot MhaloPeak versus z"""
+
+# Lauthaud+17 use a different cosmology with H0=72
+redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2])
+MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12]))
+MhaloSigmaLeauthaud = np.log10(np.array(
+    [1.05 * 10**12, 1.55 * 10**12, 1.5 * 10**12])) - MhaloPeakLeauthaud
+# Load Coupon+17 draft Peak values
+# We use PeakPosMCMCMean and PeakPosMCMCstd
+# Values are given in Log10(Mh*h^-1 Msun)
+redshiftCoupon17 = np.array([0.34, 0.52, 0.70, 0.90, 1.17, 1.50,
+                            1.77, 2.15, 2.75, 3.37, 3.96, 4.83])
+MhaloPeakCoupon17 = np.zeros([np.size(redshiftCoupon17)])
+MhaloSigmaCoupon17 = np.zeros([np.size(redshiftCoupon17)])
+for i in range(len(redshiftCoupon17)):
+    MhaloPeakCoupon17[i], MhaloSigmaCoupon17[i] = np.loadtxt(
+        '../Data/Coupon17/peak/peak_{:1.2f}.ascii'.format(redshiftCoupon17[i]),
+        usecols=(2, 3))
+
+
+plt.figure()
+plt.plot((zbins_Cone[1:]+zbins_Cone[:-1])/2, MhaloPeak_true, 'o',
+         label='Original Catalog')
+plt.plot((zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_phot, 'd',
+         label='Photometric Catalog')
+plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
+             yerr=MhaloSigmaCoupon17,
+             fmt='o', capsize=5, label='Coupon et al. 2017 Draft')
+plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud + np.log10(72/70),
+             yerr=MhaloSigmaLeauthaud,
+             fmt='o', capsize=5, label='Leauthaud et al. 2011')
+plt.ylabel('Log($M_{halo}^{peak}$) [Log($M_{\odot}$)]', size=15)
+plt.xlabel('Redshift',  size=15)
+plt.legend(loc=1)
+plt.title('Horizon-AGN, MhaloPeak')
+plt.tight_layout()
 
 """Plot sSFR vs Mh for true catalogs"""
 
