@@ -495,7 +495,7 @@ for i in range(numzbin):
 
 # TODO : check that there aure all in the same cosmo (h=0.7)
 
-# Lautahud+17 use a different cosmology with H0=72
+# Lauthaud+17 use a different cosmology with H0=72
 redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2])
 MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12]))
 MhaloSigmaLeauthaud = np.log10(np.array(
