@@ -74,7 +74,7 @@ for i in range(3):
     plt.figure()
     indices = np.where(
         np.logical_and(
-            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] >= 1),
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
             galdata_allz['Obs_gal_idx'][
                     hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
             ] > 0
@@ -96,5 +96,5 @@ for i in range(3):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) Photometric [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoMass_HaloMass' +
+    # plt.savefig('../Plots/COSMOS_on_HAGN/PhotoMass_HaloMass' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
