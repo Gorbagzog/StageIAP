@@ -13,7 +13,8 @@ import pyfits
 # from scipy.spatial import cKDTree
 # from timeit import default_timer as timer
 import numpy.lib.recfunctions as rfn
-import matplotlib.mlab as mlab
+# import matplotlib.mlab as mlab
+import matplotlib as mpl
 from scipy.optimize import curve_fit
 
 
@@ -54,12 +55,16 @@ galphot = np.genfromtxt(
 
 """Load catalog matching halos to their central galaxies"""
 # Contains the IDs (starts at 1) of the central galaxy of each halo
-hal_centgal = []
-for i in range(np.size(zbins_Cone)-1):
-    hal_centgal.append(
-        np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
-                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_new.txt',
-                   dtype='i4'))
+hal_centgal = [[] for x in range(numzbin)]
+for i in range(numzbin-1):
+    hal_centgal[i] = np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
+            str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_newb.txt',
+            dtype='i4')
+        # np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
+        #            str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_new.txt',
+        #            dtype='i4'))
+        # New match with Yohan algorithm to find galaxies by decreasing spheres.
+
 
 """Load halos environment.
 Header is #dens dfil dnod1 dnod2.
@@ -156,7 +161,7 @@ stellarmassbins = np.linspace(9, 12, num=100)
 avHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
 medHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
 stdHMperSM = np.full([numzbin, np.size(stellarmassbins)-1], np.nan)
-for i in range(numzbin):
+for i in range(numzbin - 1):
     for j in range(np.size(stellarmassbins)-1):
         m1 = stellarmassbins[j]
         m2 = stellarmassbins[j+1]
@@ -212,7 +217,7 @@ for i in range(numzbin-1):
             )
         )
         if np.size(indices) > 2:
-            print(np.size(indices))
+            # print(np.size(indices))
             avHMperSMPhot[i, j] = np.average(np.log10(halodata[i]['Mass'][indices] * 10**11))
             medHMperSMPhot[i, j] = np.median(np.log10(halodata[i]['Mass'][indices] * 10**11))
             stdHMperSMPhot[i, j] = np.std(np.log10(halodata[i]['Mass'][indices] * 10**11))
@@ -251,7 +256,7 @@ massbins = np.linspace(10, 15, num=100)
 avSMperHM = np.zeros([numzbin, np.size(massbins)-1])
 medSMperHM = np.zeros([numzbin, np.size(massbins)-1])
 
-for i in range(4):
+for i in range(numzbin-1):
     for j in range(np.size(massbins)-1):
         m1 = massbins[j]
         m2 = massbins[j+1]
@@ -272,7 +277,7 @@ for i in range(4):
 
 """Plot Ms(Mh) for true galaxies and level 1 halos"""
 
-for i in range(numzbin):
+for i in range(numzbin-1):
     plt.figure()
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
     # verification that all galaxies selected are central
@@ -294,7 +299,7 @@ for i in range(numzbin):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/TrueMass_HaloMass' +
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueMass_HaloMass' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
@@ -405,7 +410,7 @@ def mstar_over_mh_yang(x, A, m1, beta, gamma):
 
 yang_fit_true = np.empty([numzbin, 4])
 yang_cov_true = np.empty([numzbin, 4, 4])
-for i in range(numzbin):
+for i in range(numzbin-1):
     yang_fit_true[i], yang_cov_true[i] = curve_fit(
         mstar_over_mh_yang,
         10**medHMperSM[i][~np.isnan(medHMperSM[i])],
@@ -433,15 +438,15 @@ print(yang_fit_phot)
 x = np.logspace(10, 14, num=1000)
 plt.figure()
 for i in range(numzbin-1):
-    # p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])))
-    p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_phot[i])))
-    #          color=p[0].get_color())
-    # plt.scatter(
-    #     medHMperSM[i],
-    #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
-    #     facecolors='none', edgecolors=p[0].get_color(),
-    #     label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
-    # )
+    p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])))
+    plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_phot[i])),
+             color=p[0].get_color())
+    plt.scatter(
+        medHMperSM[i],
+        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
+        facecolors='none', edgecolors=p[0].get_color(),
+        label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
+    )
     plt.scatter(
         medHMperSM[i],
         (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
@@ -455,8 +460,8 @@ plt.show()
 
 """Find MhPeak with the Yanf fit"""
 
-MhaloPeak_true = np.zeros(numzbin)
-for i in range(numzbin):
+MhaloPeak_true = np.zeros(numzbin-1)
+for i in range(numzbin-1):
     MhaloPeak_true[i] = np.log10(x[np.argmax(mstar_over_mh_yang(x, *yang_fit_true[i]))])
 
 MhaloPeak_phot = np.zeros(numzbin-1)
@@ -484,7 +489,7 @@ for i in range(len(redshiftCoupon17)):
 
 
 plt.figure()
-plt.plot((zbins_Cone[1:]+zbins_Cone[:-1])/2, MhaloPeak_true, 'o',
+plt.plot((zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_true, 'o',
          label='Original Catalog')
 plt.plot((zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_phot, 'd',
          label='Photometric Catalog')
@@ -989,8 +994,8 @@ for i in range(numzbin-1):
         # np.log10(halodata[i]['mvir'][indices]*10**11),
         np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
         # np.log10(haloes_env[i][indices, 1][0]),
-        # C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
-        #           (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
+        C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
+                   (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
         # C=np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
         # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices]),
         # C=np.log10(haloes_env[i][indices, 1][0]),
@@ -998,7 +1003,7 @@ for i in range(numzbin-1):
         gridsize=60, mincnt=1, cmap='jet', extent=[8, 14, 8, 14]
     )
     cb = plt.colorbar()
-    # cb.set_label('Log(Ms/Mh)', size=12)
+    cb.set_label('Log(sSFR)', size=12)
     plt.xlabel('Log(Halo Mass)', size=12)
     plt.ylabel('Log(Stellar Mass)', size=12)
     plt.title('Original HorizonAGN, Central haloes, z=' +
