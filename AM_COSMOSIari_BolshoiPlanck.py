@@ -287,16 +287,16 @@ plt.show()
 
 # """Plot Ms vs Mh"""
 
-plt.figure()
-for i in range(numzbin):
-    plt.plot(xm[i][:], MstarIary[i](x[i]), label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
-    plt.fill_between(xm[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]), alpha=0.5)
-plt.legend()
-plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
-plt.tight_layout()
-# plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
-plt.show()
+# plt.figure()
+# for i in range(numzbin):
+#     plt.plot(xm[i][:], MstarIary[i](x[i]), label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+#     plt.fill_between(xm[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]), alpha=0.5)
+# plt.legend()
+# plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+# plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+# plt.tight_layout()
+# # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
+# plt.show()
 
 # """ Fit a Behroozi+10 law on Mh(Ms)"""
 
