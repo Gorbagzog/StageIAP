@@ -287,16 +287,16 @@ plt.show()
 
 # """Plot Ms vs Mh"""
 
-# plt.figure()
-# for i in range(numzbin):
-#     plt.plot(xm[i][:], MstarIary[i](x[i]), label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
-#     plt.fill_between(xm[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]), alpha=0.5)
-# plt.legend()
-# plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-# plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
-# plt.tight_layout()
-# # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
-# plt.show()
+plt.figure()
+for i in range(numzbin):
+    plt.plot(xm[i][:], MstarIary[i](x[i]), label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+    plt.fill_between(xm[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]), alpha=0.5)
+plt.legend()
+plt.ylabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+plt.tight_layout()
+# plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
+plt.show()
 
 # """ Fit a Behroozi+10 law on Mh(Ms)"""
 
@@ -578,7 +578,7 @@ plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
 
 # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
 #              fmt='o', capsize=5, label='"Revised" McCracken15')
-plt.xlabel('Reshift', size=20)
+plt.xlabel('Redshift', size=20)
 plt.ylabel('Log($M_{halo}^{peak}$) [Log($M_{\odot}$)]', size=20)
 plt.legend()
 plt.tight_layout()
@@ -604,7 +604,7 @@ plt.show()
 # plt.figure()
 # plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MstarPeak,
 #              yerr=[MstarPeak-MstarPeakMin, MstarPeakMax-MstarPeak], fmt='o', capsize=5)
-# plt.xlabel('Reshift', size=20)
+# plt.xlabel('Redshift', size=20)
 # plt.ylabel('Log($M_{star}^{peak}$) [Log($M_{\odot}$)]', size=20)
 # plt.tight_layout()
 # plt.show()
@@ -617,7 +617,7 @@ plt.show()
 #              fmt='o', capsize=5, label='This work')
 # plt.errorbar(redshiftLeauthaud, MstarPeakLeauthaud, yerr=MstarSigmaLeauthaud,
 #              fmt='o', capsize=5, label='Leauthaud et al. 2011')
-# plt.xlabel('Reshift', size=20)
+# plt.xlabel('Redshift', size=20)
 # plt.ylabel('Log($M_{*}^{peak}$) [Log($M_{\odot}$)]', size=20)
 # plt.legend()
 # plt.tight_layout()
@@ -632,7 +632,7 @@ plt.show()
 #     MsOnMhaloPeak,
 #     yerr=np.transpose(yerr),
 #     fmt='o')
-# plt.xlabel('Reshift', size=20)
+# plt.xlabel('Redshift', size=20)
 # plt.ylabel('Log($[M_{*}/M_{h}]^{peak}$)', size=20)
 # plt.tight_layout()
 # plt.show()
