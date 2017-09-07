@@ -275,7 +275,68 @@ for i in range(numzbin-1):
             avSMperHM[i, j] = np.nan
             medSMperHM[i, j] = np.nan
 
+
+"""Fit the Behroozi 2010 relation on Mh(Ms)"""
+
+
+def boo_MhMs(Ms, M1, Ms0, beta, delta, gamma):
+    """Behroozi et al. 2010 Mh(Ms) relation
+    All masses are in logscale"""
+    return M1+beta*(Ms-Ms0)+10**(delta*(Ms-Ms0))/(1+10**(-gamma*(Ms-Ms0)))-0.5
+
+
+boo_fit_true = np.empty([numzbin-1, 5])
+boo_cov_true = np.empty([numzbin-1, 5, 5])
+for i in range(numzbin-1):
+    print(i)
+    indices = np.where(
+        np.logical_and(
+            np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) > 9,
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1)
+            )
+    )
+    boo_fit_true[i], boo_cov_true[i] = curve_fit(
+        boo_MhMs,
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        bounds=[[10, 8, 0, 0, 0], [13, 11, 5, 5, 5]],
+        method='trf')
+print(boo_fit_true)
+
+boo_fit_phot = np.empty([numzbin-1, 5])
+boo_cov_phot = np.empty([numzbin-1, 5, 5])
+for i in range(numzbin-1):
+    print(i)
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            np.logical_and(
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                ] > 0,
+                galphot['Mass'][
+                    galdata_allz['Obs_gal_idx'][
+                        hal_centgal[i] - 1 + sum(len(galdata[j]) for j in range(i))
+                    ].astype('int')
+                ] > 9)
+        )
+    )
+    boo_fit_phot[i], boo_cov_phot[i] = curve_fit(
+        boo_MhMs,
+        galphot['Mass'][
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+                ].astype('int')
+        ],
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        bounds=[[10, 8, 0, 0, 0], [13, 11, 5, 5, 5]],
+        method='trf')
+print(boo_fit_phot)
+
+
 """Plot Ms(Mh) for true galaxies and level 1 halos"""
+
+boofitsSMbins = np.linspace(9, 12, num=100)
 
 for i in range(numzbin-1):
     plt.figure()
@@ -287,24 +348,27 @@ for i in range(numzbin-1):
         np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
         bins=100, cmin=1)
     plt.colorbar()
-    plt.scatter((massbins[:-1]+massbins[1:])/2, avSMperHM[i][:], color='red',
-                label='Average SM for a given HM')
-    plt.scatter((massbins[:-1]+massbins[1:])/2, medSMperHM[i][:],
-                color='green', label='Median SM for a given HM')
+    # plt.scatter((massbins[:-1]+massbins[1:])/2, avSMperHM[i][:], color='red',
+    #             label='Average SM for a given HM')
+    # plt.scatter((massbins[:-1]+massbins[1:])/2, medSMperHM[i][:],
+    #             color='green', label='Median SM for a given HM')
     plt.scatter(avHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
                 color='black', label='Average HM for a given SM')
     plt.scatter(medHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
                 color='pink', label='Median HM for a given SM')
+    # Plot Behroozi fit
+    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]), boofitsSMbins,
+             label=str('Behroozi function fit'), c='r')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueMass_HaloMass' +
-    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
-
+    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueMass_HaloMass_Boofit' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """Plot Ms_observed(Mh) and level 1 halos"""
 
+boofitsSMbins = np.linspace(9, 12, num=100)
 for i in range(numzbin-1):
     plt.figure()
     indices = np.where(
@@ -322,19 +386,23 @@ for i in range(numzbin-1):
                     hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
                 ].astype('int')
         ],
-        bins=600, cmin=1, range=[[10, 14], [9, 12]])
+        bins=100, cmin=1, range=[[10, 14], [9, 12]])
     plt.colorbar()
-    plt.errorbar(avHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
-                 xerr=stdHMperSMPhot[i],
-                 color='red', label='Average HM for a given SM')
+    # plt.errorbar(avHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
+    #              xerr=stdHMperSMPhot[i],
+    #              color='red', label='Average HM for a given SM')
     # plt.scatter(medHMperSMPhot[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
     #             color='pink', label='Median HM for a given SM')
+    # Plot Behroozi fit
+    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_phot[i]), boofitsSMbins,
+             label=str('Behroozi function fit'), c='r')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) Photometric [Log($M_{\odot}$)]', size=12)
-    plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoMass_HaloMass' +
-    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    plt.title('HorizonAGN photo, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/PhotoMass_HaloMass_Boofit' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
 
 """Plot Ms/Mh vs Mh for true and photometric catalogs"""
 
@@ -354,6 +422,8 @@ for i in range(numzbin-1):
         label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
         edgecolors=cmap[i], facecolors=cmap[i]
     )
+    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
+        boofitsSMbins / boo_MhMs(boofitsSMbins, *boo_fit_phot[i]))
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
     plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
@@ -507,7 +577,7 @@ plt.tight_layout()
 
 """Plot sSFR vs Mh for true catalogs"""
 
-for i in range(numzbin):
+for i in range(numzbin-1):
     plt.figure()
     indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
     # verification that all galaxies selected are central
@@ -521,8 +591,8 @@ for i in range(numzbin):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log(sSFR) [Log($yr^{-1}$)]', size=12)
     plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/TrueSpecificSFR_HaloMass' +
-    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueSpecificSFR_HaloMass' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 # TODO : compute median sSFR for true and photo galaxies
 
@@ -563,9 +633,15 @@ for i in range(numzbin-1):
     indices = np.where(
         np.logical_and(
             np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
-            galdata_allz['Obs_gal_idx'][
+            np.logical_and(
+                galdata_allz['Obs_gal_idx'][
                     hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
-            ] > 0
+                ] > 0,
+                galphot['Mass'][
+                    galdata_allz['Obs_gal_idx'][
+                        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                    ].astype('int')] > 9
+            )
         )
     )
     plt.hist2d(
@@ -585,8 +661,8 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log(sSFR) Photometric [Log($yr^{-1}$)]', size=12)
     plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/PhotoSpecificSFR_HaloMass' +
-    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/PhotoSpecificSFR_HaloMass' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
 """Gas Met vs Mh for photo catalog"""
@@ -630,14 +706,21 @@ for i in range(numzbin-1):
         np.logical_and(
             np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
             np.logical_and(
-                galdata_allz['Obs_gal_idx'][
-                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
-                ] > 0,
-                galphot['Gas_met_boost'][
+                np.logical_and(
                     galdata_allz['Obs_gal_idx'][
                         hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
-                    ].astype('int')
-                ]
+                    ] > 0,
+                    galphot['Gas_met_boost'][
+                        galdata_allz['Obs_gal_idx'][
+                            hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                        ].astype('int')
+                    ]
+                ),
+                galphot['Mass'][
+                        galdata_allz['Obs_gal_idx'][
+                            hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                        ].astype('int')
+                    ] > 9
             )
         )
     )
@@ -652,7 +735,7 @@ for i in range(numzbin-1):
             np.log10(halodata[i]['Mass']*10**11) > m1,
             np.log10(halodata[i]['Mass']*10**11) <= m2))[0]
         indices = np.intersect1d(indices_selec, indices)
-        if len(indices) > 0:
+        if len(indices) > 4:
             avMetperHMPhot[i, j] = np.average(gal_gasmet[indices])
             medMetperHMPhot[i, j] = np.median(gal_gasmet[indices])
             stdMetperHMPhot[i, j] = np.std(gal_gasmet[indices])
@@ -671,14 +754,21 @@ for i in range(numzbin-1):
         np.logical_and(
             np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
             np.logical_and(
-                galdata_allz['Obs_gal_idx'][
-                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
-                ] > 0,
-                galphot['Gas_met_boost'][
+                np.logical_and(
                     galdata_allz['Obs_gal_idx'][
                         hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
-                    ].astype('int')
-                ]
+                    ] > 0,
+                    galphot['Gas_met_boost'][
+                        galdata_allz['Obs_gal_idx'][
+                            hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                        ].astype('int')
+                    ]
+                ),
+                galphot['Mass'][
+                        galdata_allz['Obs_gal_idx'][
+                            hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                        ].astype('int')
+                    ] > 9
             )
         )
     )
@@ -707,8 +797,8 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Gas Metalicity', size=12)
     plt.title('Photometric HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    # plt.savefig('../Plots/HAGN_Matching/ClotMatch/GasMet/gasmet_' +
-    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/GasMet/gasmet_' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """Evolution of photometric Gas metalicity with redshift"""
 
