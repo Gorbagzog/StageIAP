@@ -298,68 +298,72 @@ plt.show()
 # # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
 # plt.show()
 
-# """ Fit a Behroozi+10 law on Mh(Ms)"""
+""" Fit a Behroozi+10 law on Mh(Ms)"""
 
 
-# def boo_MhMs(Ms, M1, Ms0, beta, delta, gamma):
-#     """Behroozi et al. 2010 Mh(Ms) function. All masses are in logscale."""
-#     return(M1 + beta * (Ms - Ms0) +
-#            10 ** (delta * (Ms - Ms0)) / (1 + 10 ** (-gamma * (Ms - Ms0))) - 0.5)
+def boo_MhMs(Ms, M1, Ms0, beta, delta, gamma):
+    """Behroozi et al. 2010 Mh(Ms) function. All masses are in logscale."""
+    return(M1 + beta * (Ms - Ms0) +
+           10 ** (delta * (Ms - Ms0)) / (1 + 10 ** (-gamma * (Ms - Ms0))) - 0.5)
 
 
-# boo_fit = np.empty([numzbin, 5])
-# boo_cov = np.empty([numzbin, 5, 5])
-# boo_sigma = np.empty([numzbin, 5])
-# for i in range(numzbin):
-#     print(i)
-#     # For the low redshift cases, it seems that the SMHM for SM>10**12 causes
-#     # problems for the fit, so we will cut at 10**12 for the first five bins.
-#     if i < 5:
-#         stop = np.argmin(np.abs(MstarIary[i](x[i]) - 12))
-#         # stop=0
-#     else:
-#         stop = 0
-#     boo_fit[i], boo_cov[i] = curve_fit(boo_MhMs, MstarIary[i](x[i][stop:]),
-#                                        Mhalo[i](x[i][stop:]),
-#                                        bounds=[[10, 8, 0, 0, 0], [15, 14, 5, 5, 5]])
-#     boo_sigma[i] = np.sqrt(np.diag(boo_cov[i]))
+boo_fit_cosmos = np.empty([numzbin, 5])
+boo_cov_cosmos = np.empty([numzbin, 5, 5])
+boo_sigma_cosmos = np.empty([numzbin, 5])
+for i in range(numzbin):
+    print(i)
+    # For the low redshift cases, it seems that the SMHM for SM>10**12 causes
+    # problems for the fit, so we will cut at 10**12 for the first five bins.
+    if i < 5:
+        stop = np.argmin(np.abs(MstarIary[i](x[i]) - 12))
+        # stop=0
+    else:
+        stop = 0
+    boo_fit_cosmos[i], boo_cov_cosmos[i] = curve_fit(
+        boo_MhMs, MstarIary[i](x[i][stop:]),
+        Mhalo[i](x[i][stop:]),
+        bounds=[[10, 8, 0, 0, 0], [15, 14, 5, 5, 5]])
+    boo_sigma_cosmos[i] = np.sqrt(np.diag(boo_cov_cosmos[i]))
 
-# """Plot"""
+"""Plot"""
 
-# # Plot Mh(Ms)
-# for i in range(numzbin):
-#     plt.figure()
-#     ax = plt.subplot(111)
-#     plt.plot(
-#         MstarIary[i](x[i]),
-#         xm[i][:],
-#         label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1]))
-#     if i < 5:
-#         cut = 'cut at Log(Ms)<12'
-#     else:
-#         cut = 'no cut'
-#     plt.plot(
-#         MstarIary[i](x[i]),
-#         boo_MhMs(MstarIary[i](x[i]), *boo_fit[i]),
-#         label=str('Behroozi function fit, '+cut), c='r'
-#         )
-#     plt.legend()
-#     plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-#     plt.ylabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
-#     plt.text(
-#         0.6, 0.1,
-#         '''
-#         $log(M_{{1}})=${:.2f}
-#         $log(M_{{*,0}})=${:.2f}
-#         $\\beta=${:.2f}
-#         $\delta=${:.2f}
-#         $\gamma={:.2f}$'''.format(*boo_fit[i]),
-#         transform=ax.transAxes
-#         )
-#     plt.show()
-#     plt.tight_layout()
-#     # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
-#     #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
+# Plot Mh(Ms)
+for i in range(numzbin):
+    plt.figure()
+    ax = plt.subplot(111)
+    plt.plot(
+        MstarIary[i](x[i]),
+        xm[i][:],
+        label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1]))
+    if i < 5:
+        cut = 'cut at Log(Ms)<12'
+    else:
+        cut = 'no cut'
+    plt.plot(
+        MstarIary[i](x[i]),
+        boo_MhMs(MstarIary[i](x[i]), *boo_fit_cosmos[i]),
+        label=str('Behroozi function fit, '+cut), c='r'
+        )
+    plt.legend()
+    plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+    plt.ylabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+    plt.text(
+        0.6, 0.1,
+        '''
+        $log(M_{{1}})=${:.2f}
+        $log(M_{{*,0}})=${:.2f}
+        $\\beta=${:.2f}
+        $\delta=${:.2f}
+        $\gamma={:.2f}$'''.format(*boo_fit_cosmos[i]),
+        transform=ax.transAxes
+        )
+    plt.show()
+    plt.tight_layout()
+    # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
+    #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
+
+# TODO : tracer Ms/Mh et comparer avec le fit de Berhoozi.
+
 
 # # Plot Ms(Mh)
 # for i in range(numzbin):
@@ -381,7 +385,7 @@ plt.show()
 #     else:
 #         cut = 'no cut'
 #     plt.plot(
-#         boo_MhMs(MstarIary[i](x[i]), *boo_fit[i]),
+#         boo_MhMs(MstarIary[i](x[i]), *boo_fit_cosmos[i]),
 #         MstarIary[i](x[i]),
 #         label=str('Behroozi function fit, '+cut), c='r')
 #     plt.legend()
@@ -394,7 +398,7 @@ plt.show()
 #         $log(M_{{*,0}})=${:.2f}
 #         $\\beta=${:.2f}
 #         $\delta=${:.2f}
-#         $\gamma={:.2f}$'''.format(*boo_fit[i]),
+#         $\gamma={:.2f}$'''.format(*boo_fit_cosmos[i]),
 #         transform=ax.transAxes)
 #     plt.show()
 #     plt.tight_layout()
@@ -405,7 +409,7 @@ plt.show()
 # """Plot the evolution of the Behroozi+10 parameters as a function of redshift"""
 
 # plt.figure()
-# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 0], yerr=boo_sigma[:, 0],
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit_cosmos[:, 0], yerr=boo_sigma_cosmos[:, 0],
 #              fmt='o', capsize=5)
 # plt.xlabel('Redshift', size=20)
 # plt.ylabel('$M_{1}$ of Behroozi+10 fit', size=20)
@@ -413,7 +417,7 @@ plt.show()
 # plt.show()
 
 # plt.figure()
-# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 1], yerr=boo_sigma[:, 1],
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit_cosmos[:, 1], yerr=boo_sigma_cosmos[:, 1],
 #              fmt='o', capsize=5)
 # plt.xlabel('Redshift', size=20)
 # plt.ylabel('$M_{*,0}$ of Behroozi+10 fit', size=20)
@@ -421,7 +425,7 @@ plt.show()
 # plt.show()
 
 # plt.figure()
-# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 2], yerr=boo_sigma[:, 2],
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit_cosmos[:, 2], yerr=boo_sigma_cosmos[:, 2],
 #              fmt='o', capsize=5)
 # plt.xlabel('Redshift', size=20)
 # plt.ylabel('$\\beta$ of Behroozi+10 fit', size=20)
@@ -429,7 +433,7 @@ plt.show()
 # plt.show()
 
 # plt.figure()
-# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 3], yerr=boo_sigma[:, 3],
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit_cosmos[:, 3], yerr=boo_sigma_cosmos[:, 3],
 #              fmt='o', capsize=5)
 # plt.xlabel('Redshift', size=20)
 # plt.ylabel('$\\delta$ of Behroozi+10 fit', size=20)
@@ -437,7 +441,7 @@ plt.show()
 # plt.show()
 
 # plt.figure()
-# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit[:, 4], yerr=boo_sigma[:, 4],
+# plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, boo_fit_cosmos[:, 4], yerr=boo_sigma_cosmos[:, 4],
 #              fmt='o', capsize=5)
 # plt.xlabel('Redshift', size=20)
 # plt.ylabel('$\\gamma$ of Behroozi+10 fit', size=20)

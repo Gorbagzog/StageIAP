@@ -101,3 +101,37 @@ for i in range(3):
     plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
     # plt.savefig('../Plots/COSMOS_on_HAGN/PhotoMass_HaloMass' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Plot Boo_fit from H_AGN with COSMOS/Bolshoi AM"""
+
+plt.figure()
+for i in range(7):
+    plt.plot(
+        xm[i][:], MstarIary[i](x[i]),
+        label='Cosmos z='+str(redshifts[i]) + '-' + str(redshifts[i + 1]))
+    plt.fill_between(xm[i], MstarIaryMinus[i](x[i]), MstarIaryPlus[i](x[i]), alpha=0.7)
+for i in range(3):
+    plt.plot(
+        boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+        boofitsSMbins,
+        label=str('Horizon-AGN fit z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])),
+        linestyle='--')
+plt.legend()
+plt.xlabel('Log($M_{h} / M_{\odot}$)]', size=12)
+plt.ylabel('Log($M_{*} / M_{\odot}$)]', size=12)
+
+plt.figure()
+for i in range(7):
+    plt.plot(
+        xm[i][:], ym[i],
+        label='Cosmos z='+str(redshifts[i]) + '-' + str(redshifts[i + 1]))
+    plt.fill_between(xm[i], yminus[i], yplus[i], alpha=0.5)
+for i in range(3):
+    plt.plot(
+        boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+        boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+        label=str('Horizon-AGN fit z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])),
+        linestyle='--')
+plt.xlabel('Log($M_{h} / M_{\odot}$)]', size=12)
+plt.ylabel('Log($M_{*} / M_{h}$)]', size=12)

@@ -16,6 +16,8 @@ import numpy.lib.recfunctions as rfn
 # import matplotlib.mlab as mlab
 import matplotlib as mpl
 from scipy.optimize import curve_fit
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import matplotlib.ticker as ticker
 
 
 """Load true galdata from the H-AGN Lightcone"""
@@ -357,14 +359,62 @@ for i in range(numzbin-1):
     plt.scatter(medHMperSM[i][:], (stellarmassbins[:-1]+stellarmassbins[1:])/2,
                 color='pink', label='Median HM for a given SM')
     # Plot Behroozi fit
-    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]), boofitsSMbins,
-             label=str('Behroozi function fit'), c='r')
+    # plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]), boofitsSMbins,
+    #          label=str('True Behroozi function fit'), c='r')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueMass_HaloMass_Boofit' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueMass_HaloMass_Boofit' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+"""Plot Ms(Mh) on the same figure"""
+
+fig, ax = plt.subplots(2, 2)
+# fig.suptitle('Horizon AGN CONE, WARNING !! colorbars not homogeneous')
+for i in range(3):
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    ax1 = ax[i//2, i % 2]
+    if i == 0:
+        counts, xedges, yedges, im = ax1.hist2d(
+            np.log10(halodata[i]['Mass'][indices]*10**11),
+            np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+            bins=100, cmin=1)
+    else:
+        _, _, _, im = ax1.hist2d(
+            np.log10(halodata[i]['Mass'][indices]*10**11),
+            np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+            bins=(xedges, yedges), cmin=1)
+    # Put the colorbar inside of the axes.
+
+    axins1 = inset_axes(
+        ax1,
+        width="5%",  # width = 10% of parent_bbox width
+        height="35%",  # height : 50%
+        loc=8,
+        bbox_to_anchor=[0.5, 0, 0.5, 1],
+        bbox_transform=ax1.transAxes
+        # bbox_transform=ax1.transAxes,
+        # bbox_to_anchor=(1, 1)
+        )
+    cbar = fig.colorbar(im, cax=axins1)
+    ax1.set_xlabel('Log($M_{h}/M_{\odot}$)', size=12)
+    ax1.set_ylabel('Log($M_{*}/M_{\odot}$)', size=12)
+    cbar.ax.tick_params(labelsize=9)
+    tick_locator = ticker.MaxNLocator(nbins=5)
+    cbar.locator = tick_locator
+    cbar.update_ticks()
+
+    ax1.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]), boofitsSMbins,
+             label=str('Behroozi function fit'), c='r')
+
+    plt.text(0.1, 0.8, str(zbins_Cone[i])+'<z<'+str(zbins_Cone[i+1]),
+             size=12, transform=ax1.transAxes, bbox=dict(boxstyle='round', facecolor='white'))
+fig.tight_layout()
+# plt.subplots_adjust(top=0.95)
+plt.show()
+
 
 """Plot Ms_observed(Mh) and level 1 halos"""
 
@@ -400,34 +450,63 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Log($M_{*}$) Photometric [Log($M_{\odot}$)]', size=12)
     plt.title('HorizonAGN photo, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/PhotoMass_HaloMass_Boofit' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/PhotoMass_HaloMass_Boofit' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 
 """Plot Ms/Mh vs Mh for true and photometric catalogs"""
 
 plt.figure()
-cmap = ['blue', 'green', 'red']
-marker = ['v', '>', '^']
+# cmap = ['blue', 'green', 'red']
+# marker = ['v', '>', '^']
 for i in range(numzbin-1):
+    # plt.scatter(
+    #     medHMperSM[i],
+    #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
+    #     label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
+    #     edgecolors=cmap[i], facecolors='none'
+    # )
+    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+             boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+             label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.scatter(
+    #     medHMperSMPhot[i],
+    #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
+    #     label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
+    #     edgecolors=cmap[i], facecolors=cmap[i]
+    # )
+    plt.legend()
+    plt.xlabel('Log($M_{h} / M_{\odot}$)', size=15)
+    plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
+
+
+"""Plot Ms/Mh histogram for true catalog"""
+
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    # verification that all galaxies selected are central
+    # print(galdata[i]['level'][hal_centgal[i][indices]-1].min())
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices]),
+        bins=100, cmin=1)
+    plt.colorbar()
     plt.scatter(
         medHMperSM[i],
         (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
-        label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
-        edgecolors=cmap[i], facecolors='none'
-    )
-    plt.scatter(
-        medHMperSMPhot[i],
-        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
         label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
-        edgecolors=cmap[i], facecolors=cmap[i]
+        facecolors='none', color='red'
     )
-    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
-        boofitsSMbins / boo_MhMs(boofitsSMbins, *boo_fit_phot[i]))
+    # Plot Behroozi fit
+    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+             boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+             label=str('Behroozi function fit'), c='r')
     plt.legend()
-    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
-    plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
-    plt.title('H-AGN, Central gal and level 1 halos')
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
+    plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
 
 
 """Plot Ms/Mh for photometric catalog and with median found with Ms(Mh)"""
@@ -464,6 +543,10 @@ for i in range(numzbin-1):
         label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
         color='red'
     )
+    plt.plot(
+        boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
+        boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
+        label=str('phot Behroozi function fit'), c='black')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
     plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
@@ -474,21 +557,54 @@ for i in range(numzbin-1):
 
 
 def mstar_over_mh_yang(x, A, m1, beta, gamma):
-    """Yang et al. 2004 function, see Moster et al. 2010."""
+    """Yang et al. 2012 function, see Moster et al. 2010."""
     return 2.0 * A * ((x / m1)**(-beta) + (x / m1)**gamma)**(-1)
 
 
-yang_fit_true = np.empty([numzbin, 4])
-yang_cov_true = np.empty([numzbin, 4, 4])
+# yang_fit_true = np.empty([numzbin, 4])
+# yang_cov_true = np.empty([numzbin, 4, 4])
+# for i in range(numzbin-1):
+#     yang_fit_true[i], yang_cov_true[i] = curve_fit(
+#         mstar_over_mh_yang,
+#         10**medHMperSM[i][~np.isnan(medHMperSM[i])],
+#         10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSM[i])] -
+#              medHMperSM[i][~np.isnan(medHMperSM[i])]),
+#         sigma=stdHMperSM[i][~np.isnan(medHMperSM[i])],
+#         p0=[0.01, 10**12, 0.1, 0.1],
+#         bounds=[[0, 10**9, 0, 0], [0.5, 10**14, 5, 5]], method='trf')
+
+# yang_fit_phot = np.empty([numzbin-1, 4])
+# yang_cov_phot = np.empty([numzbin-1, 4, 4])
+# for i in range(numzbin-1):
+#     yang_fit_phot[i], yang_cov_phot[i] = curve_fit(
+#         mstar_over_mh_yang,
+#         10**medHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])],
+#         10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSMPhot[i])] -
+#              medHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])]),
+#         sigma=stdHMperSMPhot[i][~np.isnan(medHMperSMPhot[i])],
+#         p0=[0.01, 10**12, 0.5, 0.1],
+#         bounds=[[0, 10**10, 0, 0], [0.5, 10**13, 5, 5]], method='trf')
+# print(yang_fit_phot)
+
+yang_fit_true = np.empty([numzbin-1, 4])
+yang_cov_true = np.empty([numzbin-1, 4, 4])
 for i in range(numzbin-1):
+    print(i)
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(
+                np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) > 9,
+                np.log10(halodata[i]['Mass']*10**11) > 10.8),
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1)
+            )
+    )
     yang_fit_true[i], yang_cov_true[i] = curve_fit(
         mstar_over_mh_yang,
-        10**medHMperSM[i][~np.isnan(medHMperSM[i])],
-        10**(((stellarmassbins[:-1]+stellarmassbins[1:]) / 2)[~np.isnan(medHMperSM[i])] -
-             medHMperSM[i][~np.isnan(medHMperSM[i])]),
-        sigma=stdHMperSM[i][~np.isnan(medHMperSM[i])],
+        halodata[i]['Mass'][indices]*10**11,
+        galdata[i]['Mass'][hal_centgal[i][indices]-1] / halodata[i]['Mass'][indices],
         p0=[0.01, 10**12, 0.1, 0.1],
         bounds=[[0, 10**9, 0, 0], [0.5, 10**14, 5, 5]], method='trf')
+print(yang_fit_true)
 
 yang_fit_phot = np.empty([numzbin-1, 4])
 yang_cov_phot = np.empty([numzbin-1, 4, 4])
@@ -503,28 +619,68 @@ for i in range(numzbin-1):
         bounds=[[0, 10**10, 0, 0], [0.5, 10**13, 5, 5]], method='trf')
 print(yang_fit_phot)
 
+
 """Plot Yang fit"""
+
+
+x = np.logspace(10, 14, num=1000)
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+        np.logical_and(
+            np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) > 9,
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1)
+            )
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] / halodata[i]['Mass'][indices]),
+        bins=100, cmin=1, range=[[10.3, 13], [-2.5, -0.5]]
+    )
+    p = plt.plot(
+        np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])),
+        label=str('Moster et al. fit'), c='b')
+    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+             boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+             label=str('Behroozi et al. fit'), c='r')
+    plt.xlabel('Log($M_{h} / M_{\odot}$)', size=15)
+    plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
+    plt.legend()
+    plt.text(0.1, 0.1, str(zbins_Cone[i])+'<z<'+str(zbins_Cone[i+1]),
+             size=12, transform=ax1.transAxes, bbox=dict(boxstyle='round', facecolor='white'))
+    plt.tight_layout()
+    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/True_MsonMH_fits' +
+                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
 
 x = np.logspace(10, 14, num=1000)
 plt.figure()
 for i in range(numzbin-1):
-    p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])))
-    plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_phot[i])),
-             color=p[0].get_color())
-    plt.scatter(
-        medHMperSM[i],
-        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
-        facecolors='none', edgecolors=p[0].get_color(),
-        label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
-    )
-    plt.scatter(
-        medHMperSM[i],
-        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
-        facecolors='none', edgecolors=p[0].get_color(),
-        label='Photo catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
-    )
+    # p = plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_true[i])))
+    # plt.plot(np.log10(x), np.log10(mstar_over_mh_yang(x, *yang_fit_phot[i])),
+    #          color=p[0].get_color())
+    # plt.scatter(
+    #     medHMperSM[i],
+    #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSM[i],
+    #     facecolors='none', edgecolors=p[0].get_color(),
+    #     label='True catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
+    # )
+    # plt.scatter(
+    #     medHMperSM[i],
+    #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
+    #     facecolors='none', edgecolors=p[0].get_color(),
+    #     label='Photo catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])
+    # )
+    # Plot Behroozi fit
+    p = plt.plot(
+            boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+            boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+            label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
+             boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
+             linestyle ='--', color=p[0].get_color())
 plt.legend()
-plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+plt.xlabel('Log($M_{h} / M_{\odot}$)', size=15)
 plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
 plt.show()
 
@@ -537,6 +693,19 @@ for i in range(numzbin-1):
 MhaloPeak_phot = np.zeros(numzbin-1)
 for i in range(numzbin-1):
     MhaloPeak_phot[i] = np.log10(x[np.argmax(mstar_over_mh_yang(x, *yang_fit_phot[i]))])
+
+
+"""Find MhPeak with Behroozi fit"""
+
+MhaloPeak_true_boo = np.zeros(numzbin-1)
+for i in range(numzbin-1):
+    idx_max = np.argmax(boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_true[i]))
+    MhaloPeak_true_boo[i] = boo_MhMs(boofitsSMbins[idx_max], *boo_fit_true[i])
+
+# MhaloPeak_phot_boo = np.zeros(numzbin-1)
+# for i in range(numzbin-1):
+#     MhaloPeak_phot_boo[i] = np.log10(x[np.argmax(mstar_over_mh_yang(x, *yang_fit_phot[i]))])
+
 
 """Plot MhaloPeak versus z"""
 
@@ -559,20 +728,29 @@ for i in range(len(redshiftCoupon17)):
 
 
 plt.figure()
-plt.plot((zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_true, 'o',
-         label='Original Catalog')
-plt.plot((zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_phot, 'd',
-         label='Photometric Catalog')
+# plt.plot((zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_true, 'd',
+#          label='Original Catalog')
+# plt.plot((zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_phot, 'd',
+#          label='Photometric Catalog')
+
+# Coming From AM__COSMOSIari_BolshoiPlanc.py
+plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
+             yerr=np.transpose(MhaloPeakSigma),
+             fmt='o', color='red', capsize=5, label='Cosmos AM')
+plt.errorbar(
+    (zbins_Cone[1:-1]+zbins_Cone[:-2])/2, MhaloPeak_true_boo,
+    yerr=0.1, fmt='o', capsize=5, c='g',
+    label='Horizon-AGN Lightcone')
 plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
-             yerr=MhaloSigmaCoupon17,
+             yerr=MhaloSigmaCoupon17, c='b',
              fmt='o', capsize=5, label='Coupon et al. 2017 Draft')
 plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud + np.log10(72/70),
-             yerr=MhaloSigmaLeauthaud,
+             yerr=MhaloSigmaLeauthaud, c='black',
              fmt='o', capsize=5, label='Leauthaud et al. 2011')
-plt.ylabel('Log($M_{halo}^{peak}$) [Log($M_{\odot}$)]', size=15)
+plt.ylabel('Log($M_{halo}^{peak}/ M_{\odot}$)', size=15)
 plt.xlabel('Redshift',  size=15)
-plt.legend(loc=1)
-plt.title('Horizon-AGN, MhaloPeak')
+plt.legend(loc=2)
+# plt.title('Horizon-AGN, MhaloPeak')
 plt.tight_layout()
 
 """Plot sSFR vs Mh for true catalogs"""
@@ -584,15 +762,16 @@ for i in range(numzbin-1):
     # print(galdata[i]['level'][hal_centgal[i][indices]-1].min())
     plt.hist2d(
         np.log10(halodata[i]['Mass'][indices]*10**11),
-        np.log10(galdata[i]['SFRCorr'][hal_centgal[i][indices]-1] /
-                 (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
-        bins=100, cmin=1, range=[[10, 14], [-12, -8]])
+        # np.log10(galdata[i]['SFRCorr'][hal_centgal[i][indices]-1] /
+        #          (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
+        np.log10(galdata[i]['SFRCorr'][hal_centgal[i][indices]-1]),
+        bins=100, cmin=1, range=[[10, 14], [-2, 2]])
     plt.colorbar()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
-    plt.ylabel('Log(sSFR) [Log($yr^{-1}$)]', size=12)
+    plt.ylabel('Log(SFR) [Log($yr^{-1}$)]', size=12)
     plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueSpecificSFR_HaloMass' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueSpecificSFR_HaloMass' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 # TODO : compute median sSFR for true and photo galaxies
 
@@ -1090,7 +1269,7 @@ for i in range(numzbin-1):
         # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices]),
         # C=np.log10(haloes_env[i][indices, 1][0]),
         # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]),
-        gridsize=60, mincnt=1, cmap='jet', extent=[8, 14, 8, 14]
+        gridsize=60, mincnt=50, cmap='jet', extent=[10, 14, 8, 12]
     )
     cb = plt.colorbar()
     cb.set_label('Log(sSFR)', size=12)
