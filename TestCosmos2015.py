@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*-coding:Utf-8 -*
 
-import pyfits
-import numpy as np
-import matplotlib.pyplot as plt
-
 # Open catalog
 
 # cat = input('Catalog to load ? Type C for COSMOS2015_Laigle' \
@@ -48,9 +44,9 @@ print('Catalog successfully loaded.')
 # plt.title('COSMOS2015')
 # plt.colorbar()
 #
-# #Plot SFR vs Mass
-# plt.hist2d(tdata['MASS_MED'], tdata['SFR_MED'], bins=100, cmin=1)
-# plt.ylabel('SFR_MED (log)')
-# plt.xlabel('Stellar mass (MASS_MED) (log)')
-# plt.title('COSMOS2015')
-# plt.colorbar()
+#Plot SFR vs Mass
+plt.hist2d(tdata['MASS_MED'], tdata['SFR_MED'], bins=100, cmin=1)
+plt.ylabel('SFR_MED (log)')
+plt.xlabel('Stellar mass (MASS_MED) (log)')
+plt.title('COSMOS2015')
+plt.colorbar()

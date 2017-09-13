@@ -263,6 +263,12 @@ plt.figure()
 for i in range(numzbin):
     plt.plot(xm[i][:], ym[i][:], label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
     plt.fill_between(xm[i], yminus[i], yplus[i], alpha=0.5)
+plt.plot(
+    np.linspace(12, 15), 11.5 - np.linspace(12, 15),
+    linestyle='--', c='black', label='$M_{*}=10^{11.5}$')
+plt.plot(
+    np.linspace(11, 14), 10 - np.linspace(11, 14),
+    linestyle='--', c='black', label='$M_{*}=10^{10}$')
 plt.legend()
 plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
 plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)

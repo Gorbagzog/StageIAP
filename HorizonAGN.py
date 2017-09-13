@@ -11,7 +11,7 @@ import time
 computations with it.
 """
 
-zbins_Cone = np.array([0, 1, 2, 3, 6])
+zbins_Cone = np.array([0, 1, 2, 3])
 numzbin = np.size(zbins_Cone)-1
 
 galdata = []
@@ -49,7 +49,7 @@ mainHaloMass = []
 for i in range(np.size(zbins_Cone)-1):
     gal_mainhaloes.append(
         np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
-                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_MainHaloes_new.txt',
+                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_MainHaloes_newb.txt',
                    dtype='i4'))
     mainHaloMass.append(halodata[i]['Mass'][gal_mainhaloes[i][:].astype(int)-1])
 
@@ -60,7 +60,7 @@ subHaloMass = []
 for i in range(np.size(zbins_Cone)-1):
     gal_subhaloes.append(
         np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
-                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_SubHaloes_new.txt',
+                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_SubHaloes_newb.txt',
                    dtype='i4'))
     subHaloMass.append(halodata[i]['Mass'][gal_subhaloes[i][:].astype(int)-1])
 
@@ -70,7 +70,7 @@ hal_centgal = []
 for i in range(np.size(zbins_Cone)-1):
     hal_centgal.append(
         np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
-                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_new.txt',
+                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Hal_CentralGal_newb.txt',
                    dtype='i4'))
 
 
@@ -942,7 +942,7 @@ for i in range(4):
 
 
 nbgalaxiesperhalos = []
-for i in range(4):
+for i in range(numzbin-1):
     # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
     # ID = j+1
     nbgalaxiesperhalos.append(np.zeros(np.size(halodata[i]['Mass'])))
@@ -953,7 +953,7 @@ for i in range(4):
 ## halos give better results for the number of galaxy per halos
 
 nbgalaxiesperhalos_main = []
-for i in range(4):
+for i in range(numzbin-1):
     # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
     # ID = j+1
     nbgalaxiesperhalos_main.append(np.zeros(np.size(halodata[i]['Mass'])))
@@ -971,7 +971,7 @@ for i in range(4):
 ### Compute Average mass of halos for a given number of galaxies in the halo
 
 averageHaloMassPerNgal = []
-for i in range(4):
+for i in range(numzbin):
     averageHaloMassPerNgal.append(np.empty(nbgalaxiesperhalos_main[i].astype(int).max()+1))
     for j in range(nbgalaxiesperhalos_main[i].astype(int).max()+1):
         averageHaloMassPerNgal[i][j] = np.mean(halodata[i]['Mass'][nbgalaxiesperhalos_main[i]==j])
@@ -1010,7 +1010,7 @@ for i in range(numzbin):
 #     plt.legend()
 # plt.show()
 
-for i in range(4):
+for i in range(numzbin):
     plt.scatter((massbins[:-1]+massbins[1:])/2, averageNgalperHaloMass[i][:],
         label = 'z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) )
 plt.yscale('log')
@@ -1026,7 +1026,7 @@ plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
 
 nbCentgalaxiesperhalos_main = []
 nbSatgalaxiesperhalos_main = []
-for i in range(4):
+for i in range(numzbin):
     # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
     # ID = j+1
     nbCentgalaxiesperhalos_main.append(np.zeros(np.size(halodata[i]['Mass'])))

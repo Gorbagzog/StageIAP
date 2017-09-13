@@ -18,7 +18,7 @@ import matplotlib as mpl
 from scipy.optimize import curve_fit
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib.ticker as ticker
-
+from matplotlib.gridspec import GridSpec
 
 """Load true galdata from the H-AGN Lightcone"""
 
@@ -535,23 +535,37 @@ for i in range(numzbin-1):
                     hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
                 ].astype('int')
         ] - np.log10(halodata[i]['Mass'][indices]*10**11),
-        bins=100, cmin=1, range=[[10, 14], [-2, -0.3]]
+        bins=100, cmin=1, range=[[10, 14], [-2, 1]]
     )
-    plt.plot(
-        medHMperSMPhot[i],
-        (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
-        label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
-        color='red'
-    )
-    plt.plot(
-        boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
-        boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
-        label=str('phot Behroozi function fit'), c='black')
+    # plt.plot(
+    #     medHMperSMPhot[i],
+    #     (stellarmassbins[:-1]+stellarmassbins[1:]) / 2 - medHMperSMPhot[i],
+    #     label='Phot catalog, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]),
+    #     color='red'
+    # )
+    # plt.plot(
+    #     boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
+    #     boofitsSMbins - boo_MhMs(boofitsSMbins, *boo_fit_phot[i]),
+    #     label=str('phot Behroozi function fit'), c='black')
     plt.legend()
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
     plt.ylabel('Log($M_{s}/M_{h}$)', size=15)
     plt.title('H-AGN, Central gal and level 1 halos')
 
+
+""""With gas mass"""
+
+# plt.hist2d(
+#         np.log10(halodata[i]['Mass'][indices]*10**11),
+#         np.log10(10**galphot['Mass'][
+#                 galdata_allz['Obs_gal_idx'][
+#                     hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+#                 ].astype('int')
+#         ] + gas_mass[galdata_allz['Obs_gal_idx'][
+#                 hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+#                 ].astype('int')]) - np.log10(halodata[i]['Mass'][indices]*10**11),
+#         bins=100, cmin=1, range=[[10, 14], [-2, 1]]
+#     )
 
 """Fit the Yang relation on the M*/Mh relation"""
 
@@ -952,7 +966,8 @@ for i in range(numzbin-1):
         )
     )
     plt.hist2d(
-        np.log10(halodata[i]['Mass'][indices]*10**11),
+        #np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(haloes_env[i][indices, 0][0]),
         galphot['Gas_met_boost'][
             galdata_allz['Obs_gal_idx'][
                 hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
@@ -960,12 +975,12 @@ for i in range(numzbin-1):
         ],
         bins=100, cmin=1)
     plt.colorbar()
-    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i],
-             color='red', label='Average Metalicity for a given HM, $\pm 1\sigma$')
-    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] + stdMetperHMPhot[i],
-             color='red', linestyle='--')
-    plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] - stdMetperHMPhot[i],
-             color='red', linestyle='--')
+    # plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i],
+    #          color='red', label='Average Metalicity for a given HM, $\pm 1\sigma$')
+    # plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] + stdMetperHMPhot[i],
+    #          color='red', linestyle='--')
+    # plt.plot((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i] - stdMetperHMPhot[i],
+    #          color='red', linestyle='--')
 
     # plt.errorbar((massbins[:-1]+massbins[1:])/2, avMetperHMPhot[i][:],
     #              color='red', yerr=stdMetperHMPhot[i],
@@ -976,8 +991,8 @@ for i in range(numzbin-1):
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
     plt.ylabel('Gas Metalicity', size=12)
     plt.title('Photometric HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
-    plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/GasMet/gasmet_' +
-                str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/GasMet/gasmet_' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
 """Evolution of photometric Gas metalicity with redshift"""
 
@@ -1280,17 +1295,138 @@ for i in range(numzbin-1):
     # plt.savefig('../Plots/HorizonAGN/Hexbins/NodesFilaments/HM_Fil_MsMh_' +
     #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
 
+"""Plot Hexbins on one fig"""
+
+boofitsSMbins = np.linspace(8, 12, num=100)
+fig = plt.figure(figsize=(12, 4))
+gs = GridSpec(1, 3, width_ratios=[1, 1, 1])
+for i in range(3):
+    ax1 = plt.subplot(gs[i])
+    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    # indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] > 1))
+    # indices = np.where(hal_centgal[i] > 0)
+    im = ax1.hexbin(
+        np.log10(halodata[i]['mass'][indices]*10**11),
+        # np.log10(galdata[i]['mass'][hal_centgal[i][indices]-1]*10**11),
+        # np.log10(halodata[i]['Mass'][indices]*10**11),
+        # np.log10(halodata[i]['mvir'][indices]*10**11),
+        # np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        np.log10(haloes_env[i][indices, 0][0]),
+        # C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
+        #            (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
+        # C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1]),
+        # C=np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
+        C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices]),
+        # C=np.log10(haloes_env[i][indices, 1][0]),
+        # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]),
+        # gridsize=60, mincnt=50, cmap='jet', extent=[10, 14, 8, 12]
+        gridsize=60, mincnt=50, cmap='viridis', extent=[10, 12.5, -2.5, 0.5]
+    )
+    # ax1.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+    #          boofitsSMbins,
+    #          label=str('Behroozi function fit'), c='black')
+    # ax1.axvline(x=MhaloPeak_true_boo[i], linestyle='--')
+    axins1 = inset_axes(
+        ax1,
+        width="10%",  # width = 10% of parent_bbox width
+        height="35%",  # height : 50%
+        loc=8,
+        bbox_to_anchor=[0.5, 0, 0.5, 1],
+        bbox_transform=ax1.transAxes
+        )
+    cbar = fig.colorbar(im, cax=axins1)
+    # cbar.set_label('Log(sSFR)', size=10)
+    # ax1.set_xlabel('Log($M_{h}/M_{\odot}$)', size=12)
+    # ax1.set_ylabel('Log($M_{*}/M_{\odot}$)', size=12)
+    cbar.set_label('Log(Ms)', size=10)
+    # cbar.set_label('Log(SFR)', size=10)
+    ax1.set_xlabel('Log($M_{h}/M_{\odot}$)', size=12)
+    # ax1.set_ylabel('Log($d_{node}/Mpc$)', size=12)
+    ax1.set_ylabel('Log($n(halo)/Mpc^{-3}$)', size=12)
+    cbar.ax.tick_params(labelsize=9)
+    tick_locator = ticker.MaxNLocator(nbins=5)
+    cbar.locator = tick_locator
+    cbar.update_ticks()
+    plt.text(0.7, 0.9, str(zbins_Cone[i])+'<z<'+str(zbins_Cone[i+1]),
+             size=12, transform=ax1.transAxes, bbox=dict(boxstyle='round', facecolor='white'))
+fig.tight_layout()
+
+"""Plot sSFR hexbins for photo catalog"""
+
+fig = plt.figure(figsize=(12, 4))
+gs = GridSpec(1, 3, width_ratios=[1, 1, 1])
+for i in range(3):
+    ax1 = plt.subplot(gs[i])
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            np.logical_and(
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                ] > 0,
+                galphot['Mass'][
+                    galdata_allz['Obs_gal_idx'][
+                        hal_centgal[i][:] - 1 + sum(len(galdata[j]) for j in range(i))
+                    ].astype('int')] > 9
+            )
+        )
+    )
+    # indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] > 1))
+    # indices = np.where(hal_centgal[i] > 0)
+    im = ax1.hexbin(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        galphot['Mass'][
+                galdata_allz['Obs_gal_idx'][
+                    hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+                ].astype('int')
+        ],
+        C=np.log10(galphot['SFR'][
+            galdata_allz['Obs_gal_idx'][
+                hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+            ].astype('int')
+        ] / 10**(galphot['Mass'][
+            galdata_allz['Obs_gal_idx'][
+                hal_centgal[i][indices] - 1 + sum(len(galdata[j]) for j in range(i))
+            ].astype('int')])
+        ),
+        gridsize=60, mincnt=50, cmap='jet', extent=[10, 14, 8, 12],
+    )
+    axins1 = inset_axes(
+        ax1,
+        width="10%",  # width = 10% of parent_bbox width
+        height="35%",  # height : 50%
+        loc=8,
+        bbox_to_anchor=[0.5, 0, 0.5, 1],
+        bbox_transform=ax1.transAxes
+        )
+    cbar = fig.colorbar(im, cax=axins1)
+    # cbar.set_label('Log(sSFR)', size=10)
+    ax1.set_xlabel('Log($M_{h}/M_{\odot}$)', size=12)
+    ax1.set_ylabel('Log($M_{*}/M_{\odot}$)', size=12)
+    cbar.ax.tick_params(labelsize=9)
+    tick_locator = ticker.MaxNLocator(nbins=5)
+    cbar.locator = tick_locator
+    cbar.update_ticks()
+    plt.text(0.1, 0.9, str(zbins_Cone[i])+'<z<'+str(zbins_Cone[i+1]),
+             size=12, transform=ax1.transAxes, bbox=dict(boxstyle='round', facecolor='white'))
+fig.tight_layout()
+
 
 """Plot sSFR versus Halo mass"""
 
-for i in range(numzbin):
+for i in range(numzbin-1):
     plt.figure()
-    indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1))
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            np.log10(halodata[i]['Mass']*10**11) > 0
+        )
+    )
     plt.hist2d(
         np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
                  (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
-        np.log10(halodata[i]['Mass'][indices]*10**11),
-        range=[[-12, -8], [8, 14]], bins=100, cmin=1
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1] / halodata[i]['Mass'][indices]),
+        range=[[-12, -8], [-4, 0]], bins=100, cmin=1
     )
     plt.xlabel('sSFR', size=20)
     plt.ylabel('HaloMass', size=20)
@@ -1603,14 +1739,18 @@ data = np.transpose(np.array([
 # fig1 = plt.figure() # Make a plotting figure
 # ax = Axes3D(fig1) # use the plotting figure to create a Axis3D object.
 # pltData = [x,y,z]
-# ax.scatter(pltData[0], pltData[1], pltData[2], 'bo') # make a scatter plot of blue dots from the data
+# ax.scatter(pltData[0], pltData[1], pltData[2], 'bo') # make a scatter plot of blue dots from the
+# data
 
 # # make simple, bare axis lines through space:
-# xAxisLine = ((min(pltData[0]), max(pltData[0])), (0, 0), (0,0)) # 2 points make the x-axis line at the data extrema along x-axis
+# xAxisLine = ((min(pltData[0]), max(pltData[0])), (0, 0), (0,0)) # 2 points make the x-axis line
+#  at the data extrema along x-axis
 # ax.plot(xAxisLine[0], xAxisLine[1], xAxisLine[2], 'r') # make a red line for the x-axis.
-# yAxisLine = ((0, 0), (min(pltData[1]), max(pltData[1])), (0,0)) # 2 points make the y-axis line at the data extrema along y-axis
+# yAxisLine = ((0, 0), (min(pltData[1]), max(pltData[1])), (0,0)) # 2 points make the y-axis line
+# at the data extrema along y-axis
 # ax.plot(yAxisLine[0], yAxisLine[1], yAxisLine[2], 'r') # make a red line for the y-axis.
-# zAxisLine = ((0, 0), (0,0), (min(pltData[2]), max(pltData[2]))) # 2 points make the z-axis line at the data extrema along z-axis
+# zAxisLine = ((0, 0), (0,0), (min(pltData[2]), max(pltData[2]))) # 2 points make the z-axis line
+# at the data extrema along z-axis
 # ax.plot(zAxisLine[0], zAxisLine[1], zAxisLine[2], 'r') # make a red line for the z-axis.
 
 # # label the axes
@@ -1626,3 +1766,242 @@ sk_pca = PCA(n_components=2)
 sklearn_result = sk_pca.fit_transform(data)
 
 plt.plot(sklearn_result[:, 0], sklearn_result[:, 1], '.')
+
+
+
+""""PLot Ms/Mh separating halos with environment"""
+
+# Fit Boo on it :
+
+boo_fit_hd = np.empty([numzbin-1, 5])
+boo_cov_hd = np.empty([numzbin-1, 5, 5])
+for i in range(numzbin-1):
+    print(i)
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(
+                np.log10(galdata[i]['Mass'][hal_centgal[i]-1]*10**11) > 9,
+                np.log10(haloes_env[i][:, 0]) > -0.5
+            ),
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1)
+            )
+    )
+    boo_fit_hd[i], boo_cov_hd[i] = curve_fit(
+        boo_MhMs,
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        bounds=[[10, 8, 0, 0, 0], [13, 11, 5, 5, 5]],
+        method='trf')
+print(boo_fit_hd)
+
+
+boofitsSMbins = np.linspace(9, 12, num=100)
+
+for i in range(numzbin-1):
+    plt.figure()
+    indices = np.where(
+        np.logical_and(
+            np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] == 1),
+            np.log10(haloes_env[i][:, 0]) > 0
+        )
+    )
+    plt.hist2d(
+        np.log10(halodata[i]['Mass'][indices]*10**11),
+        np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
+        bins=100, cmin=1)
+    plt.colorbar()
+    # Plot Behroozi fit
+    # plt.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]), boofitsSMbins,
+    #          label=str('True Behroozi function fit'), c='r')
+    plt.legend()
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=12)
+    plt.ylabel('Log($M_{*}$) [Log($M_{\odot}$)]', size=12)
+    plt.title('HorizonAGN, Central galz='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    # plt.savefig('../Plots/HAGN_Matching/ClotMatchBis/TrueMass_HaloMass_Boofit' +
+    #             str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) + '.pdf')
+
+
+plt.figure()
+for i in range(3):
+    p = plt.plot(
+        boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+        boofitsSMbins-boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
+        label=str('All '+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])))
+    plt.plot(
+        boo_MhMs(boofitsSMbins, *boo_fit_hd[i]),
+        boofitsSMbins-boo_MhMs(boofitsSMbins, *boo_fit_hd[i]),
+        label=str('HD '+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])),
+        color=p[0].get_color(), linestyle='--')
+    plt.plot(
+        boo_MhMs(boofitsSMbins, *boo_fit_ld[i]),
+        boofitsSMbins-boo_MhMs(boofitsSMbins, *boo_fit_ld[i]),
+        label=str('LD '+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])),
+        color=p[0].get_color(), linestyle=':')
+plt.legend()
+plt.xlabel('Log($M_{h}/M_{\odot}$)', size=12)
+plt.ylabel('Log($M_{*}/M_{h}$)', size=12)
+
+"""Load data to compute number of galaxies per halo"""
+
+
+# Main halos
+gal_mainhaloes = []
+mainHaloMass = []
+for i in range(np.size(zbins_Cone)-2):
+    gal_mainhaloes.append(
+        np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
+                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_MainHaloes_newb.txt',
+                   dtype='i4'))
+    mainHaloMass.append(halodata[i]['Mass'][gal_mainhaloes[i][:].astype(int)-1])
+
+
+# Sub halos
+gal_subhaloes = []
+subHaloMass = []
+for i in range(np.size(zbins_Cone)-2):
+    gal_subhaloes.append(
+        np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
+                   str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_SubHaloes_newb.txt',
+                   dtype='i4'))
+    subHaloMass.append(halodata[i]['Mass'][gal_subhaloes[i][:].astype(int)-1])
+
+
+"""Number of galaxies per halo"""
+
+# Number of halo with minimal mass
+# minimum = min(10**11*halodata['Mass'])
+# indices = [i for i, v in enumerate(10**11*halodata['Mass']) if v == minimum]
+# np.size(indices)
+
+
+nbgalaxiesperhalos = []
+for i in range(numzbin-1):
+    # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
+    # ID = j+1
+    nbgalaxiesperhalos.append(np.zeros(np.size(halodata[i]['Mass'])))
+    for j in gal_subhaloes[i].astype(int):
+        nbgalaxiesperhalos[i][j-1] += 1
+
+# I dont know if I have to use mainhalos or subhalos, but it seems that main
+# halos give better results for the number of galaxy per halos
+
+nbgalaxiesperhalos_main = []
+for i in range(numzbin-1):
+    # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
+    # ID = j+1
+    nbgalaxiesperhalos_main.append(np.zeros(np.size(halodata[i]['Mass'])))
+    for j in gal_mainhaloes[i].astype(int):
+        nbgalaxiesperhalos_main[i][j-1] += 1
+
+
+nb_centralgalaxies_per_mainhalo = []
+for i in range(numzbin-1):
+    print(i)
+    nb_centralgalaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
+    indices = np.where(np.logical_and(
+            galdata[i]['level'] == 1,
+            gal_mainhaloes[i] > 0))
+    for j in gal_mainhaloes[i][indices]:
+        nb_centralgalaxies_per_mainhalo[i][j-1] += 1
+
+nb_satgalaxies_per_mainhalo = []
+for i in range(numzbin-1):
+    print(i)
+    nb_satgalaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
+    indices = np.where(np.logical_and(
+            galdata[i]['level'] > 1,
+            gal_mainhaloes[i] > 0))
+    for j in gal_mainhaloes[i][indices]:
+        nb_satgalaxies_per_mainhalo[i][j-1] += 1
+
+"""Plot"""
+# for i in range(4):
+#     plt.hist(nbgalaxiesperhalos[i], bins=range(nbgalaxiesperhalos[i].max().astype(int)))
+#     plt.yscale('log')
+#     plt.show()
+
+"""Number galaxy per halo versus Halo Mass"""
+
+# Compute Average mass of halos for a given number of galaxies in the halo
+
+# averageHaloMassPerNgal = []
+# for i in range(numzbin-1):
+#     averageHaloMassPerNgal.append(np.empty(nbgalaxiesperhalos_main[i].astype(int).max()+1))
+#     for j in range(nbgalaxiesperhalos_main[i].astype(int).max()+1):
+#         averageHaloMassPerNgal[i][j] = np.mean(
+#             halodata[i]['Mass'][nbgalaxiesperhalos_main[i] == j])
+
+# Compute average number of galaxies in halos given a halo mass interval
+
+massbins = np.linspace(10, 15, num=100)
+averageNgalperHaloMass = np.zeros([numzbin-1, np.size(massbins)-1])
+av_centralgalaxies_per_mainhalo = np.zeros([numzbin-1, np.size(massbins)-1])
+av_satgalaxies_per_mainhalo = np.zeros([numzbin-1, np.size(massbins)-1])
+
+for i in range(numzbin-1):
+    for j in range(np.size(massbins)-1):
+        m1 = massbins[j]
+        m2 = massbins[j+1]
+        averageNgalperHaloMass[i][j] = np.average(
+            nbgalaxiesperhalos_main[i][
+                np.logical_and(
+                    np.log10(halodata[i]['Mass']*10**11) > m1,
+                    np.log10(halodata[i]['Mass']*10**11) < m2)
+            ])
+        av_centralgalaxies_per_mainhalo[i][j] = np.average(
+            nb_centralgalaxies_per_mainhalo[i][
+                np.logical_and(
+                    np.log10(halodata[i]['Mass']*10**11) > m1,
+                    np.log10(halodata[i]['Mass']*10**11) < m2)
+            ])
+        av_satgalaxies_per_mainhalo[i][j] = np.average(
+            nb_satgalaxies_per_mainhalo[i][
+                np.logical_and(
+                    np.log10(halodata[i]['Mass']*10**11) > m1,
+                    np.log10(halodata[i]['Mass']*10**11) < m2)
+            ])
+
+
+massbins = np.linspace(10, 15, num=100)
+averageNgalperSubHaloMass = np.zeros([numzbin, np.size(massbins)-1])
+
+for i in range(numzbin-1):
+    for j in range(np.size(massbins)-1):
+        m1 = massbins[j]
+        m2 = massbins[j+1]
+        averageNgalperSubHaloMass[i][j] = np.average(
+            nbgalaxiesperhalos[i][
+                np.logical_and(
+                    np.log10(halodata[i]['Mass']*10**11) > m1,
+                    np.log10(halodata[i]['Mass']*10**11) < m2)
+            ])
+
+"""Plot"""
+
+# plt.hist2d(np.log10(halodata[0]['Mass'][nbgalaxiesperhalos_main[0]>0]*10**11),
+#     nbgalaxiesperhalos_main[0][nbgalaxiesperhalos_main[0]>0], bins=100, cmin=1)
+
+
+# for i in range(4):
+#     fig = plt.figure()
+#     plt.yscale('log')
+#     plt.scatter(np.log10(halodata[i]['Mass'][nbgalaxiesperhalos_main[i]>0]*10**11),
+#      nbgalaxiesperhalos_main[i][nbgalaxiesperhalos_main[i]>0],
+#         marker='.')
+#     # plt.scatter(np.log10(averageHaloMassPerNgal[i][1:]*10**11),
+#     # np.arange(1, nbgalaxiesperhalos_main[i].astype(int).max()+1), label='Average Mass')
+#     plt.title('HorizonAGN, z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]) +
+#         ', match gal-Mainhalo')
+#     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]')
+#     plt.ylabel('Number of galaxies in the halo')
+#     plt.legend()
+# plt.show()
+
+for i in range(numzbin-1):
+    plt.scatter(
+        (massbins[:-1]+massbins[1:])/2, av_satgalaxies_per_mainhalo[i][:],
+        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+plt.yscale('log')
+plt.ylabel('Average number of galaxies per halo', size=15)
+plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+
