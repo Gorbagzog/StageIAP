@@ -1306,21 +1306,23 @@ for i in range(3):
     # indices = np.where(np.logical_and(hal_centgal[i] > 0, halodata[i]['level'] > 1))
     # indices = np.where(hal_centgal[i] > 0)
     im = ax1.hexbin(
+        halodata[i]['z'][indices],
         np.log10(halodata[i]['mass'][indices]*10**11),
         # np.log10(galdata[i]['mass'][hal_centgal[i][indices]-1]*10**11),
         # np.log10(halodata[i]['Mass'][indices]*10**11),
         # np.log10(halodata[i]['mvir'][indices]*10**11),
         # np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11),
-        np.log10(haloes_env[i][indices, 0][0]),
-        # C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
-        #            (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
+        # np.log10(haloes_env[i][indices, 0][0]),
+        C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1] /
+                   (galdata[i]['Mass'][hal_centgal[i][indices]-1]*10**11)),
         # C=np.log10(galdata[i]['SFRcorr'][hal_centgal[i][indices]-1]),
         # C=np.log10(galdata[i]['spin'][hal_centgal[i][indices]-1]),
-        C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices]),
+        # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]/halodata[i]['Mass'][indices]),
         # C=np.log10(haloes_env[i][indices, 1][0]),
         # C=np.log10(galdata[i]['Mass'][hal_centgal[i][indices]-1]),
         # gridsize=60, mincnt=50, cmap='jet', extent=[10, 14, 8, 12]
-        gridsize=60, mincnt=50, cmap='viridis', extent=[10, 12.5, -2.5, 0.5]
+        gridsize=60, mincnt=50, cmap='jet', # vmin=-10.3, vmax=-8.7,
+        extent=[zbins_Cone[i], zbins_Cone[i+1], 10, 12.5]
     )
     # ax1.plot(boo_MhMs(boofitsSMbins, *boo_fit_true[i]),
     #          boofitsSMbins,
@@ -1338,11 +1340,13 @@ for i in range(3):
     # cbar.set_label('Log(sSFR)', size=10)
     # ax1.set_xlabel('Log($M_{h}/M_{\odot}$)', size=12)
     # ax1.set_ylabel('Log($M_{*}/M_{\odot}$)', size=12)
-    cbar.set_label('Log(Ms)', size=10)
-    # cbar.set_label('Log(SFR)', size=10)
-    ax1.set_xlabel('Log($M_{h}/M_{\odot}$)', size=12)
+    # cbar.set_label('Log(Ms)', size=10)
+    cbar.set_label('Log(SFR)', size=10)
+    # ax1.set_xlabel('Log($M_{h}/M_{\odot}$)', size=12)
+    ax1.set_xlabel('Redshift', size=12)
     # ax1.set_ylabel('Log($d_{node}/Mpc$)', size=12)
-    ax1.set_ylabel('Log($n(halo)/Mpc^{-3}$)', size=12)
+    # ax1.set_ylabel('Log($n(halo)/Mpc^{-3}$)', size=12)
+    ax1.set_ylabel('Log($M_{h}/M_{\odot}$)', size=12)
     cbar.ax.tick_params(labelsize=9)
     tick_locator = ticker.MaxNLocator(nbins=5)
     cbar.locator = tick_locator
@@ -1841,8 +1845,8 @@ plt.legend()
 plt.xlabel('Log($M_{h}/M_{\odot}$)', size=12)
 plt.ylabel('Log($M_{*}/M_{h}$)', size=12)
 
-"""Load data to compute number of galaxies per halo"""
 
+"""Load data to compute number of galaxies per halo"""
 
 # Main halos
 gal_mainhaloes = []
@@ -1864,6 +1868,10 @@ for i in range(np.size(zbins_Cone)-2):
                    str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_SubHaloes_newb.txt',
                    dtype='i4'))
     subHaloMass.append(halodata[i]['Mass'][gal_subhaloes[i][:].astype(int)-1])
+
+#Central gal of main halos
+hal_centgal
+
 
 
 """Number of galaxies per halo"""
@@ -1890,26 +1898,37 @@ for i in range(numzbin-1):
     # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
     # ID = j+1
     nbgalaxiesperhalos_main.append(np.zeros(np.size(halodata[i]['Mass'])))
-    for j in gal_mainhaloes[i].astype(int):
+    indices = np.where(gal_mainhaloes[i] > 0)
+    for j in gal_mainhaloes[i][indices].astype(int):
         nbgalaxiesperhalos_main[i][j-1] += 1
 
 
+# nb_centralgalaxies_per_mainhalo = []
+# for i in range(numzbin-1):
+#     print(i)
+#     nb_centralgalaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
+#     indices = np.where(np.logical_and(
+#             galdata[i]['level'] == 1,
+#             gal_mainhaloes[i] > 0))
+#     for j in gal_mainhaloes[i][indices]:
+#         nb_centralgalaxies_per_mainhalo[i][j-1] += 1
+
+
+# WARNING : central gal are to be asssociated using hal_centgal, where only one gal is associated
+# to each halo
+
 nb_centralgalaxies_per_mainhalo = []
 for i in range(numzbin-1):
-    print(i)
     nb_centralgalaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
-    indices = np.where(np.logical_and(
-            galdata[i]['level'] == 1,
-            gal_mainhaloes[i] > 0))
-    for j in gal_mainhaloes[i][indices]:
-        nb_centralgalaxies_per_mainhalo[i][j-1] += 1
+    nb_centralgalaxies_per_mainhalo[i][hal_centgal[i]>0] = 1
+
 
 nb_satgalaxies_per_mainhalo = []
 for i in range(numzbin-1):
     print(i)
     nb_satgalaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
     indices = np.where(np.logical_and(
-            galdata[i]['level'] > 1,
+            galdata[i]['level'] >= 1,
             gal_mainhaloes[i] > 0))
     for j in gal_mainhaloes[i][indices]:
         nb_satgalaxies_per_mainhalo[i][j-1] += 1
@@ -1997,11 +2016,20 @@ for i in range(numzbin-1):
 #     plt.legend()
 # plt.show()
 
+# for i in range(numzbin-1):
+#     plt.scatter(
+#         (massbins[:-1]+massbins[1:])/2, av_satgalaxies_per_mainhalo[i][:],
+#         label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+# plt.yscale('log')
+# plt.ylabel('Average number of galaxies per halo', size=15)
+# plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+
 for i in range(numzbin-1):
-    plt.scatter(
-        (massbins[:-1]+massbins[1:])/2, av_satgalaxies_per_mainhalo[i][:],
-        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
+    plt.scatter((massbins[:-1]+massbins[1:])/2, av_centralgalaxies_per_mainhalo[i][:],
+        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', central', marker='d')
+    plt.scatter((massbins[:-1]+massbins[1:])/2, av_satgalaxies_per_mainhalo[i][:],
+        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', satellite', marker='+')
 plt.yscale('log')
+plt.legend()
 plt.ylabel('Average number of galaxies per halo', size=15)
 plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
-
