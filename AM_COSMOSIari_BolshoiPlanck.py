@@ -175,6 +175,28 @@ print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
 print('Closest redshifts for Bolshoi HMFs : '
       + str(redshift_haloes[redshift_id_selec]))
 
+
+"""Plot SMF and HMF together"""
+plt.figure()
+for i in [9]:
+    plt.plot(smf[i][:, 0], smf[i][:, 1], label='SMF')
+    plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5)
+    plt.plot(
+        hmf_bolshoi[redshift_id_selec[i]][:, 0], hmf_bolshoi[redshift_id_selec[i]][:, 2],
+        linestyle='--', label='HMF')
+plt.ylim(-7, 1)
+plt.xlim(8, 13)
+plt.legend()
+plt.xlabel('Log($M/M_{\odot}$)', size=12)
+plt.ylabel('Log($\phi$/$Mpc^{-3}$)', size=12)
+plt.title(str(redshifts[i])+'<z<'+str(redshifts[i+1]))
+plt.tight_layout()
+plt.show()
+
+
+
+
+
 """Do interpolation for abundance matching"""
 
 MstarIary = []
@@ -275,6 +297,60 @@ plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
 plt.tight_layout()
 # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
 plt.show()
+
+"""Plot Ms/Mh vs Mh and Ms(Mh) but with limits in Ms because of the observations
+cf. Davidzon et al. 2017 for the limits
+"""
+
+# Use the interploation formula of Mlim(z) in Davidzon et al. 2017
+Ms_min = np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7)
+# Arbitrary maximum as read on the plots of the SMF of Davidzon+17
+Ms_max = 11.5
+
+plt.figure()
+for i in range(numzbin):
+    index_min = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_max))
+    index_max = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_min[i]))
+    print(index_min)
+    print(index_max)
+    plt.plot(
+        xm[i][index_min:index_max], ym[i][index_min:index_max],
+        label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+    plt.fill_between(
+        xm[i][index_min:index_max], yminus[i][index_min:index_max],
+        yplus[i][index_min:index_max], alpha=0.5)
+plt.plot(
+    np.linspace(12.5, 14), 11.5 - np.linspace(12.5, 14),
+    linestyle='--', c='black', label='$M_{*}=10^{11.5}$')
+plt.legend()
+plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
+plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+plt.tight_layout()
+plt.show()
+
+
+# Ms(Mh)
+plt.figure()
+for i in range(numzbin):
+    index_min = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_max))
+    index_max = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_min[i]))
+    print(index_min)
+    print(index_max)
+    plt.plot(
+        xm[i][index_min:index_max], MstarIary[i](x[i][index_min:index_max]),
+        label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+    plt.fill_between(
+        xm[i][index_min:index_max], MstarIaryMinus[i](x[i][index_min:index_max]),
+        MstarIaryPlus[i](x[i][index_min:index_max]), alpha=0.5)
+plt.axhline(y=11.5, c='black', linestyle='--')
+plt.legend()
+plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
+plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+plt.tight_layout()
+plt.show()
+
+
+
 
 # """Plot Mh/Ms vs Ms"""
 
