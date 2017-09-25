@@ -1856,7 +1856,6 @@ for i in range(np.size(zbins_Cone)-2):
         np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
                    str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_MainHaloes_newb.txt',
                    dtype='i4'))
-    mainHaloMass.append(halodata[i]['Mass'][gal_mainhaloes[i][:].astype(int)-1])
 
 
 # Sub halos
@@ -1867,11 +1866,6 @@ for i in range(np.size(zbins_Cone)-2):
         np.loadtxt('../Data/HorizonAGNLaigleCatalogs/Cat_' +
                    str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+'_Gal_SubHaloes_newb.txt',
                    dtype='i4'))
-    subHaloMass.append(halodata[i]['Mass'][gal_subhaloes[i][:].astype(int)-1])
-
-#Central gal of main halos
-hal_centgal
-
 
 
 """Number of galaxies per halo"""
@@ -1881,17 +1875,14 @@ hal_centgal
 # indices = [i for i, v in enumerate(10**11*halodata['Mass']) if v == minimum]
 # np.size(indices)
 
-
-nbgalaxiesperhalos = []
-for i in range(numzbin-1):
-    # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
-    # ID = j+1
-    nbgalaxiesperhalos.append(np.zeros(np.size(halodata[i]['Mass'])))
-    for j in gal_subhaloes[i].astype(int):
-        nbgalaxiesperhalos[i][j-1] += 1
-
-# I dont know if I have to use mainhalos or subhalos, but it seems that main
-# halos give better results for the number of galaxy per halos
+# gal_subhaloes give the ondex of the closest halo -> not relevant
+# nbgalaxiesperhalos = []
+# for i in range(numzbin-1):
+#     # index j of nbgalaxiesperhalos gives the number of galaxies in the halo of
+#     # ID = j+1
+#     nbgalaxiesperhalos.append(np.zeros(np.size(halodata[i]['Mass'])))
+#     for j in gal_subhaloes[i].astype(int):
+#         nbgalaxiesperhalos[i][j-1] += 1
 
 nbgalaxiesperhalos_main = []
 for i in range(numzbin-1):
@@ -1920,18 +1911,39 @@ for i in range(numzbin-1):
 nb_centralgalaxies_per_mainhalo = []
 for i in range(numzbin-1):
     nb_centralgalaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
-    nb_centralgalaxies_per_mainhalo[i][hal_centgal[i]>0] = 1
+    nb_centralgalaxies_per_mainhalo[i][(hal_centgal[i] > 0) & (halodata[i]['level'] == 1)] = 1
 
 
-nb_satgalaxies_per_mainhalo = []
+nb_levelMore1_galaxies_per_mainhalo = []
 for i in range(numzbin-1):
     print(i)
-    nb_satgalaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
+    nb_levelMore1_galaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
     indices = np.where(np.logical_and(
             galdata[i]['level'] >= 1,
             gal_mainhaloes[i] > 0))
     for j in gal_mainhaloes[i][indices]:
-        nb_satgalaxies_per_mainhalo[i][j-1] += 1
+        nb_levelMore1_galaxies_per_mainhalo[i][j-1] += 1
+
+
+nb_level1galaxies_per_mainhalo = []
+for i in range(numzbin-1):
+    print(i)
+    nb_level1galaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
+    indices = np.where(np.logical_and(
+            galdata[i]['level'] == 1,
+            gal_mainhaloes[i] > 0))
+    for j in gal_mainhaloes[i][indices]:
+        nb_level1galaxies_per_mainhalo[i][j-1] += 1
+
+nb_level1galaxies_per_mainhalo = []
+for i in range(numzbin-1):
+    print(i)
+    nb_level1galaxies_per_mainhalo.append(np.zeros(np.size(halodata[i]['Mass'])))
+    indices = set(np.where(gal_mainhaloes[i] > 0)).difference(set(hal_centgal[i]-1))
+    for j in gal_mainhaloes[i][indices]:
+        nb_level1galaxies_per_mainhalo[i][j-1] += 1
+
+
 
 """Plot"""
 # for i in range(4):
@@ -1955,7 +1967,8 @@ for i in range(numzbin-1):
 massbins = np.linspace(10, 15, num=100)
 averageNgalperHaloMass = np.zeros([numzbin-1, np.size(massbins)-1])
 av_centralgalaxies_per_mainhalo = np.zeros([numzbin-1, np.size(massbins)-1])
-av_satgalaxies_per_mainhalo = np.zeros([numzbin-1, np.size(massbins)-1])
+av_levelMore1_galaxies_per_mainhalo = np.zeros([numzbin-1, np.size(massbins)-1])
+av_level1galaxies_per_mainhalo = np.zeros([numzbin-1, np.size(massbins)-1])
 
 for i in range(numzbin-1):
     for j in range(np.size(massbins)-1):
@@ -1973,27 +1986,34 @@ for i in range(numzbin-1):
                     np.log10(halodata[i]['Mass']*10**11) > m1,
                     np.log10(halodata[i]['Mass']*10**11) < m2)
             ])
-        av_satgalaxies_per_mainhalo[i][j] = np.average(
-            nb_satgalaxies_per_mainhalo[i][
+        av_levelMore1_galaxies_per_mainhalo[i][j] = np.average(
+            nb_levelMore1_galaxies_per_mainhalo[i][
+                np.logical_and(
+                    np.log10(halodata[i]['Mass']*10**11) > m1,
+                    np.log10(halodata[i]['Mass']*10**11) < m2)
+            ])
+        av_level1galaxies_per_mainhalo[i][j] = np.average(
+            nb_level1galaxies_per_mainhalo[i][
                 np.logical_and(
                     np.log10(halodata[i]['Mass']*10**11) > m1,
                     np.log10(halodata[i]['Mass']*10**11) < m2)
             ])
 
 
-massbins = np.linspace(10, 15, num=100)
-averageNgalperSubHaloMass = np.zeros([numzbin, np.size(massbins)-1])
 
-for i in range(numzbin-1):
-    for j in range(np.size(massbins)-1):
-        m1 = massbins[j]
-        m2 = massbins[j+1]
-        averageNgalperSubHaloMass[i][j] = np.average(
-            nbgalaxiesperhalos[i][
-                np.logical_and(
-                    np.log10(halodata[i]['Mass']*10**11) > m1,
-                    np.log10(halodata[i]['Mass']*10**11) < m2)
-            ])
+# massbins = np.linspace(10, 15, num=100)
+# averageNgalperSubHaloMass = np.zeros([numzbin, np.size(massbins)-1])
+
+# for i in range(numzbin-1):
+#     for j in range(np.size(massbins)-1):
+#         m1 = massbins[j]
+#         m2 = massbins[j+1]
+#         averageNgalperSubHaloMass[i][j] = np.average(
+#             nbgalaxiesperhalos[i][
+#                 np.logical_and(
+#                     np.log10(halodata[i]['Mass']*10**11) > m1,
+#                     np.log10(halodata[i]['Mass']*10**11) < m2)
+#             ])
 
 """Plot"""
 
@@ -2018,18 +2038,26 @@ for i in range(numzbin-1):
 
 # for i in range(numzbin-1):
 #     plt.scatter(
-#         (massbins[:-1]+massbins[1:])/2, av_satgalaxies_per_mainhalo[i][:],
+#         (massbins[:-1]+massbins[1:])/2, av_levelMore1_galaxies_per_mainhalo[i][:],
 #         label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1]))
 # plt.yscale('log')
 # plt.ylabel('Average number of galaxies per halo', size=15)
 # plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
 
+fig = plt.figure(figsize=(12, 4))
+gs = GridSpec(1, 3, width_ratios=[1, 1, 1])
 for i in range(numzbin-1):
-    plt.scatter((massbins[:-1]+massbins[1:])/2, av_centralgalaxies_per_mainhalo[i][:],
-        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', central', marker='d')
-    plt.scatter((massbins[:-1]+massbins[1:])/2, av_satgalaxies_per_mainhalo[i][:],
-        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', satellite', marker='+')
-plt.yscale('log')
-plt.legend()
-plt.ylabel('Average number of galaxies per halo', size=15)
-plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=15)
+    ax1 = plt.subplot(gs[i])
+    ax1.scatter((massbins[:-1]+massbins[1:])/2, averageNgalperHaloMass[i][:],
+        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', all', marker='d')
+    ax1.scatter((massbins[:-1]+massbins[1:])/2, av_centralgalaxies_per_mainhalo[i][:],
+        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', central', marker='.')
+    ax1.scatter((massbins[:-1]+massbins[1:])/2, av_levelMore1_galaxies_per_mainhalo[i][:],
+        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', level>1', marker='+')
+    ax1.scatter((massbins[:-1]+massbins[1:])/2, av_level1galaxies_per_mainhalo[i][:],
+        label='z='+str(zbins_Cone[i])+'-'+str(zbins_Cone[i+1])+', level=1', marker='*')
+    ax1.set_yscale('log')
+    ax1.legend()
+    ax1.set_ylabel('Average number of galaxies per halo')
+    ax1.set_xlabel('Log($M_{h}/M_{\odot}$)')
+plt.tight_layout()

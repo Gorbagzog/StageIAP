@@ -178,7 +178,7 @@ print('Closest redshifts for Bolshoi HMFs : '
 
 """Plot SMF and HMF together"""
 plt.figure()
-for i in [9]:
+for i in range(numzbin):
     plt.plot(smf[i][:, 0], smf[i][:, 1], label='SMF')
     plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5)
     plt.plot(
@@ -194,8 +194,22 @@ plt.tight_layout()
 plt.show()
 
 
+"""Plot cumulative density of galaxies and halos together"""
 
-
+plt.figure()
+for i in [0]:
+    plt.plot(
+        smf[i][:, 0], Nstar[i],
+        label='COSMOS, z=' + str(redshifts[i])+'-'+str(redshifts[i+1]))
+    plt.plot(
+        hmf_bolshoi[redshift_id_selec[i]][:, 0], Nbolshoi[redshift_id_selec[i]],
+        label='Bolshoï, z=' + str(redshift_haloes[redshift_id_selec[i]]))
+plt.yscale('log')
+plt.ylim(10**-6, 1)
+plt.xlim(8, 15)
+plt.ylabel('N(>$M$), [$Mpc^{-3}$]', size=12)
+plt.xlabel('Log($M/M_{\odot}$)', size=12)
+plt.legend()
 
 """Do interpolation for abundance matching"""
 
@@ -348,8 +362,6 @@ plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
 plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
 plt.tight_layout()
 plt.show()
-
-
 
 
 # """Plot Mh/Ms vs Ms"""
