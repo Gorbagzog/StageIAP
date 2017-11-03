@@ -86,21 +86,19 @@ for i in range(numredshift_haloes):
 # plt.title('Abundances for Bolshoï Planck 0<z<9.9')
 
 
-"""Load the SMF from Iary Davidzon+17"""
+"""Load the SMF from Candels Grazian+15"""
 
 # Code is copied from IaryDavidzonSMF.py as of 12 june
-# redshifts of the Iari SMF
-redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-numzbin = np.size(redshifts) - 1
+# redshifts of the Candels+15 data
+redshifts = np.array([3.5, 4.5, 5.5, 6.5, 7.5])
+numzbin = np.size(redshifts)-1
 
 smf = []
-for i in range(10):
+for i in range(numzbin):
     smf.append(np.loadtxt(
         # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-        '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
-        + str(i) + '.dat')
-        # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
-        # + str(i) + '.dat')
+        '../Data/Candels/grazian15_68CL_z' + str(i+4) + '_JEWELS.txt')
+        # '../Data/Candels/grazian15_68CL_v2_z' + str(i+4) + '.txt')
     )
     # Add errors in the case of Vmax
     # smf[i][:, 2] = smf[i][:, 1] + smf[i][:, 2]
@@ -111,11 +109,11 @@ for i in range(10):
 # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
 BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
 
-# Davidzon+17 SMF cosmo : (flat LCDM)
+# CANDELS+17 SMF cosmo : (flat LCDM) (same as Davidzon17_COSMO)
 # Om = 0.3, Ol = 0.7, h=0.7
 D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
 
-for i in range(10):
+for i in range(numzbin):
     # Correction of the comoving Volume :
     # VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
     # VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
@@ -136,7 +134,7 @@ for i in range(10):
 """Plot SMF"""
 
 plt.figure()
-for i in range(10):
+for i in range(numzbin):
     plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5,
                      label=str(redshifts[i])+'<z<'+str(redshifts[i+1]))
     plt.ylim(-6, -2)
@@ -177,39 +175,39 @@ print('Closest redshifts for Bolshoi HMFs : '
 
 
 """Plot SMF and HMF together"""
-plt.figure()
-for i in range(numzbin):
-    plt.plot(smf[i][:, 0], smf[i][:, 1], label='SMF')
-    plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5)
-    plt.plot(
-        hmf_bolshoi[redshift_id_selec[i]][:, 0], hmf_bolshoi[redshift_id_selec[i]][:, 2],
-        linestyle='--', label='HMF')
-plt.ylim(-7, 1)
-plt.xlim(8, 13)
-plt.legend()
-plt.xlabel('Log($M/M_{\odot}$)', size=12)
-plt.ylabel('Log($\phi$/$Mpc^{-3}$)', size=12)
-plt.title(str(redshifts[i])+'<z<'+str(redshifts[i+1]))
-plt.tight_layout()
-plt.show()
+# plt.figure()
+# for i in range(numzbin):
+#     plt.plot(smf[i][:, 0], smf[i][:, 1], label='SMF')
+#     plt.fill_between(smf[i][:, 0], smf[i][:, 2], smf[i][:, 3], alpha=0.5)
+#     plt.plot(
+#         hmf_bolshoi[redshift_id_selec[i]][:, 0], hmf_bolshoi[redshift_id_selec[i]][:, 2],
+#         linestyle='--', label='HMF')
+# plt.ylim(-7, 1)
+# plt.xlim(8, 13)
+# plt.legend()
+# plt.xlabel('Log($M/M_{\odot}$)', size=12)
+# plt.ylabel('Log($\phi$/$Mpc^{-3}$)', size=12)
+# plt.title(str(redshifts[i])+'<z<'+str(redshifts[i+1]))
+# plt.tight_layout()
+# plt.show()
 
 
 """Plot cumulative density of galaxies and halos together"""
 
-plt.figure()
-for i in [0]:
-    plt.plot(
-        smf[i][:, 0], Nstar[i],
-        label='COSMOS, z=' + str(redshifts[i])+'-'+str(redshifts[i+1]))
-    plt.plot(
-        hmf_bolshoi[redshift_id_selec[i]][:, 0], Nbolshoi[redshift_id_selec[i]],
-        label='Bolshoï, z=' + str(redshift_haloes[redshift_id_selec[i]]))
-plt.yscale('log')
-plt.ylim(10**-6, 1)
-plt.xlim(8, 15)
-plt.ylabel('N(>$M$), [$Mpc^{-3}$]', size=12)
-plt.xlabel('Log($M/M_{\odot}$)', size=12)
-plt.legend()
+# plt.figure()
+# for i in [0]:
+#     plt.plot(
+#         smf[i][:, 0], Nstar[i],
+#         label='COSMOS, z=' + str(redshifts[i])+'-'+str(redshifts[i+1]))
+#     plt.plot(
+#         hmf_bolshoi[redshift_id_selec[i]][:, 0], Nbolshoi[redshift_id_selec[i]],
+#         label='Bolshoï, z=' + str(redshift_haloes[redshift_id_selec[i]]))
+# plt.yscale('log')
+# plt.ylim(10**-6, 1)
+# plt.xlim(8, 15)
+# plt.ylabel('N(>$M$), [$Mpc^{-3}$]', size=12)
+# plt.xlabel('Log($M/M_{\odot}$)', size=12)
+# plt.legend()
 
 """Do interpolation for abundance matching"""
 
@@ -299,12 +297,12 @@ plt.figure()
 for i in range(numzbin):
     plt.plot(xm[i][:], ym[i][:], label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
     plt.fill_between(xm[i], yminus[i], yplus[i], alpha=0.5)
-plt.plot(
-    np.linspace(12, 15), 11.5 - np.linspace(12, 15),
-    linestyle='--', c='black', label='$M_{*}=10^{11.5}$')
-plt.plot(
-    np.linspace(11, 14), 10 - np.linspace(11, 14),
-    linestyle='--', c='black', label='$M_{*}=10^{10}$')
+# plt.plot(
+#     np.linspace(12, 15), 11.5 - np.linspace(12, 15),
+#     linestyle='--', c='black', label='$M_{*}=10^{11.5}$')
+# plt.plot(
+#     np.linspace(11, 14), 10 - np.linspace(11, 14),
+#     linestyle='--', c='black', label='$M_{*}=10^{10}$')
 plt.legend()
 plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
 plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
@@ -421,40 +419,40 @@ for i in range(numzbin):
 
 """Plot"""
 
-# Plot Mh(Ms)
-for i in range(numzbin):
-    plt.figure()
-    ax = plt.subplot(111)
-    plt.plot(
-        MstarIary[i](x[i]),
-        xm[i][:],
-        label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1]))
-    if i < 5:
-        cut = 'cut at Log(Ms)<12'
-    else:
-        cut = 'no cut'
-    plt.plot(
-        MstarIary[i](x[i]),
-        boo_MhMs(MstarIary[i](x[i]), *boo_fit_cosmos[i]),
-        label=str('Behroozi function fit, '+cut), c='r'
-        )
-    plt.legend()
-    plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
-    plt.ylabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
-    plt.text(
-        0.6, 0.1,
-        '''
-        $log(M_{{1}})=${:.2f}
-        $log(M_{{*,0}})=${:.2f}
-        $\\beta=${:.2f}
-        $\delta=${:.2f}
-        $\gamma={:.2f}$'''.format(*boo_fit_cosmos[i]),
-        transform=ax.transAxes
-        )
-    plt.show()
-    plt.tight_layout()
-    # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
-    #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
+# # Plot Mh(Ms)
+# for i in range(numzbin):
+#     plt.figure()
+#     ax = plt.subplot(111)
+#     plt.plot(
+#         MstarIary[i](x[i]),
+#         xm[i][:],
+#         label='COSMOS and Bolshoï AM, ' + str(redshifts[i])+'<z<'+str(redshifts[i+1]))
+#     if i < 5:
+#         cut = 'cut at Log(Ms)<12'
+#     else:
+#         cut = 'no cut'
+#     plt.plot(
+#         MstarIary[i](x[i]),
+#         boo_MhMs(MstarIary[i](x[i]), *boo_fit_cosmos[i]),
+#         label=str('Behroozi function fit, '+cut), c='r'
+#         )
+#     plt.legend()
+#     plt.xlabel('Log($M_{*}$)  [Log($M_{\odot}$)]', size=20)
+#     plt.ylabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+#     plt.text(
+#         0.6, 0.1,
+#         '''
+#         $log(M_{{1}})=${:.2f}
+#         $log(M_{{*,0}})=${:.2f}
+#         $\\beta=${:.2f}
+#         $\delta=${:.2f}
+#         $\gamma={:.2f}$'''.format(*boo_fit_cosmos[i]),
+#         transform=ax.transAxes
+#         )
+#     plt.show()
+#     plt.tight_layout()
+#     # plt.savefig('../Plots/COSMOSBolshoi_AM/Behroozi+10_fits/MsMh_Bfit_cut_z=' +
+#     #             str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
 
 # TODO : tracer Ms/Mh et comparer avec le fit de Berhoozi.
 
@@ -659,14 +657,14 @@ plt.figure()
 # plt.xscale('log')
 plt.errorbar((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
              yerr=np.transpose(MhaloPeakSigma),
-             fmt='o', color='red', capsize=5, label='Cosmos Davidzon+17')
-# plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud + np.log10(72/70),
-#              yerr=MhaloSigmaLeauthaud,
-#              fmt='o', capsize=5, label='Leauthaud et al. 2011')
-# plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12,
-#              fmt='o', capsize=5, label='Coupon et al. 2012')
-# plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15,
-#              fmt='o', capsize=5, label='Coupon et al. 2015')
+             fmt='o', color='black', capsize=5, label='Candels jewels')
+plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud + np.log10(72/70),
+             yerr=MhaloSigmaLeauthaud,
+             fmt='o', capsize=5, label='Leauthaud et al. 2011')
+plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12,
+             fmt='o', capsize=5, label='Coupon et al. 2012')
+plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15,
+             fmt='o', capsize=5, label='Coupon et al. 2015')
 # plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014,
 #              yerr=MhaloSigmaMartinezManso2014,
 #              fmt='o', capsize=5, label='Martinez-Manso et al. 2014')
