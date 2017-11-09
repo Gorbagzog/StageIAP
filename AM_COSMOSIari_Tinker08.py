@@ -38,7 +38,7 @@ parameters : Delta = 70, mean overdensity.
 hmf = []
 for i in range(numredshift_haloes):
     hmf.append(
-        np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm170/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
+        np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
             redshift_haloes[i]), usecols=(0, 7)))
     hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
     hmf[i][:, 1] = hmf[i][:, 1] * (0.6774)**3
@@ -55,7 +55,7 @@ for i in range(numredshift_haloes):
     Nbolshoi.append([])
     for j in range(np.size(hmf[i][:, 0])):
         Nbolshoi[i].append(
-            np.trapz( hmf[i][j:, 1], hmf[i][j:, 0]))
+            np.trapz(hmf[i][j:, 1], hmf[i][j:, 0]))
 for i in range(numredshift_haloes):
     Nbolshoi[i] = np.asarray(Nbolshoi[i])
 
@@ -190,7 +190,7 @@ for i in range(numzbin):
             min(np.log10(Nstar[i, Nstar[i, :] > 0])),
             np.log10(Nstarminus[i, Nstarminus[i, :] > 0][-1]),
             np.log10(Nstarplus[i, Nstarplus[i, :] > 0][-1]),
-            np.log10(Nbolshoi[i][-1])
+            np.log10(Nbolshoi[i][-2])
             ),
         min(
             np.log10(Nstar[i, 0]),
@@ -204,7 +204,7 @@ for i in range(numzbin):
         min(np.log10(Nstar[i, Nstar[i, :] > 0])),
         np.log10(Nstarminus[i, Nstarminus[i, :] > 0][-1]),
         np.log10(Nstarplus[i, Nstarplus[i, :] > 0][-1]),
-        np.log10(Nbolshoi[i][-1])
+        np.log10(Nbolshoi[i][-2])
         )
     x[i][-1] = min(
         np.log10(Nstar[i, 0]),
@@ -509,6 +509,15 @@ for i in range(len(redshiftCoupon17)):
     MhaloPeakCoupon17[i], MhaloSigmaCoupon17[i] = np.loadtxt(
         '../Data/Coupon17/peak/peak_{:1.2f}.ascii'.format(redshiftCoupon17[i]),
         usecols=(2, 3))
+
+"""Save MhPeak(z)"""
+
+np.savetxt(
+    "../Plots/MhPeak/Tinker08_Dm200.txt",
+    np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
+             MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
+    header='z   MhaloPeak   MhaloPeakSigma'
+    )
 
 """Plot"""
 

@@ -637,6 +637,15 @@ for i in range(len(redshiftCoupon17)):
         '../Data/Coupon17/peak/peak_{:1.2f}.ascii'.format(redshiftCoupon17[i]),
         usecols=(2, 3))
 
+"""Save MhPeak(z)"""
+
+np.savetxt(
+    "../Plots/MhPeak/COSMOS.txt",
+    np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
+             MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
+    header='z   MhaloPeak   MhaloPeakSigma'
+    )
+
 """Plot"""
 
 # Verify that the Mpeak is at the correct position for Ms/Mh vs Mh

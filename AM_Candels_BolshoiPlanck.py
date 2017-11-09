@@ -97,8 +97,8 @@ smf = []
 for i in range(numzbin):
     smf.append(np.loadtxt(
         # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-        '../Data/Candels/grazian15_68CL_z' + str(i+4) + '_JEWELS.txt')
-        # '../Data/Candels/grazian15_68CL_v2_z' + str(i+4) + '.txt')
+        #'../Data/Candels/grazian15_68CL_z' + str(i+4) + '_JEWELS.txt')
+         '../Data/Candels/grazian15_68CL_v2_z' + str(i+4) + '.txt')
     )
     # Add errors in the case of Vmax
     # smf[i][:, 2] = smf[i][:, 1] + smf[i][:, 2]
@@ -634,6 +634,17 @@ for i in range(len(redshiftCoupon17)):
     MhaloPeakCoupon17[i], MhaloSigmaCoupon17[i] = np.loadtxt(
         '../Data/Coupon17/peak/peak_{:1.2f}.ascii'.format(redshiftCoupon17[i]),
         usecols=(2, 3))
+
+"""Save MhPeak(z)"""
+
+np.savetxt(
+    "../Plots/MhPeak/Candels.txt",
+    np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
+             MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
+    header='z   MhaloPeak   MhaloPeakSigma'
+    )
+
+
 
 """Plot"""
 
