@@ -286,6 +286,42 @@ for i in range(numzbin):
     # yminus[i] = np.log10(10**(MstarIaryMinus[i](x[i])) / 10**(Mhalo[i](x[i])))
     # yplus[i] = np.log10(10**(MstarIaryPlus[i](x[i])) / 10**(Mhalo[i](x[i])))
 
+"""Add scatter
+
+Scatter in stellar mass for a lognormal distribution of mean MstarIary(x) and of standard deviation
+sigmaMstar."""
+
+sigmaMstar = 0.15
+
+MstarScatter = np.empty([numzbin, n_fit])
+for i in range(numzbin):
+    # MstarScatter[i] = np.random.lognormal(mean=MstarIary[i](x[i]), sigma=sigmaMstar, size=n_fit)
+    MstarScatter[i] = np.random.normal(loc=MstarIary[i](x[i]), scale=sigmaMstar, size=n_fit)
+
+"""Plot scatter"""
+
+# Ms(Mh)
+plt.figure()
+for i in range(numzbin):
+    plt.plot(xm[i], MstarIary[i](x[i]))
+    plt.scatter(xm[i], MstarScatter[i], marker='.')
+
+# Ms/Mh vs Mh
+
+for i in range(numzbin):
+    plt.figure()
+    plt.plot(xm[i], ym[i], c='red', label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
+    plt.scatter(xm[i], MstarScatter[i]-xm[i], marker='.',
+                label='Scatter in M*, $\sigma = $' + str(sigmaMstar))
+    plt.fill_between(xm[i], yminus[i], yplus[i], color='red', alpha=0.5)
+    plt.legend()
+    plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
+    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.tight_layout()
+    plt.savefig('../Plots/COSMOSBolshoi_AM/Scatter/Sigma=' +
+                str(sigmaMstar)+'_z='+str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
+
+
 """Plot interpolations Ms(N) and Mh(N)"""
 
 # plt.figure()
@@ -639,12 +675,12 @@ for i in range(len(redshiftCoupon17)):
 
 """Save MhPeak(z)"""
 
-np.savetxt(
-    "../Plots/MhPeak/COSMOS.txt",
-    np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
-             MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
-    header='z   MhaloPeak   MhaloPeakSigma'
-    )
+# np.savetxt(
+#     "../Plots/MhPeak/COSMOS.txt",
+#     np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
+#              MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
+#     header='z   MhaloPeak   MhaloPeakSigma'
+#     )
 
 """Plot"""
 
