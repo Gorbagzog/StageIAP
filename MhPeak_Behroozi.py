@@ -5,7 +5,7 @@ Coupon et al 2017 draft, with the Behroozi et al 2010 and 2013 relations"""
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import time
 
 """Parameters"""
 
@@ -63,15 +63,36 @@ def log_Ms(log_Mh, z):
 
 """Find maximum for each redshift"""
 
-log_Mh = np.linspace(10, 14, 1000)
+log_Mh = np.linspace(10, 14, 10000)
 
 # plt.figure()
 # for i in range(6):
 #     plt.plot(log_Mh, log_Ms(log_Mh, i) - log_Mh)
 # plt.show()
 
-redshift = np.linspace(0, 10, 1000)
-MhaloPeak = np.array(1000)
+numpoints = 1000
+redshift = np.linspace(0, 5, numpoints)
+MhaloPeak = np.zeros(numpoints)
 
-for i in range(1000):
-    MhaloPeak[i] = np.argmax(log_Ms(log_Mh, redshift[i] - log_Mh))[0]
+t = time.time()
+for i in range(numpoints):
+    MhaloPeak[i] = log_Mh[np.argmax(log_Ms(log_Mh, redshift[i]) - log_Mh)]
+    
+
+print(time.time() - t)
+
+"""Plot"""
+
+temp = [redshift, MhaloPeak]
+
+plt.figure()
+plt.plot(temp[0], temp[1])
+plt.show()
+
+"""Save file"""
+
+# np.savetxt('MhaloPeakBehroozi.txt', temp)
+
+# test = np.loadtxt('MhaloPeakBehroozi.txt')
+# print(test[0])
+# print(test[1])
