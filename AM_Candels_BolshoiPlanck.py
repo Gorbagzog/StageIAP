@@ -637,12 +637,12 @@ for i in range(len(redshiftCoupon17)):
 
 """Save MhPeak(z)"""
 
-np.savetxt(
-    "../Plots/MhPeak/Candels.txt",
-    np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
-             MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
-    header='z   MhaloPeak   MhaloPeakSigma'
-    )
+# np.savetxt(
+#     "../Plots/MhPeak/Candels.txt",
+#     np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
+#              MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
+#     header='z   MhaloPeak   MhaloPeakSigma'
+#     )
 
 
 

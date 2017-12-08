@@ -318,8 +318,8 @@ for i in range(numzbin):
     plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.tight_layout()
-    plt.savefig('../Plots/COSMOSBolshoi_AM/Scatter/Sigma=' +
-                str(sigmaMstar)+'_z='+str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
+    # plt.savefig('../Plots/COSMOSBolshoi_AM/Scatter/Sigma=' +
+    #             str(sigmaMstar)+'_z='+str(redshifts[i])+'-'+str(redshifts[i+1])+'.pdf')
 
 
 """Plot interpolations Ms(N) and Mh(N)"""
