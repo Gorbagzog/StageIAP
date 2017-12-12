@@ -59,42 +59,84 @@ for i in range(len(redshiftCoupon17)):
 # Graphic read of MhaloPeakvalues in Yang+2012 for SMF1 :
 redshiftYang12 = np.array([0.1, 0.5, 1.15, 1.80, 2.75, 3.75])
 MhaloPeakYang12 = np.array([11.75, 11.7, 12, 12.5, 12.7, 12.8]) - np.log10(0.7)
-MhaloSigmaYang12 = np.array([[0.2, 0.2, 0.2, 0.2, 0.3, 0.4], [0.2, 0.2, 0.3, 0.4, 0.6, 1]])
+MhaloSigmaYang12 = np.array([[0.1, 0.1, 0.1, 0.1, 0.15, 0.2], [0.1, 0.1, 0.15, 0.2, 0.3, 0.5]])
+
+# Mhalo Peak from Ishikawa 17
+redshiftIshikawa17 = np.array([3, 4, 5])
+MhaloPeakIshikawa17 = np.array([12.10, 11.99, 11.77]) - np.log10(0.7)
+MhaloSigmaIshikawa17 = np.array([0.053, 0.057, 0.097])
+
+# MhaloPeak from Cowley+2017
+redshiftCowley17 = np.array([1.75, 2.5])
+MhaloPeakCowley17 = np.array([12.33, 12.5])
+MhaloSigmaCowley17 = np.array([[0.06, 0.08], [0.07, 0.10]])
+
+# Load the MhaloPeak(z) from Behroozi et al 2013
+tmp = np.loadtxt('MhaloPeakBehroozi.txt')
+redshiftBehroozi13 = tmp[0]
+MhaloPeakBehroozi13 = tmp[1]
+
+# Load the MhaloPeak(z) from Moster et al 2013
+tmp = np.loadtxt('MhaloPeakMoster.txt')
+redshiftMoster13 = tmp[0]
+MhaloPeakMoster13 = tmp[1]
+
+# Load the MhaloPeak(z) from Yang et al 2012
+tmp = np.loadtxt('MhaloPeakYang.txt')
+redshiftYang12curve = tmp[0]
+MhaloPeakYang12curve = tmp[1]
 
 
 """Plot"""
 
-plt.figure(figsize=(8, 4))
-ax = plt.subplot(111)
-
-plt.errorbar(MhaloCosmos[:-2, 0], MhaloCosmos[:-2, 1], yerr=[MhaloCosmos[:-2, 2], MhaloCosmos[:-2, 3]],
-             fmt='o', color='red', capsize=5, label='SMF:D17, HMF:Bolshoï')
-plt.errorbar(MhaloTinker[:-2, 0], MhaloTinker[:-2, 1], yerr=[MhaloTinker[:-2, 2], MhaloTinker[:-2, 3]],
-             fmt='o', color='peru', capsize=5, label='SMF:D17, HMF:T08')
-plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2], MhaloCandels[:, 3]],
-             fmt='o', color='green', capsize=5, label='SMF:Candels, HMF:Bolshoï')
+# plt.figure(figsize=(8, 4))
+# ax = plt.subplot(111)
+plt.figure()
 # plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
 #              yerr=MhaloSigmaCoupon17,
 #              fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
 plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud + np.log10(72/70),
-             yerr=MhaloSigmaLeauthaud,
-             fmt='d', c='lightcoral', markerfacecolor='white', capsize=5, label='Leauthaud et al. 2011')
-plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12,
-             fmt='d', c='dodgerblue', markerfacecolor='white', capsize=5, label='Coupon et al. 2012')
-plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15,
-             fmt='d', c='turquoise', markerfacecolor='white', capsize=5, label='Coupon et al. 2015')
-plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014,
-             yerr=MhaloSigmaMartinezManso2014,
-             fmt='d', c='purple', markerfacecolor='white', capsize=5, label='Martinez-Manso et al. 2014')
-# plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12,
-#              fmt='d', c='lightgreen', markerfacecolor='white', capsize=5, label='Yang et al. 2012')
-
+             yerr=MhaloSigmaLeauthaud, markersize=5, elinewidth=1,
+             fmt='o', c='green', markerfacecolor='white', capsize=1, label='Leauthaud et al. 2011')
+plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12, elinewidth=1,
+             fmt='v', c='grey', markerfacecolor='white', capsize=2, label='Coupon et al. 2012',
+             markersize=5)
+plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15, elinewidth=1,
+             fmt='s', c='turquoise', markerfacecolor='white', capsize=2, label='Coupon et al. 2015',
+             markersize=5)
+plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014, elinewidth=1,
+             yerr=MhaloSigmaMartinezManso2014, markersize=5,
+             fmt='D', c='purple', markerfacecolor='white', capsize=2, label='Martinez-Manso et al. 2014')
+plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
+             fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
+plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
+             fmt='v', c='violet', markerfacecolor='white', capsize=2, label='Ishikawa et al. 2017',
+             elinewidth=1)
+plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=5,
+             fmt='*', c='orange', markerfacecolor='white', capsize=2, label='Cowley et al. 2017',
+             elinewidth=1,)
+plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
+         label='Behroozi et al. 2013')
+plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
+         label='Moster et al. 2013')
+plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
+         label='Yang et al. 2012')
 # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
-#              fmt='d', markerfacecolor='white', capsize=5, label='"Revised" McCracken15')
+#              fmt='d', markerfacecolor='none', capsize=5, label='"Revised" McCracken15')
+plt.errorbar(MhaloCosmos[:-2, 0], MhaloCosmos[:-2, 1], yerr=[MhaloCosmos[:-2, 2],
+             MhaloCosmos[:-2, 3]], fmt='o', color='red', capsize=3, label='Case 1',
+             markersize=7)
+plt.errorbar(MhaloTinker[:-2, 0], MhaloTinker[:-2, 1], yerr=[MhaloTinker[:-2, 2],
+             MhaloTinker[:-2, 3]], fmt='^', color='blue', capsize=3, label='Case 2',
+             markersize=7)
+plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2],
+             MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
+             label='Case 3', markersize=7)
 plt.xlabel('Redshift', size=20)
 plt.ylabel('Log($\mathrm{M_{halo}^{peak}}/\mathrm{M_{\odot}}$)', size=20)
-plt.ylim(11.7, 13)
-plt.xlim(0,8)
+# plt.ylim(11.7, 13)
+plt.ylim(11.7, 14)
+plt.xlim(0, 8)
 # plt.xlim(0.2, 8)
 # plt.xscale('log')
 # box = ax.get_position()
@@ -103,7 +145,11 @@ plt.xlim(0,8)
 
 # Put a legend below current axis
 # ax.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", fontsize=12)
-ax.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
+# ax.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
+plt.legend(loc=1, ncol=2)
+plt.xticks(fontsize=13)
+plt.yticks(fontsize=13)
 # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-plt.tight_layout(rect=[0,0,0.65,1])
+# plt.tight_layout(rect=[0,0,0.65,1])
+plt.tight_layout()
 plt.show()

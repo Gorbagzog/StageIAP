@@ -71,13 +71,14 @@ log_Mh = np.linspace(10, 14, 10000)
 # plt.show()
 
 numpoints = 1000
-redshift = np.linspace(0, 5, numpoints)
+zmax = 8
+redshift = np.linspace(0, zmax, numpoints)
 MhaloPeak = np.zeros(numpoints)
 
 t = time.time()
 for i in range(numpoints):
     MhaloPeak[i] = log_Mh[np.argmax(log_Ms(log_Mh, redshift[i]) - log_Mh)]
-    
+
 
 print(time.time() - t)
 
@@ -91,7 +92,7 @@ plt.show()
 
 """Save file"""
 
-# np.savetxt('MhaloPeakBehroozi.txt', temp)
+np.savetxt('MhaloPeakBehroozi.txt', temp)
 
 # test = np.loadtxt('MhaloPeakBehroozi.txt')
 # print(test[0])
