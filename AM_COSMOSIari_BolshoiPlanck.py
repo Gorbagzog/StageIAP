@@ -193,6 +193,24 @@ plt.title(str(redshifts[i])+'<z<'+str(redshifts[i+1]))
 plt.tight_layout()
 plt.show()
 
+"""Plot selected HMF"""
+plt.figure()
+for i in range(numzbin):
+    plt.plot(
+        hmf_bolshoi[redshift_id_selec[i]][:, 0], 10**hmf_bolshoi[redshift_id_selec[i]][:, 2],
+        label=str(redshift_haloes[redshift_id_selec[i]]))
+plt.ylim(10**-6, 10**-0.5)
+plt.xlim(10, 15)
+plt.legend()
+plt.yscale('log')
+plt.xlabel('Log($\mathrm{M_{h}}/\mathrm{M_{\odot}}$)', size=20)
+plt.ylabel('$\mathrm{\phi_{h} [Mpc^{-3}]}$', size=20)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.tight_layout()
+plt.show()
+
+
 
 """Plot cumulative density of galaxies and halos together"""
 
@@ -336,14 +354,14 @@ for i in range(numzbin):
     plt.plot(xm[i][:], ym[i][:], label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
     plt.fill_between(xm[i], yminus[i], yplus[i], alpha=0.5)
 plt.plot(
-    np.linspace(12, 15), 11.5 - np.linspace(12, 15),
-    linestyle='--', c='black', label='$M_{*}=10^{11.5}$')
+    np.linspace(12, 15), 11.8 - np.linspace(12, 15),
+    linestyle='--', c='black', label='$\mathrm{M_{*}=10^{11.8} M_{\odot}}$')
 plt.plot(
     np.linspace(11, 14), 10 - np.linspace(11, 14),
     linestyle='--', c='black', label='$M_{*}=10^{10}$')
 plt.legend()
 plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
-plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+plt.xlabel('Log($\mathrm{M_{h}/M_{\odot}}$)', size=20)
 plt.tight_layout()
 # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
 plt.show()
@@ -352,29 +370,31 @@ plt.show()
 cf. Davidzon et al. 2017 for the limits
 """
 
+
 # Use the interploation formula of Mlim(z) in Davidzon et al. 2017
 Ms_min = np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7)
 # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-Ms_max = 11.5
+Ms_max = 11.8
 
+cmap = plt.get_cmap('gist_rainbow')
 plt.figure()
 for i in range(numzbin):
     index_min = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_max))
     index_max = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_min[i]))
     print(index_min)
     print(index_max)
-    plt.plot(
-        xm[i][index_min:index_max], ym[i][index_min:index_max],
-        label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]))
     plt.fill_between(
         xm[i][index_min:index_max], yminus[i][index_min:index_max],
-        yplus[i][index_min:index_max], alpha=0.5)
+        yplus[i][index_min:index_max], alpha=0.1, color=cmap(i/numzbin))
+    plt.plot(
+        xm[i][index_min:index_max], ym[i][index_min:index_max],
+        label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]), color=cmap(i/numzbin))
 plt.plot(
-    np.linspace(12.5, 14), 11.5 - np.linspace(12.5, 14),
-    linestyle='--', c='black', label='$M_{*}=10^{11.5}$')
+    np.linspace(12.5, 15), Ms_max- np.linspace(12.5, 15),
+    linestyle='--', c='black', label='$M_{*}=10^{'+str(Ms_max)+'}$')
 plt.legend()
-plt.ylabel('$Log(M_{*}/M_{h})$', size=20)
-plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
+plt.ylabel('$\mathrm{Log(M_{*}/M_{h})}$', size=20)
+plt.xlabel('Log($\mathrm{M_{h}/M_{\odot}}$)', size=20)
 plt.tight_layout()
 plt.show()
 
