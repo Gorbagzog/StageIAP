@@ -385,12 +385,13 @@ for i in range(numzbin):
     print(index_max)
     plt.fill_between(
         xm[i][index_min:index_max], yminus[i][index_min:index_max],
-        yplus[i][index_min:index_max], alpha=0.1, color=cmap(i/numzbin))
+        yplus[i][index_min:index_max], alpha=0.2, color=cmap(i/numzbin),
+        linewidth=0.0)
     plt.plot(
         xm[i][index_min:index_max], ym[i][index_min:index_max],
         label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]), color=cmap(i/numzbin))
 plt.plot(
-    np.linspace(12.5, 15), Ms_max- np.linspace(12.5, 15),
+    np.linspace(12.5, 15), Ms_max - np.linspace(12.5, 15),
     linestyle='--', c='black', label='$M_{*}=10^{'+str(Ms_max)+'}$')
 plt.legend()
 plt.ylabel('$\mathrm{Log(M_{*}/M_{h})}$', size=20)

@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 # -*-coding:Utf-8 -*
 
-"""Abundance Matchnig between COSMOS/Iary and BloshoïPlanck.
-
-Script used to load and display the halo mass functions using Mvir
-of the new Bolshoï simulation using Planck15 cosmology :
-h=0.6774, s8=0.8159, Om=0.3089, Ob=0.0486, ns=0.9667.
-HaloMassFunctions are provided by Peter Behroozi.
+"""Abundance Matchnig between COSMOS/Iary and Tinker HMF.
 
 This script also load the SMF of the COSMOS field provided by Iari Davidzon.
 
@@ -240,6 +235,36 @@ plt.xlabel('Log($M_{h}$)  [Log($M_{\odot}$)]', size=20)
 plt.tight_layout()
 # plt.title('IariDavidzon Mass Function vs Bolshoï simulation')
 plt.show()
+
+
+# Use the interploation formula of Mlim(z) in Davidzon et al. 2017
+Ms_min = np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7)
+# Arbitrary maximum as read on the plots of the SMF of Davidzon+17
+Ms_max = 11.8
+
+cmap = plt.get_cmap('gist_rainbow')
+plt.figure()
+for i in range(numzbin):
+    index_min = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_max))
+    index_max = np.argmin(np.abs(MstarIary[i](x[i]) - Ms_min[i]))
+    print(index_min)
+    print(index_max)
+    plt.fill_between(
+        xm[i][index_min:index_max], yminus[i][index_min:index_max],
+        yplus[i][index_min:index_max], alpha=0.2, color=cmap(i/numzbin),
+        linewidth=0.0)
+    plt.plot(
+        xm[i][index_min:index_max], ym[i][index_min:index_max],
+        label=str(redshifts[i]) + '<z<' + str(redshifts[i + 1]), color=cmap(i/numzbin))
+plt.plot(
+    np.linspace(12.5, 15), Ms_max - np.linspace(12.5, 15),
+    linestyle='--', c='black', label='$M_{*}=10^{'+str(Ms_max)+'}$')
+plt.legend()
+plt.ylabel('$\mathrm{Log(M_{*}/M_{h})}$', size=20)
+plt.xlabel('Log($\mathrm{M_{h}/M_{\odot}}$)', size=20)
+plt.tight_layout()
+plt.show()
+
 
 # """Plot Mh/Ms vs Ms"""
 
@@ -512,12 +537,12 @@ for i in range(len(redshiftCoupon17)):
 
 """Save MhPeak(z)"""
 
-np.savetxt(
-    "../Plots/MhPeak/Tinker08_Dm200.txt",
-    np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
-             MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
-    header='z   MhaloPeak   MhaloPeakSigma'
-    )
+# np.savetxt(
+#     "../Plots/MhPeak/Tinker08_Dm200.txt",
+#     np.transpose(np.stack(((redshifts[1:] + redshifts[:-1]) / 2, MhaloPeak + np.log10(67.74/70),
+#              MhaloPeakSigma[:, 0], MhaloPeakSigma[:, 1]))),
+#     header='z   MhaloPeak   MhaloPeakSigma'
+#     )
 
 """Plot"""
 

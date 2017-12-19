@@ -67,7 +67,7 @@ MhaloPeakIshikawa17 = np.array([12.10, 11.99, 11.77]) - np.log10(0.7)
 MhaloSigmaIshikawa17 = np.array([0.053, 0.057, 0.097])
 
 # MhaloPeak from Cowley+2017
-redshiftCowley17 = np.array([1.75, 2.5])
+redshiftCowley17 = np.array([1.75, 2.5]) + 0.1  # shift redshift to see the points
 MhaloPeakCowley17 = np.array([12.33, 12.5])
 MhaloSigmaCowley17 = np.array([[0.06, 0.08], [0.07, 0.10]])
 
@@ -89,9 +89,9 @@ MhaloPeakYang12curve = tmp[1]
 
 """Plot"""
 
-# plt.figure(figsize=(8, 4))
+plt.figure(figsize=(7, 6))
 # ax = plt.subplot(111)
-plt.figure()
+# plt.figure()
 # plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
 #              yerr=MhaloSigmaCoupon17,
 #              fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
@@ -107,8 +107,8 @@ plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15, eline
 plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014, elinewidth=1,
              yerr=MhaloSigmaMartinezManso2014, markersize=5,
              fmt='D', c='purple', markerfacecolor='white', capsize=2, label='Martinez-Manso et al. 2014')
-plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
-             fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
+# plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
+            #  fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
 plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
              fmt='v', c='violet', markerfacecolor='white', capsize=2, label='Ishikawa et al. 2017',
              elinewidth=1)
@@ -146,7 +146,7 @@ plt.xlim(0, 8)
 # Put a legend below current axis
 # ax.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", fontsize=12)
 # ax.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
-plt.legend(loc=1, ncol=2)
+plt.legend(loc=1, ncol=2, fontsize=12)
 plt.xticks(fontsize=13)
 plt.yticks(fontsize=13)
 # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
