@@ -113,15 +113,15 @@ def lognorm(y, logMs, ksi):
 def phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
     # SMF with a log-normal scatter in stellar mass for a given halo mass
     # This is the same as convolving phi_true with a log-normal density probability function
-    # phitrue = 0
-    # for i in range(numpoints-1):
-    #     phitrue += phi_direct(
-    #         y[i], y[i+1], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[i], logMs, ksi)
-    #hitrue = np.sum(
-        print(phi_direct(
-             y[:-2][:], y[1:][:], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[:-2], logMs, ksi)
-    )
-    # return phitrue
+    phitrue = 0
+    for i in range(numpoints-1):
+        phitrue += phi_direct(
+            y[i], y[i+1], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[i], logMs, ksi)
+    # phitrue = np.sum(
+    #     print(phi_direct(
+    #          y[:-2][:], y[1:][:], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[:-2], logMs, ksi)
+    # )
+    return phitrue
 
 
 # def phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
