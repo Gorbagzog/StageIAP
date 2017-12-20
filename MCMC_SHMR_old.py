@@ -96,20 +96,12 @@ def logMh(logMs, M1, Ms0, beta, delta, gamma):
 
 def phi_direct(logMs1, logMs2, idx_z, M1, Ms0, beta, delta, gamma):
     # SMF obtained from the SM-HM relation and the HMF
-    # log_Mh1 = logMh(logMs1, M1, Ms0, beta, delta, gamma)
-    # log_Mh2 = logMh(logMs2, M1, Ms0, beta, delta, gamma)
-    # index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
-    # phidirect = 10**hmf_bolshoi[idx_z][index_Mh, 2] * (log_Mh1 - log_Mh2)/(logMs1 - logMs2)
-    # return phidirect
-    ## Same but with matrixes :
     log_Mh1 = logMh(logMs1, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs2, M1, Ms0, beta, delta, gamma)
-    index_Mh = np.argmin(np.abs(
-        np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) - 
-        np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
-    ), axis=1)
+    index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
     phidirect = 10**hmf_bolshoi[idx_z][index_Mh, 2] * (log_Mh1 - log_Mh2)/(logMs1 - logMs2)
     return phidirect
+
 
 Mmin = 7
 Mmax = 16
@@ -123,17 +115,14 @@ def lognorm(y, logMs, ksi):
 def phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
     # SMF with a log-normal scatter in stellar mass for a given halo mass
     # This is the same as convolving phi_true with a log-normal density probability function
-    # phitrue = 0
-    # for i in range(numpoints-1):
-    #     phitrue += phi_direct(
-    #         y[i], y[i+1], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[i], logMs, ksi)
+    phitrue = 0
+    for i in range(numpoints-1):
+        phitrue += phi_direct(
+            y[i], y[i+1], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[i], logMs, ksi)
     # phitrue = np.sum(
-    # phi_direct(
-    #         y[:-1], y[1:], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[:-1], logMs, ksi)
+    #     print(phi_direct(
+    #          y[:-2][:], y[1:][:], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[:-2], logMs, ksi)
     # )
-    # No convolution (no scatter) case :
-    phitrue = phi_direct(y[:-1], y[1:], idx_z, M1, Ms0, beta, delta, gamma)
-
     return phitrue
 
 
@@ -164,17 +153,11 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     logMs = smf_cosmos[idx_z][smf_cosmos[idx_z][:, 1] > -1000, 0]  # select points where the smf is defined
     numpoints = len(logMs)
 
-    # chi2 = 0
-    # for i in range(numpoints):
-    #     chi2 += (np.log10(
-    #         phi_true(idx_z, logMs[i], M1, Ms0, beta, delta, gamma, ksi) /
-    #         10**smf_cosmos[idx_z][i, 1]) / ((smf_cosmos[idx_z][i, 2] + smf_cosmos[idx_z][i, 3])/2))**2
-    # Same with matrixes 
-    chi2 = np.sum(
-        (np.log10(
-        phi_true(idx_z, 0, M1, Ms0, beta, delta, gamma, ksi) /
-        10**smf_cosmos[idx_z][i, 1]) / ((smf_cosmos[idx_z][i, 2] + smf_cosmos[idx_z][i, 3])/2))**2
-    )
+    chi2 = 0
+    for i in range(numpoints):
+        chi2 += (np.log10(
+            phi_true(idx_z, logMs[i], M1, Ms0, beta, delta, gamma, ksi) /
+            10**smf_cosmos[idx_z][i, 1]) / ((smf_cosmos[idx_z][i, 2] + smf_cosmos[idx_z][i, 3])/2))**2
     return chi2
 
 def negloglike(theta, idx_z):
@@ -190,5 +173,5 @@ def negloglike(theta, idx_z):
 idx_z = 0
 theta0 = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
 bounds = ((10, 14), (8, 13), (0, 2), (0, 3), (0, 5), (0, 1))
-results = op.minimize(negloglike, theta0, args=(idx_z), bounds=bounds, method='TNC')
+# results = op.minimize(negloglike, theta0, args=(idx_z), options={'maxiter':100})
 print(negloglike(theta0, idx_z))
