@@ -16,6 +16,9 @@ import numpy as np
 from astropy.cosmology import LambdaCDM
 import scipy.optimize as op
 from scipy import signal
+import os
+
+cwd = os.getcwd()
 
 #################
 ### Load data ###
