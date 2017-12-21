@@ -173,7 +173,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     chi2 = np.sum(
         (np.log10(
         phi_true(idx_z, 0, M1, Ms0, beta, delta, gamma, ksi) /
-        10**smf_cosmos[idx_z][i, 1]) / ((smf_cosmos[idx_z][i, 2] + smf_cosmos[idx_z][i, 3])/2))**2
+        10**smf_cosmos[idx_z][:, 1]) / ((smf_cosmos[idx_z][:, 2] + smf_cosmos[idx_z][:, 3])/2))**2
     )
     return chi2
 
@@ -190,5 +190,9 @@ def negloglike(theta, idx_z):
 idx_z = 0
 theta0 = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
 bounds = ((10, 14), (8, 13), (0, 2), (0, 3), (0, 5), (0, 1))
-results = op.minimize(negloglike, theta0, args=(idx_z), bounds=bounds, method='TNC')
+# results = op.minimize(negloglike, theta0, args=(idx_z), bounds=bounds)
 print(negloglike(theta0, idx_z))
+
+# bashop = op.basinhopping(negloglike, theta0, niter=2, minimizer_kwargs={'args':idx_z})
+
+# curv = op.curve_fit(phi_true, smf_cosmos[idx_z][smf_cosmos[idx_z][:, 1] > -1000, 0], 10**smf_cosmos[idx_z][i, 1], p0=theta0, sigma=smf_cosmos[idx_z][, 2]  )
