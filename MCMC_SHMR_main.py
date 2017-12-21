@@ -11,7 +11,7 @@ Started on december 18th by Louis Legrand at IAP and IAS.
 """
 
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # import emcee
 from astropy.cosmology import LambdaCDM
 import scipy.optimize as op
@@ -30,18 +30,19 @@ def load_hmf():
     hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
     (density) [1/Mpc^3]
     """
+    global hmf_bolshoi
     hmf_bolshoi = []
     for i in range(numredshift_haloes):
         hmf_bolshoi.append(
             np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
                        '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
-    return hmf_bolshoi
 
 def load_smf():
     """Load the SMF from Iary Davidzon+17"""
     # redshifts of the Iari SMF
     redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
     numzbin = np.size(redshifts) - 1
+    global smf_cosmos
     smf_cosmos = []
     for i in range(10):
         smf_cosmos.append(np.loadtxt(
@@ -74,44 +75,50 @@ def load_smf():
         # Correction of the measured stellar mass
         # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
         smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
-    return smf_cosmos
+
+
+"""Functions definitions for computation of the theroretical SFM phi_true"""
 
 
 def logMh(logMs, M1, Ms0, beta, delta, gamma):
     # SM-HM relation
-    return np.log10(M1) + beta*np.log10(logMs/Ms0) + ((logMs/Ms0)**delta)/(1 + (logMs/Ms0)**delta) - 0.5
+    return M1 + beta*(logMs - Ms0) + ((10**(logMs-Ms0))**delta)/(1 + (10**(logMs - Ms0))**(-gamma)) - 0.5
 
 
-def phi_direct(logMs1, logMs2, idx_z, hmf, M1, Ms0, beta, delta, gamma):
+def phi_direct(logMs1, logMs2, idx_z, M1, Ms0, beta, delta, gamma):
     # SMF obtained from the SM-HM relation and the HMF
     log_Mh1 = logMh(logMs1, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs2, M1, Ms0, beta, delta, gamma)
-    index_Mh = np.argmin(np.abs(hmf[idx_z][:, 0] - log_Mh1))
-    phidirect = 10**hmf[idx_z][index_Mh, 2] * (log_Mh1 - log_Mh2)/(logMs1 - logMs2)
+    index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
+    phidirect = 10**hmf_bolshoi[idx_z][index_Mh, 2] * (log_Mh1 - log_Mh2)/(logMs1 - logMs2)
     return phidirect
 
 
 Mmin = 7
 Mmax = 16
-numpoints = 1000
+numpoints = 100
 y = np.linspace(Mmin, Mmax, num=numpoints)
 
 def lognorm(y, logMs, ksi):
-    return 1/np.sqrt(2 * np.pi * ksi**2) * np.exp((y-logMs)/(2*ksi**2))
+    return 1/np.sqrt(2 * np.pi * ksi**2) * np.exp(-(y-logMs)**2/(2*ksi**2))
 
 
-def phi_true(idx_z, logMs, hmf, M1, Ms0, beta, delta, gamma, ksi):
+# def phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
     # SMF with a log-normal scatter in stellar mass for a given halo mass
     # This is the same as convolving phi_true with a log-normal density probability function
-    phitrue = 0
-    for i in range(numpoints-1):
-        phitrue += phi_direct(
-            y[i], y[i+1], idx_z, hmf, M1, Ms0, beta, delta, gamma) * lognorm(y[i], logMs, ksi)
+    # phitrue = 0
+    # for i in range(numpoints-1):
+    #     phitrue += phi_direct(
+    #         y[i], y[i+1], idx_z, M1, Ms0, beta, delta, gamma) * lognorm(y[i], logMs, ksi)
     # phitrue = np.sum(
     #     print(phi_direct(
     #          y[:-2][:], y[1:][:], idx_z, hmf, M1, Ms0, beta, delta, gamma) * lognorm(y[:-2], logMs, ksi)
     # )
-    return phitrue
+    # return phitrue
+
+
+def log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
+    log_phi_true = -
 
 
 # def phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
@@ -134,37 +141,45 @@ def phi_true(idx_z, logMs, hmf, M1, Ms0, beta, delta, gamma, ksi):
 #     return top/bot
 
 
-def chi2(idx_z, smf, hmf, M1, Ms0, beta, delta, gamma, ksi):
+def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return the chi**2 between the observed and the expected SMF
     # z1 = redshifts[idx_z]
     # z2 = redshifts[idx_z + 1]
-    logMs = smf[idx_z][smf[idx_z][:, 1] > -1000, 0]  # select points where the smf is defined
+    logMs = smf_cosmos[idx_z][smf_cosmos[idx_z][:, 1] > -1000, 0]  # select points where the smf is defined
     numpoints = len(logMs)
 
     chi2 = 0
     for i in range(numpoints):
-        chi2 += (np.log10(
-            phi_true(idx_z, logMs[i], hmf, M1, Ms0, beta, delta, gamma, ksi) /
-            10**smf[idx_z][i, 1]) / ((smf[idx_z][i, 2] + smf[idx_z][i, 3])/2))**2
+        chi2 += ((np.log10(
+            phi_true(idx_z, logMs[i], M1, Ms0, beta, delta, gamma, ksi)) -
+            smf_cosmos[idx_z][i, 1]) / ((smf_cosmos[idx_z][i, 2] + smf_cosmos[idx_z][i, 3])/2))**2
     return chi2
 
-def negloglike(theta, smf, hmf, idx_z):
+def negloglike(theta, idx_z):
     # return the likelihood
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
-    return chi2(idx_z, smf, hmf, M1, Ms0, beta, delta, gamma, ksi)/2
+    return chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
 
-##########################################
-### Find maximum likelihood estimation ###
-##########################################
+"""Find maximum likelihood estimation"""
 
 def main():
-    hmf_bolshoi = load_hmf()
-    smf_cosmos = load_smf()
+    load_hmf()
+    load_smf()
     idx_z = 0
     theta0 = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
     # results = op.minimize(negloglike, theta0, args=(idx_z))
-    print(negloglike(theta0, smf_cosmos, hmf_bolshoi, idx_z))
+    print(negloglike(theta0, idx_z))
 
 if __name__ == "__main__":
     main()
+
+"""Plots and tests"""
+
+
+logMs = np.linspace(6, 12, num=100)
+plt.plot(logMs, logMh(logMs, 12, 10, 0.5, 0.5, 2.5))
+
+plt.plot(logMh(logMs, 12, 10, 0.5, 0.5, 2.5), logMs - logMh(logMs, 12, 10, 0.5, 0.5, 2.5))
+
+plt.plot(y, lognorm(y, logMs[30], 0.15))
