@@ -57,7 +57,7 @@ for i in range(10):
         np.loadtxt('../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D' + str(i) + '.dat'))
         # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
         # + str(i) + '.dat')
-    
+
 
 """Adapt SMF to match the Bolshoi-Planck Cosmology"""
 # Bolshoi-Planck cosmo : (flat LCMD)
@@ -105,16 +105,18 @@ def phi_direct(logMs1, logMs2, idx_z, M1, Ms0, beta, delta, gamma):
     log_Mh1 = logMh(logMs1, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs2, M1, Ms0, beta, delta, gamma)
     index_Mh = np.argmin(np.abs(
-        np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) - 
+        np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) -
         np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
     ), axis=1)
     phidirect = 10**hmf_bolshoi[idx_z][index_Mh, 2] * (log_Mh1 - log_Mh2)/(logMs1 - logMs2)
     return phidirect
 
+
 Mmin = 7
 Mmax = 16
 numpoints = 1000
 y = np.linspace(Mmin, Mmax, num=numpoints)
+
 
 def lognorm(y, logMs, ksi):
     return 1/np.sqrt(2 * np.pi * ksi**2) * np.exp((y-logMs)/(2*ksi**2))
@@ -161,21 +163,21 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return the chi**2 between the observed and the expected SMF
     # z1 = redshifts[idx_z]
     # z2 = redshifts[idx_z + 1]
-    logMs = smf_cosmos[idx_z][smf_cosmos[idx_z][:, 1] > -1000, 0]  # select points where the smf is defined
-    numpoints = len(logMs)
-
+    # logMs = smf_cosmos[idx_z][smf_cosmos[idx_z][:, 1] > -1000, 0]  # select points where the smf is defined
+    # numpoints = len(logMs)
     # chi2 = 0
     # for i in range(numpoints):
     #     chi2 += (np.log10(
     #         phi_true(idx_z, logMs[i], M1, Ms0, beta, delta, gamma, ksi) /
     #         10**smf_cosmos[idx_z][i, 1]) / ((smf_cosmos[idx_z][i, 2] + smf_cosmos[idx_z][i, 3])/2))**2
-    # Same with matrixes 
+    # Same with matrixes
     chi2 = np.sum(
         (np.log10(
-        phi_true(idx_z, 0, M1, Ms0, beta, delta, gamma, ksi) /
-        10**smf_cosmos[idx_z][:, 1]) / ((smf_cosmos[idx_z][:, 2] + smf_cosmos[idx_z][:, 3])/2))**2
+         phi_true(idx_z, 0, M1, Ms0, beta, delta, gamma, ksi) /
+         10**smf_cosmos[idx_z][:, 1]) / ((smf_cosmos[idx_z][:, 2] + smf_cosmos[idx_z][:, 3])/2))**2
     )
     return chi2
+
 
 def negloglike(theta, idx_z):
     # return the likelihood

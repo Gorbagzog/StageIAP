@@ -16,6 +16,7 @@ import emcee
 from astropy.cosmology import LambdaCDM
 import scipy.optimize as op
 from scipy import signal
+import corner
 
 
 def load_hmf():
@@ -90,9 +91,10 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     epsilon = 0.01*logMs
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
+    # print(log_Mh1, log_Mh2)
     # index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
     index_Mh = np.argmin(np.abs(
-        np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) - 
+        np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) -
         np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
     ), axis=1)
     log_phidirect = hmf_bolshoi[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
@@ -104,7 +106,7 @@ def log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
     epsilon = 0.01 * logMs
     logphi1 = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     logphi2 = log_phi_direct(logMs + epsilon, idx_z, M1, Ms0, beta, delta, gamma)
-    logphitrue = logphi1 + ksi**2 /2 * np.log(10) * ((logphi2 - logphi1)/epsilon)**2
+    logphitrue = logphi1 + ksi**2 / 2 * np.log(10) * ((logphi2 - logphi1)/epsilon)**2
     return logphitrue
 
 
@@ -123,38 +125,112 @@ def log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return the chi**2 between the observed and the expected SMF
-    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0] # select points where the smf is defined
-    logMs = smf_cosmos[idx_z][select, 0]  
+    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]  # select points where the smf is defined
+    logMs = smf_cosmos[idx_z][select, 0]
+    pred = log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi)
+    if pred < -46 :
+        return
     chi2 = np.sum(
-        ((log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi) -
-        smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 2] + smf_cosmos[idx_z][select, 3])/2))**2
+        ((pred -
+          smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 2] + smf_cosmos[idx_z][select, 3])/2))**2
         )
     return chi2
 
 
 def negloglike(theta, idx_z):
     # return the likelihood
+    # print(theta)
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
-    if beta<0 or delta<0 or gamma<0:
-        return -10**8
-    if M1<6 or M1>15 or Ms0<6 or Ms0>15:
-        return -10**8
-    if ksi<0 or ksi > 4:
-        return -10**8
+    if beta < 0 or delta < 0 or gamma < 0:
+        return -np.inf
+    if beta > 1 or delta > 1 or gamma > 5:
+        return -np.inf
+    if M1 < 6 or M1 > 15 or Ms0 < 8 or Ms0 > 12:
+        return -np.inf
+    if ksi < 0 or ksi > 4:
+        return -np.inf
     else:
-        return chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
+        return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
 
 """Find maximum likelihood estimation"""
+
+
+# def main():
+#     load_hmf()
+#     load_smf()
+#     idx_z = 0
+#     theta0 = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
+#     bounds = ((10, 14), (8, 13), (0.01, 2), (0.01, 3), (0.01, 5), (0, 1))
+#     results = op.minimize(negloglike, theta0, bounds=bounds, args=(idx_z), method='TNC')
+#     results = op.basinhopping(negloglike, theta0, niter=1, T=1000, minimizer_kwargs={'args': idx_z})
+#     results = op.minimize(negloglike, theta0, args=(idx_z), method='Nelder-Mead')
+#     print(negloglike(theta0, idx_z))
+#     print(results)
+
+
+
+"""Plot chain file"""
+
+
+def plotchain(filename):
+    chain = np.load(filename)
+
+    burn = 0  # Number of steps to burn
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+
+    fig = corner.corner(
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi'])
+    fig.savefig('triangle.pdf')
+    plt.close('all')
+
+    # for (p, loglike, state) in sampler.sample(p0, iterations=iterations):
+    #     print(p)
+    #     print(loglike)
+
+
+""" Run MCMC """
+
 
 def main():
     load_hmf()
     load_smf()
     idx_z = 0
-    theta0 = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
-    bounds = ((10, 14), (8, 13), (0, 2), (0, 3), (0, 5), (0, 1))
-    results = op.minimize(negloglike, theta0, bounds=bounds, args=(idx_z))
-    print(negloglike(theta0, idx_z))
+    nwalker = 12
+    nthreads = 1  # Put more for multiprocessing automatically.
+    iterations = 10000
+
+    starting_point = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
+    std = np.array([1, 1, 0.1, 0.1, 0.1, 0.01])
+    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
+    ndim = len(starting_point)
+    print("ndim = " + str(ndim))
+    print("start = " + str(starting_point))
+    print("std = " + str(std))
+    sampler = emcee.EnsembleSampler(nwalker, ndim, negloglike, args=[idx_z], threads=nthreads)
+
+    sampler.run_mcmc(p0, iterations)
+
+    savefile = 'Chain.npy'
+    np.save(savefile, sampler.chain)
+    plotchain(savefile)
+
+    # for  in range(ndim):
+    #     plt.figure()
+    #     for j in range(nwalker):
+    #         plt.plot(sampler.chain[j,  :, i])
+    #     plt.show()
+
+    # f = open("chain.dat", "w")
+    # f.close()
+
+    # for result in sampler.sample(p0, iterations=iterations):
+    #     position = result[0]
+    #     f = open("chain.dat", "a")
+    #     for k in range(position.shape[0]):
+    #         f.write("{0:4d} {1:s}\n".format(k, " ".join(position[k])))
+    #     f.close()
+
 
 if __name__ == "__main__":
     main()
@@ -162,27 +238,36 @@ if __name__ == "__main__":
 """Plots and tests"""
 
 
-logMs = np.linspace(6, 12, num=100)
-plt.plot(logMs, logMh(logMs, 12, 10, 0.5, 0.5, 2.5))
+# logMs = np.linspace(6, 12, num=100)
+# plt.plot(logMs, logMh(logMs, 13, 10, 0.5, 0.5, 2.5))
 
-plt.plot(logMh(logMs, 12, 10, 0.5, 0.5, 2.5), logMs - logMh(logMs, 12, 10, 0.5, 0.5, 2.5))
+# logmhtest =logMh(logMs, 13, 14, 0.5, 0.5, 2.5)
+# plt.plot(logMh(logMs, 12, 10, 0.5, 0.5, 2.5), logMs - logMh(logMs, 12, 10, 0.5, 0.5, 2.5))
 
-thetavar =  np.array([np.linspace(10,14, num=100), np.full(100, 11), np.full(100,0.5), np.full(100,0.5), np.full(100,2.5), np.full(100,0.15)])
+# Compare Observed and predicted SMF :
+select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+logMs = smf_cosmos[0][select, 0]
+plt.plot(logMs, smf_cosmos[0][select, 1])
+logphi = log_phi_true(0, logMs, 12.3, 10, 0.5, 0.3,0.1, 0.1)
+plt.plot(logMs, logphi)
 
-neglog = np.zeros(100)
-for i in range(100):
-    neglog[i] = negloglike(thetavar[:,i], idx_z)
+# thetavar = np.array([np.linspace(10, 14, num=100), np.full(100, 11), np.full(100,0.5), np.full(100,0.5), np.full(100,2.5), np.full(100,0.15)])
 
-plt.plot(neglog)
+# neglog = np.zeros(100)
+# idx_z = 0
+# for i in range(100):
+#     neglog[i] = negloglike(thetavar[:,i], idx_z)
 
-"""Test emcee sampling"""
+# plt.plot(neglog)
 
-nwalker=250
-ndim=6
-std = np.array([1, 1, 0.1, 0.1, 0.1, 0.1])
-p0 = emcee.utils.sample_ball(theta0, std, size=nwalker)
-sampler= emcee.EnsembleSampler(nwalker, ndim, negloglike, args=[idx_z])
+# """Test emcee sampling"""
 
-pos, prob, state = sampler.run_mcmc(p0, 100) ## burn phase
+# nwalker=250
+# ndim=6
+# std = np.array([1, 1, 0.1, 0.1, 0.1, 0.1])
+# p0 = emcee.utils.sample_ball(theta0, std, size=nwalker)
+# sampler= emcee.EnsembleSampler(nwalker, ndim, negloglike, args=[idx_z])
 
-sampler.run_mcmc(pos, 1000) ## samble phase
+# pos, prob, state = sampler.run_mcmc(p0, 100) ## burn phase
+
+# sampler.run_mcmc(pos, 1000) ## samble phase
