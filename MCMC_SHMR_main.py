@@ -17,6 +17,7 @@ from astropy.cosmology import LambdaCDM
 import scipy.optimize as op
 from scipy import signal
 import corner
+from getdist import plots, MCSamples
 
 
 def load_hmf():
@@ -77,31 +78,41 @@ def load_smf():
         # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
         smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
 
-
 """Function definitions for computation of the theroretical SFM phi_true"""
 
 
 def logMh(logMs, M1, Ms0, beta, delta, gamma):
     # SM-HM relation
-    return M1 + beta*(logMs - Ms0) + (10**(delta*(logMs-Ms0)))/(1 + (10**(-gamma*(logMs - Ms0)))) - 0.5
+    return M1 + beta*(logMs - Ms0) + (10 ** (delta * (logMs - Ms0))) / (1 + (10 ** (-gamma * (logMs - Ms0)))) - 0.5
+    # Ms = 10**logMs
+    # logMh = M1 + beta * np.log10(Ms / 10**Ms0) + (Ms / 10**Ms0)**delta / (1 + (Ms / 10**Ms0)**(-gamma)) - 0.5
+    # return logMh
 
 
 def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # SMF obtained from the SM-HM relation and the HMF
-    epsilon = 0.01*logMs
+    epsilon = 0.01
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
+    # print(logMs)
     # print(log_Mh1, log_Mh2)
     # index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
     index_Mh = np.argmin(np.abs(
         np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) -
         np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
-    ), axis=1)
+    ), axis=1)  # Select the index of the HMF corresponing to the halo masses
     log_phidirect = hmf_bolshoi[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    # print(np.log10((log_Mh2 - log_Mh1)/epsilon))
+    # Keep only points wher the halo mass is defined in the HMF
+    log_phidirect[log_Mh1 > hmf_bolshoi[idx_z][-1, 0]] = -1000
+    log_phidirect[log_Mh1 < hmf_bolshoi[idx_z][0, 0]] = -1000
+    # print(log_phidirect)
+    # print(hmf_bolshoi[idx_z][index_Mh, 2])
+    # print(log_phidirect)
     return log_phidirect
 
 
-def log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
+def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # Use the approximation of the convolution defined in Behroozi et al 2010 equation (3)
     epsilon = 0.01 * logMs
     logphi1 = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
@@ -125,11 +136,9 @@ def log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi):
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return the chi**2 between the observed and the expected SMF
-    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]  # select points where the smf is defined
+    select = np.where(smf_cosmos[idx_z][:, 1] > -7)[0]  # select points where the smf is defined
     logMs = smf_cosmos[idx_z][select, 0]
-    pred = log_phi_true(idx_z, logMs, M1, Ms0, beta, delta, gamma, ksi)
-    if pred < -46 :
-        return
+    pred = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
         ((pred -
           smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 2] + smf_cosmos[idx_z][select, 3])/2))**2
@@ -137,7 +146,19 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     return chi2
 
 
-def negloglike(theta, idx_z):
+def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
+    # return the chi**2 between the observed and the expected SMF
+    select = np.where(smf_cosmos[idx_z][:, 1] > -7)[0]  # select points where the smf is defined
+    logMs = smf_cosmos[idx_z][select, 0]
+    pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+    chi2 = np.sum(
+        ((pred -
+          smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 2] + smf_cosmos[idx_z][select, 3])/2))**2
+        )
+    return chi2
+
+
+def loglike(theta, idx_z):
     # return the likelihood
     # print(theta)
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
@@ -145,7 +166,7 @@ def negloglike(theta, idx_z):
         return -np.inf
     if beta > 1 or delta > 1 or gamma > 5:
         return -np.inf
-    if M1 < 6 or M1 > 15 or Ms0 < 8 or Ms0 > 12:
+    if M1 < 6 or M1 > 15 or Ms0 < 8 or Ms0 > 15:
         return -np.inf
     if ksi < 0 or ksi > 4:
         return -np.inf
@@ -153,20 +174,37 @@ def negloglike(theta, idx_z):
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
 
+def loglike_noksi(theta, idx_z):
+    # return the likelihood for a fixed ksi
+    # print(theta)
+    M1, Ms0, beta, delta, gamma = theta[:]
+    if beta < 0 or delta < 0 or gamma < 1:
+        return -np.inf
+    if beta > 1 or delta >  1 or gamma > 3:
+        return -np.inf
+    if M1 < 12 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
+        return -np.inf
+    else:
+        return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
+
+
+def negloglike_noksi(theta, idx_z):
+    return -loglike_noksi(theta, idx_z)
+
 """Find maximum likelihood estimation"""
 
 
-# def main():
-#     load_hmf()
-#     load_smf()
-#     idx_z = 0
-#     theta0 = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
-#     bounds = ((10, 14), (8, 13), (0.01, 2), (0.01, 3), (0.01, 5), (0, 1))
-#     results = op.minimize(negloglike, theta0, bounds=bounds, args=(idx_z), method='TNC')
-#     results = op.basinhopping(negloglike, theta0, niter=1, T=1000, minimizer_kwargs={'args': idx_z})
-#     results = op.minimize(negloglike, theta0, args=(idx_z), method='Nelder-Mead')
-#     print(negloglike(theta0, idx_z))
-#     print(results)
+def maxlikelihood(idx_z, theta0, bounds):
+    load_hmf()
+    load_smf()
+    # idx_z = 0
+    theta0 = np.array([11, 10, 0.1, 0.1, 1])
+    bounds = ((10, 14), (8, 13), (0, 1), (0, 1), (1, 5))
+    results = op.minimize(negloglike_noksi, theta0, bounds=bounds, args=(idx_z), method='TNC')
+    # results = op.basinhopping(negloglike_noksi, theta0, niter=1, T=1000, minimizer_kwargs={'args': idx_z})
+    results = op.minimize(negloglike_noksi, theta0, args=(idx_z), method='Nelder-Mead', options={'fatol':10**-6})
+    print(-loglike_noksi(theta0, idx_z))
+    print(results)
 
 
 
@@ -189,37 +227,67 @@ def plotchain(filename):
     #     print(loglike)
 
 
+def plotdist(filename):
+    chain = np.load(filename)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
+    burn = 0  # Number of steps to burn
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    g = plots.getSubplotPlotter()
+    g.triangle_plot(samples, filled=True, contours=0.2)
+    g.export('getdist_plot')
+    plt.clf()
+
+
+
 """ Run MCMC """
 
 
-def main():
+def runMCMC(idx_z, starting_point, std, iterations, savefile):
     load_hmf()
     load_smf()
-    idx_z = 0
     nwalker = 12
     nthreads = 1  # Put more for multiprocessing automatically.
-    iterations = 10000
+    # starting_point = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
+    # std = np.array([1, 1, 0.1, 0.1, 0.1, 0.01])
 
-    starting_point = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
-    std = np.array([1, 1, 0.1, 0.1, 0.1, 0.01])
     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
     ndim = len(starting_point)
+    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike, args=[idx_z], threads=nthreads)
+
     print("ndim = " + str(ndim))
     print("start = " + str(starting_point))
     print("std = " + str(std))
-    sampler = emcee.EnsembleSampler(nwalker, ndim, negloglike, args=[idx_z], threads=nthreads)
 
     sampler.run_mcmc(p0, iterations)
 
-    savefile = 'Chain.npy'
     np.save(savefile, sampler.chain)
     plotchain(savefile)
 
-    # for  in range(ndim):
-    #     plt.figure()
-    #     for j in range(nwalker):
-    #         plt.plot(sampler.chain[j,  :, i])
-    #     plt.show()
+
+def runMCMC_noksi(idx_z, starting_point, std, iterations, savefile):
+    load_hmf()
+    load_smf()
+    nwalker = 12
+    nthreads = 1  # Put more for multiprocessing automatically.
+    # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
+    # std = np.array([1, 1, 0.1, 0.1, 0.1])
+
+    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
+    ndim = len(starting_point)
+    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
+
+    print("ndim = " + str(ndim))
+    print("start = " + str(starting_point))
+    print("std = " + str(std))
+    print("iterations = " + str(iterations))
+
+    sampler.run_mcmc(p0, iterations)
+
+    np.save(savefile, sampler.chain)
+    plotchain(savefile)
+
+
 
     # f = open("chain.dat", "w")
     # f.close()
@@ -232,8 +300,8 @@ def main():
     #     f.close()
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 """Plots and tests"""
 
@@ -245,13 +313,24 @@ if __name__ == "__main__":
 # plt.plot(logMh(logMs, 12, 10, 0.5, 0.5, 2.5), logMs - logMh(logMs, 12, 10, 0.5, 0.5, 2.5))
 
 # Compare Observed and predicted SMF :
-select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-logMs = smf_cosmos[0][select, 0]
-plt.plot(logMs, smf_cosmos[0][select, 1])
-logphi = log_phi_true(0, logMs, 12.3, 10, 0.5, 0.3,0.1, 0.1)
-plt.plot(logMs, logphi)
+# load_smf()
+# load_hmf()
+# select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+# logMs = smf_cosmos[0][select, 0]
+# plt.plot(logMs, smf_cosmos[0][select, 1])
+# # logphi = log_phi_direct(logMs, 0, 12.5, 10.5, 0.5, 0.3, 2)
+# logphi = log_phi_direct(logMs, 0, M1, Ms0, beta, delta, gamma)
+# plt.plot(logMs, logphi)
 
-# thetavar = np.array([np.linspace(10, 14, num=100), np.full(100, 11), np.full(100,0.5), np.full(100,0.5), np.full(100,2.5), np.full(100,0.15)])
+# chi2_noksi(0, 12.7, 8.9, 0.3, 0.6, 2.5)
+# theta = np.array([12.7, 8.9, 0.3, 0.6, 2.5])
+# theta = np.array([ 11.73672883,  10.63457168 ,  0.55492575 ,  0.45137568  , 2.58689832])
+
+# plt.plot(hmf_bolshoi[0][:,0], hmf_bolshoi[0][:,2])
+
+
+# thetavar = np.array([np.linspace(10, 14, num=100), np.full(100, 11), np.full(100,0.5), 
+# np.full(100,0.5), np.full(100,2.5), np.full(100,0.15)])
 
 # neglog = np.zeros(100)
 # idx_z = 0
@@ -259,6 +338,14 @@ plt.plot(logMs, logphi)
 #     neglog[i] = negloglike(thetavar[:,i], idx_z)
 
 # plt.plot(neglog)
+
+# for i in range(ndim):
+#     plt.figure()
+#     for j in range(nwalker):
+#         plt.plot(chain[j,  :, i], '.')
+#     plt.show()
+
+
 
 # """Test emcee sampling"""
 
