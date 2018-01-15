@@ -49,8 +49,10 @@ def load_smf():
     for i in range(10):
         smf_cosmos.append(np.loadtxt(
             # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-            '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
-            + str(i) + '.dat')
+            # '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
+            # + str(i) + '.dat')
+            '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_Vmax'
+            + str(i) + '.dat') # Use the 1/Vmax points directly and not the schechter fit on them
             # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
             # + str(i) + '.dat')
         )
@@ -141,19 +143,24 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     pred = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
         ((pred -
-          smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 2] + smf_cosmos[idx_z][select, 3])/2))**2
+          smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
         )
     return chi2
 
 
 def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
     # return the chi**2 between the observed and the expected SMF
-    select = np.where(smf_cosmos[idx_z][:, 1] > -7)[0]  # select points where the smf is defined
+    select = np.where(smf_cosmos[idx_z][:, 1] > -6)[0]  # select points where the smf is defined
+    # We choose to limit the fit only fro abundances higher than 10**-6
     logMs = smf_cosmos[idx_z][select, 0]
     pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     chi2 = np.sum(
         ((pred -
-          smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 2] + smf_cosmos[idx_z][select, 3])/2))**2
+            # When using the VmaxFit2D (give the bands and not the sigma)
+            # smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] - smf_cosmos[idx_z][select, 2])/2))**2
+            # When using the Vmax directly (give the error bars directly)
+            smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
+            # smf_cosmos[idx_z][select, 1]))**2
         )
     return chi2
 
@@ -162,13 +169,13 @@ def loglike(theta, idx_z):
     # return the likelihood
     # print(theta)
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
-    if beta < 0 or delta < 0 or gamma < 0:
+    if beta < 0 or delta < 0 or gamma < -2:
         return -np.inf
-    if beta > 1 or delta > 1 or gamma > 5:
+    if beta > 1 or delta > 1 or gamma > 3:
         return -np.inf
-    if M1 < 6 or M1 > 15 or Ms0 < 8 or Ms0 > 15:
+    if M1 < 10 or M1 > 14 or Ms0 < 8 or Ms0 > 14:
         return -np.inf
-    if ksi < 0 or ksi > 4:
+    if ksi < 0 or ksi > 2:
         return -np.inf
     else:
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
@@ -178,11 +185,11 @@ def loglike_noksi(theta, idx_z):
     # return the likelihood for a fixed ksi
     # print(theta)
     M1, Ms0, beta, delta, gamma = theta[:]
-    if beta < 0 or delta < 0 or gamma < 1:
+    if beta < 0 or delta < 0 or gamma < -2:
         return -np.inf
-    if beta > 1 or delta >  1 or gamma > 3:
+    if beta > 2 or delta >  2 or gamma > 3:
         return -np.inf
-    if M1 < 12 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
+    if M1 < 10 or M1 > 14 or Ms0 < 10 or Ms0 > 14:
         return -np.inf
     else:
         return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
@@ -198,8 +205,8 @@ def maxlikelihood(idx_z, theta0, bounds):
     load_hmf()
     load_smf()
     # idx_z = 0
-    theta0 = np.array([11, 10, 0.1, 0.1, 1])
-    bounds = ((10, 14), (8, 13), (0, 1), (0, 1), (1, 5))
+    # theta0 = np.array([11, 10, 0.1, 0.1, 1])
+    # bounds = ((10, 14), (8, 13), (0, 1), (0, 1), (1, 5))
     results = op.minimize(negloglike_noksi, theta0, bounds=bounds, args=(idx_z), method='TNC')
     # results = op.basinhopping(negloglike_noksi, theta0, niter=1, T=1000, minimizer_kwargs={'args': idx_z})
     results = op.minimize(negloglike_noksi, theta0, args=(idx_z), method='Nelder-Mead', options={'fatol':10**-6})
@@ -211,15 +218,14 @@ def maxlikelihood(idx_z, theta0, bounds):
 """Plot chain file"""
 
 
-def plotchain(filename):
-    chain = np.load(filename)
+def plotchain(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
 
-    burn = 0  # Number of steps to burn
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-
     fig = corner.corner(
         samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi'])
-    fig.savefig('triangle.pdf')
+    fig.savefig(figname + ".pdf")
     plt.close('all')
 
     # for (p, loglike, state) in sampler.sample(p0, iterations=iterations):
@@ -227,15 +233,15 @@ def plotchain(filename):
     #     print(loglike)
 
 
-def plotdist(filename):
-    chain = np.load(filename)
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
-    burn = 0  # Number of steps to burn
+def plotdist(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
     g = plots.getSubplotPlotter()
-    g.triangle_plot(samples, filled=True, contours=0.2)
-    g.export('getdist_plot')
+    g.triangle_plot(samples, filled=True)
+    g.export(figname + '_gd.pdf' )
     plt.clf()
 
 
@@ -243,7 +249,7 @@ def plotdist(filename):
 """ Run MCMC """
 
 
-def runMCMC(idx_z, starting_point, std, iterations, savefile):
+def runMCMC(idx_z, starting_point, std, iterations, burn):
     load_hmf()
     load_smf()
     nwalker = 12
@@ -258,14 +264,16 @@ def runMCMC(idx_z, starting_point, std, iterations, savefile):
     print("ndim = " + str(ndim))
     print("start = " + str(starting_point))
     print("std = " + str(std))
+    print("iterations = " + str(iterations))
 
     sampler.run_mcmc(p0, iterations)
+    chainfile = "../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    np.save(chainfile, sampler.chain)
+    
+    plotchain(chainfile, idx_z, iterations, burn)
 
-    np.save(savefile, sampler.chain)
-    plotchain(savefile)
 
-
-def runMCMC_noksi(idx_z, starting_point, std, iterations, savefile):
+def runMCMC_noksi(idx_z, starting_point, std, iterations, burn):
     load_hmf()
     load_smf()
     nwalker = 12
@@ -283,10 +291,20 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, savefile):
     print("iterations = " + str(iterations))
 
     sampler.run_mcmc(p0, iterations)
+    savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    np.save(savename, sampler.chain)
 
-    np.save(savefile, sampler.chain)
-    plotchain(savefile)
+    plotchain(savename, idx_z, iterations, burn)
 
+
+def results(chainfile, burn):
+    chain = np.load(chainfile)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    res = samples.getTable()
+    res.write("../MCMC/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+    results = 
 
 
     # f = open("chain.dat", "w")
@@ -317,9 +335,11 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, savefile):
 # load_hmf()
 # select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
 # logMs = smf_cosmos[0][select, 0]
-# plt.plot(logMs, smf_cosmos[0][select, 1])
+# plt.errorbar(logMs, smf_cosmos[0][select, 1], 
+#     yerr=[smf_cosmos[0][select, 1] - smf_cosmos[0][select, 2], smf_cosmos[0][select, 3]- smf_cosmos[0][select, 1]])
 # # logphi = log_phi_direct(logMs, 0, 12.5, 10.5, 0.5, 0.3, 2)
 # logphi = log_phi_direct(logMs, 0, M1, Ms0, beta, delta, gamma)
+# plt.ylim(-6, 0)
 # plt.plot(logMs, logphi)
 
 # chi2_noksi(0, 12.7, 8.9, 0.3, 0.6, 2.5)
