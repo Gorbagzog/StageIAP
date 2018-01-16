@@ -138,19 +138,26 @@ def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return the chi**2 between the observed and the expected SMF
-    select = np.where(smf_cosmos[idx_z][:, 1] > -7)[0]  # select points where the smf is defined
+    # select = np.where(np.logical_and(
+    #     smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
+    #     smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    select = np.where(smf_cosmos[idx_z][:, 1] > -6)  # select points where the smf is defined
+    # We choose to limit the fit only fro abundances higher than 10**-6
     logMs = smf_cosmos[idx_z][select, 0]
     pred = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
         ((pred -
-          smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
+                #smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
+                smf_cosmos[idx_z][select, 1]) / smf_cosmos[idx_z][select, 2])**2
         )
     return chi2
 
 
 def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
     # return the chi**2 between the observed and the expected SMF
-    select = np.where(smf_cosmos[idx_z][:, 1] > -6)[0]  # select points where the smf is defined
+    select = np.where(np.logical_and(
+        smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
+        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
     # We choose to limit the fit only fro abundances higher than 10**-6
     logMs = smf_cosmos[idx_z][select, 0]
     pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
@@ -173,9 +180,9 @@ def loglike(theta, idx_z):
         return -np.inf
     if beta > 1 or delta > 1 or gamma > 3:
         return -np.inf
-    if M1 < 10 or M1 > 14 or Ms0 < 8 or Ms0 > 14:
+    if M1 < 11 or M1 > 13 or Ms0 < 9 or Ms0 > 12:
         return -np.inf
-    if ksi < 0 or ksi > 2:
+    if ksi < 0 or ksi > 1:
         return -np.inf
     else:
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
@@ -216,6 +223,22 @@ def maxlikelihood(idx_z, theta0, bounds):
 
 
 """Plot chain file"""
+
+
+def plotSMF(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+    logMs = smf_cosmos[0][select, 0]
+    plt.errorbar(logMs, smf_cosmos[0][select, 1], 
+        yerr=[smf_cosmos[0][select, 3], smf_cosmos[0][select, 2]], fmt='o')
+    plt.ylim(-6, 0)
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=1000)]:
+        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        plt.plot(logMs, logphi, color="k", alpha=0.1)
+    plt.show()
 
 
 def plotchain(chainfile, idx_z, iterations, burn):
@@ -297,14 +320,13 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn):
     plotchain(savename, idx_z, iterations, burn)
 
 
-def results(chainfile, burn):
+def save_results(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
     res = samples.getTable()
     res.write("../MCMC/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
-    results = 
 
 
     # f = open("chain.dat", "w")
@@ -336,10 +358,11 @@ def results(chainfile, burn):
 # select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
 # logMs = smf_cosmos[0][select, 0]
 # plt.errorbar(logMs, smf_cosmos[0][select, 1], 
-#     yerr=[smf_cosmos[0][select, 1] - smf_cosmos[0][select, 2], smf_cosmos[0][select, 3]- smf_cosmos[0][select, 1]])
-# # logphi = log_phi_direct(logMs, 0, 12.5, 10.5, 0.5, 0.3, 2)
-# logphi = log_phi_direct(logMs, 0, M1, Ms0, beta, delta, gamma)
+#     yerr=[smf_cosmos[0][select, 3], smf_cosmos[0][select, 2]], fmt='o')
 # plt.ylim(-6, 0)
+# # logphi = log_phi_direct(logMs, 0, 12.5, 10.5, 0.5, 0.3, 2)
+# logphi = log_phi_true(logMs, 0, M1, Ms0, beta, delta, gamma, ksi)
+
 # plt.plot(logMs, logphi)
 
 # chi2_noksi(0, 12.7, 8.9, 0.3, 0.6, 2.5)
