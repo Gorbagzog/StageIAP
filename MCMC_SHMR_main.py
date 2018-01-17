@@ -192,11 +192,11 @@ def loglike(theta, idx_z):
     # return the likelihood
     # bouds for the idx_z = 1
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
-    if beta < 0.3 or delta < 0.1 or gamma < 0:
+    if beta < 0.3 or delta < 0 or gamma < 0:
         return -np.inf
-    if beta > 0.6 or delta > 0.7 or gamma > 3:
+    if beta > 0.6 or delta > 1 or gamma > 3:
         return -np.inf
-    if M1 < 12 or M1 > 13 or Ms0 < 10.5 or Ms0 > 12:
+    if M1 < 10 or M1 > 13 or Ms0 < 9 or Ms0 > 12:
         return -np.inf
     if ksi < 0 or ksi > 1:
         return -np.inf
@@ -294,8 +294,8 @@ def plotdist(chainfile, idx_z, iterations, burn):
 def runMCMC(idx_z, starting_point, std, iterations, burn):
     load_hmf()
     load_smf()
-    nwalker = 20
-    nthreads = 1  # Put more for multiprocessing automatically.
+    nwalker = 12
+    nthreads = 16  # Put more for multiprocessing automatically.
     # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
 
@@ -315,11 +315,11 @@ def runMCMC(idx_z, starting_point, std, iterations, burn):
     plotchain(chainfile, idx_z, iterations, burn)
 
 
-def runMCMC_noksi(idx_z, starting_point, std, iterations, burn):
+def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads):
     load_hmf()
     load_smf()
     nwalker = 12
-    nthreads = 1  # Put more for multiprocessing automatically.
+    # Put more nthreads for multiprocessing automatically.
     # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
     # std = np.array([1, 1, 0.1, 0.1, 0.1])
 
