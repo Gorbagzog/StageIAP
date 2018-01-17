@@ -20,38 +20,21 @@ import corner
 from getdist import plots, MCSamples
 
 
-def load_hmf():
-    """Load HMF from Bolshoi Planck simulation"""
-    # redshifts of the BolshoiPlanck files
-    redshift_haloes = np.arange(0, 10, step=0.1)
-    numredshift_haloes = np.size(redshift_haloes)
-    """Definition of hmf_bolshoi columns :
-    hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
-    hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
-    (density) [1/Mpc^3]
-    hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
-    (density) [1/Mpc^3]
-    """
-    global hmf_bolshoi
-    hmf_bolshoi = []
-    for i in range(numredshift_haloes):
-        hmf_bolshoi.append(
-            np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
-                       '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
-
 def load_smf():
     """Load the SMF from Iary Davidzon+17"""
     # redshifts of the Iari SMF
+    global redshifts
     redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+    global numzbin
     numzbin = np.size(redshifts) - 1
     global smf_cosmos
     smf_cosmos = []
     for i in range(10):
         smf_cosmos.append(np.loadtxt(
             # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-            # '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
+            # '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
             # + str(i) + '.dat')
-            '../Data/Davidzon/Davidzon+17_SMF_V3.0/mf_mass2b_fl5b_tot_Vmax'
+            '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
             + str(i) + '.dat') # Use the 1/Vmax points directly and not the schechter fit on them
             # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
             # + str(i) + '.dat')
@@ -80,6 +63,38 @@ def load_smf():
         # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
         smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
 
+def load_hmf():
+    """Load HMF from Bolshoi Planck simulation"""
+    # redshifts of the BolshoiPlanck files
+    redshift_haloes = np.arange(0, 10, step=0.1)
+    numredshift_haloes = np.size(redshift_haloes)
+    """Definition of hmf_bolshoi columns :
+    hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
+    hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
+    (density) [1/Mpc^3]
+    hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
+    (density) [1/Mpc^3]
+    """
+    global hmf_bolshoi
+    hmf_bolshoi = []
+    for i in range(numredshift_haloes):
+        hmf_bolshoi.append(
+            np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
+                       '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
+
+    """Select the redhifts slices that matches the slices of Iary"""
+    global redshift_id_selec
+    redshift_id_selec = np.empty(numzbin)
+    for i in range(numzbin):
+        redshift_id_selec[i] = np.argmin(
+            np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
+
+    redshift_id_selec = redshift_id_selec.astype(int)
+    print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
+    print('Closest redshifts for Bolshoi HMFs : '
+        + str(redshift_haloes[redshift_id_selec]))
+
+
 """Function definitions for computation of the theroretical SFM phi_true"""
 
 
@@ -100,14 +115,14 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # print(log_Mh1, log_Mh2)
     # index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
     index_Mh = np.argmin(np.abs(
-        np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) -
-        np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
+        np.tile(hmf_bolshoi[redshift_id_selec[idx_z]][:, 0], (len(log_Mh1), 1)) -
+        np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[redshift_id_selec[idx_z]][:, 0]), 1)))
     ), axis=1)  # Select the index of the HMF corresponing to the halo masses
-    log_phidirect = hmf_bolshoi[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    log_phidirect = hmf_bolshoi[redshift_id_selec[idx_z]][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
     # print(np.log10((log_Mh2 - log_Mh1)/epsilon))
     # Keep only points wher the halo mass is defined in the HMF
-    log_phidirect[log_Mh1 > hmf_bolshoi[idx_z][-1, 0]] = -1000
-    log_phidirect[log_Mh1 < hmf_bolshoi[idx_z][0, 0]] = -1000
+    log_phidirect[log_Mh1 > hmf_bolshoi[redshift_id_selec[idx_z]][-1, 0]] = -1000
+    log_phidirect[log_Mh1 < hmf_bolshoi[redshift_id_selec[idx_z]][0, 0]] = -1000
     # print(log_phidirect)
     # print(hmf_bolshoi[idx_z][index_Mh, 2])
     # print(log_phidirect)
@@ -153,23 +168,23 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     return chi2
 
 
-# def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
-#     # return the chi**2 between the observed and the expected SMF
-#     select = np.where(np.logical_and(
-#         smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
-#         smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
-#     # We choose to limit the fit only fro abundances higher than 10**-6
-#     logMs = smf_cosmos[idx_z][select, 0]
-#     pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-#     chi2 = np.sum(
-#         ((pred -
-#             # When using the VmaxFit2D (give the bands and not the sigma)
-#             # smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] - smf_cosmos[idx_z][select, 2])/2))**2
-#             # When using the Vmax directly (give the error bars directly)
-#             smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
-#             # smf_cosmos[idx_z][select, 1]))**2
-#         )
-#     return chi2
+def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
+    # return the chi**2 between the observed and the expected SMF
+    select = np.where(np.logical_and(
+        smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
+        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    # We choose to limit the fit only fro abundances higher than 10**-6
+    logMs = smf_cosmos[idx_z][select, 0]
+    pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+    chi2 = np.sum(
+        ((pred -
+            # When using the VmaxFit2D (give the bands and not the sigma)
+            # smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] - smf_cosmos[idx_z][select, 2])/2))**2
+            # When using the Vmax directly (give the error bars directly)
+            smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
+            # smf_cosmos[idx_z][select, 1]))**2
+        )
+    return chi2
 
 
 # def loglike(theta, idx_z):
@@ -196,25 +211,25 @@ def loglike(theta, idx_z):
         return -np.inf
     if beta > 0.6 or delta > 1 or gamma > 3:
         return -np.inf
-    if M1 < 10 or M1 > 13 or Ms0 < 9 or Ms0 > 12:
+    if M1 < 12 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
         return -np.inf
-    if ksi < 0 or ksi > 1:
+    if ksi < 0 or ksi > 0.3:
         return -np.inf
     else:
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
-# def loglike_noksi(theta, idx_z):
-#     # return the likelihood for a fixed ksi
-#     # print(theta)
-#     M1, Ms0, beta, delta, gamma = theta[:]
-#     if beta < 0 or delta < 0 or gamma < -2:
-#         return -np.inf
-#     if beta > 2 or delta >  2 or gamma > 3:
-#         return -np.inf
-#     if M1 < 10 or M1 > 14 or Ms0 < 10 or Ms0 > 14:
-#         return -np.inf
-#     else:
-#         return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
+def loglike_noksi(theta, idx_z):
+    # return the likelihood for a fixed ksi
+    # print(theta)
+    M1, Ms0, beta, delta, gamma = theta[:]
+    if beta < 0.3 or delta < 0.4 or gamma < 1.8:
+        return -np.inf
+    if beta > 0.6 or delta >  0.8 or gamma > 3:
+        return -np.inf
+    if M1 < 11 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
+        return -np.inf
+    else:
+        return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
 
 
 def negloglike(theta, idx_z):
@@ -228,8 +243,8 @@ def negloglike(theta, idx_z):
 
 
 def maxlikelihood(idx_z, theta0, bounds):
-    load_hmf()
     load_smf()
+    load_hmf()
     # idx_z = 0
     # theta0 = np.array([11, 10, 0.1, 0.1, 1])
     # bounds = ((11, 13), (10, 12), (0, 1), (0, 1), (0, 3), (0, 1))
@@ -244,19 +259,46 @@ def maxlikelihood(idx_z, theta0, bounds):
 """Plot chain file"""
 
 
+# def plotSMF_noksi(idx_z, iterations, burn):
+#     load_smf()
+#     load_hmf()
+#     chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+#     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#     select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+#     logMs = smf_cosmos[0][select, 0]
+#     plt.errorbar(logMs, smf_cosmos[0][select, 1], 
+#         yerr=[smf_cosmos[0][select, 3], smf_cosmos[0][select, 2]], fmt='o')
+#     plt.ylim(-6, 0)
+#     for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
+#         logphi = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+#         plt.plot(logMs, logphi, color="k", alpha=0.1)
+#     plt.show()
+
 def plotSMF(idx_z, iterations, burn):
     load_smf()
     load_hmf()
     chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-    logMs = smf_cosmos[0][select, 0]
-    plt.errorbar(logMs, smf_cosmos[0][select, 1], 
-        yerr=[smf_cosmos[0][select, 3], smf_cosmos[0][select, 2]], fmt='o')
+    logMs = smf_cosmos[idx_z][select, 0]
+    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1], 
+        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
     plt.ylim(-6, 0)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
+    plt.show()
+
+def plotSMHM(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    logMs = np.linspace(9, 11.5, num=200)
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
     plt.show()
 
 
@@ -292,12 +334,13 @@ def plotdist(chainfile, idx_z, iterations, burn):
 
 
 def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
-    load_hmf()
     load_smf()
+    load_hmf()
     nwalker = 12
     # nthreads = 16  # Put more for multiprocessing automatically.
     # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
+    # starting_point =  np.array([12.5, 11, 0.5, 0.7, 0.5, 0.15])
 
     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
     ndim = len(starting_point)
@@ -315,28 +358,28 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     plotchain(chainfile, idx_z, iterations, burn)
 
 
-# def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads):
-#     load_hmf()
-#     load_smf()
-#     nwalker = 12
-#     # Put more nthreads for multiprocessing automatically.
-#     # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
-#     # std = np.array([1, 1, 0.1, 0.1, 0.1])
+def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads):
+    load_hmf()
+    load_smf()
+    nwalker = 12
+    # Put more nthreads for multiprocessing automatically.
+    # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
+    # std = np.array([1, 1, 0.1, 0.1, 0.1])
 
-#     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
-#     ndim = len(starting_point)
-#     sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
+    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
+    ndim = len(starting_point)
+    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
 
-#     print("ndim = " + str(ndim))
-#     print("start = " + str(starting_point))
-#     print("std = " + str(std))
-#     print("iterations = " + str(iterations))
+    print("ndim = " + str(ndim))
+    print("start = " + str(starting_point))
+    print("std = " + str(std))
+    print("iterations = " + str(iterations))
 
-#     sampler.run_mcmc(p0, iterations)
-#     savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-#     np.save(savename, sampler.chain)
+    sampler.run_mcmc(p0, iterations)
+    savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    np.save(savename, sampler.chain)
 
-#     plotchain(savename, idx_z, iterations, burn)
+    plotchain(savename, idx_z, iterations, burn)
 
 
 def save_results(chainfile, idx_z, iterations, burn):
@@ -346,6 +389,20 @@ def save_results(chainfile, idx_z, iterations, burn):
     samples = MCSamples(samples = samples, names = names)
     res = samples.getTable()
     res.write("../MCMC/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+
+
+def MhPeak(idx_z, iterations, burn):
+    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    chainsize = np.shape(samples)[0]
+    logMs = np.linspace(8, 12, num=300)
+    Mhalopeak = []
+    for i in range(chainsize):
+        logmhalo = logMh(logMs, samples[i, 0], samples[i, 1], samples[i, 2], samples[i, 3], samples[i, 4])
+        Mhalopeak_idx = np.argmax(logMs - logmhalo)
+        Mhalopeak.append(logmhalo[Mhalopeak_idx])
+    return Mhalopeak
 
 
     # f = open("chain.dat", "w")
@@ -375,14 +432,14 @@ def save_results(chainfile, idx_z, iterations, burn):
 # load_smf()
 # load_hmf()
 # select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-# logMs = smf_cosmos[0][select, 0]
-# plt.errorbar(logMs, smf_cosmos[0][select, 1], 
-#     yerr=[smf_cosmos[0][select, 3], smf_cosmos[0][select, 2]], fmt='o')
-# plt.ylim(-6, 0)
+# logMs = smf_cosmos[idx_z][select, 0]
+# # plt.errorbar(logMs, smf_cosmos[0][select, 1], 
+# #     yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+# # plt.ylim(-6, 0)
 # # logphi = log_phi_direct(logMs, 0, 12.5, 10.5, 0.5, 0.3, 2)
-# logphi = log_phi_true(logMs, 0, M1, Ms0, beta, delta, gamma, ksi)
-
-# plt.plot(logMs, logphi)
+# logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+# logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+# plt.plot(logMs, logmhalo)
 
 # chi2_noksi(0, 12.7, 8.9, 0.3, 0.6, 2.5)
 # theta = np.array([12.7, 8.9, 0.3, 0.6, 2.5])
