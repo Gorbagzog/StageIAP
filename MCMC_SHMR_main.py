@@ -291,11 +291,11 @@ def plotdist(chainfile, idx_z, iterations, burn):
 """ Run MCMC """
 
 
-def runMCMC(idx_z, starting_point, std, iterations, burn):
+def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     load_hmf()
     load_smf()
     nwalker = 12
-    nthreads = 16  # Put more for multiprocessing automatically.
+    # nthreads = 16  # Put more for multiprocessing automatically.
     # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
 
@@ -315,28 +315,28 @@ def runMCMC(idx_z, starting_point, std, iterations, burn):
     plotchain(chainfile, idx_z, iterations, burn)
 
 
-def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads):
-    load_hmf()
-    load_smf()
-    nwalker = 12
-    # Put more nthreads for multiprocessing automatically.
-    # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
-    # std = np.array([1, 1, 0.1, 0.1, 0.1])
+# def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads):
+#     load_hmf()
+#     load_smf()
+#     nwalker = 12
+#     # Put more nthreads for multiprocessing automatically.
+#     # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
+#     # std = np.array([1, 1, 0.1, 0.1, 0.1])
 
-    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
-    ndim = len(starting_point)
-    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
+#     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
+#     ndim = len(starting_point)
+#     sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
 
-    print("ndim = " + str(ndim))
-    print("start = " + str(starting_point))
-    print("std = " + str(std))
-    print("iterations = " + str(iterations))
+#     print("ndim = " + str(ndim))
+#     print("start = " + str(starting_point))
+#     print("std = " + str(std))
+#     print("iterations = " + str(iterations))
 
-    sampler.run_mcmc(p0, iterations)
-    savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    np.save(savename, sampler.chain)
+#     sampler.run_mcmc(p0, iterations)
+#     savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     np.save(savename, sampler.chain)
 
-    plotchain(savename, idx_z, iterations, burn)
+#     plotchain(savename, idx_z, iterations, burn)
 
 
 def save_results(chainfile, idx_z, iterations, burn):
