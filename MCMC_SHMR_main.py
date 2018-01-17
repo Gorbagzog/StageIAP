@@ -153,57 +153,76 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     return chi2
 
 
-def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
-    # return the chi**2 between the observed and the expected SMF
-    select = np.where(np.logical_and(
-        smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
-        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
-    # We choose to limit the fit only fro abundances higher than 10**-6
-    logMs = smf_cosmos[idx_z][select, 0]
-    pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-    chi2 = np.sum(
-        ((pred -
-            # When using the VmaxFit2D (give the bands and not the sigma)
-            # smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] - smf_cosmos[idx_z][select, 2])/2))**2
-            # When using the Vmax directly (give the error bars directly)
-            smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
-            # smf_cosmos[idx_z][select, 1]))**2
-        )
-    return chi2
+# def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
+#     # return the chi**2 between the observed and the expected SMF
+#     select = np.where(np.logical_and(
+#         smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
+#         smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+#     # We choose to limit the fit only fro abundances higher than 10**-6
+#     logMs = smf_cosmos[idx_z][select, 0]
+#     pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+#     chi2 = np.sum(
+#         ((pred -
+#             # When using the VmaxFit2D (give the bands and not the sigma)
+#             # smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] - smf_cosmos[idx_z][select, 2])/2))**2
+#             # When using the Vmax directly (give the error bars directly)
+#             smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
+#             # smf_cosmos[idx_z][select, 1]))**2
+#         )
+#     return chi2
 
+
+# def loglike(theta, idx_z):
+#     # return the likelihood
+#     # print(theta)
+#     # bouds for the idx_z = 0
+#     M1, Ms0, beta, delta, gamma, ksi = theta[:]
+#     if beta < 0.1 or delta < 0.1 or gamma < 0:
+#         return -np.inf
+#     if beta > 1 or delta > 1 or gamma > 3:
+#         return -np.inf
+#     if M1 < 11 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
+#         return -np.inf
+#     if ksi < 0 or ksi > 1:
+#         return -np.inf
+#     else:
+#         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
 def loglike(theta, idx_z):
     # return the likelihood
-    # print(theta)
+    # bouds for the idx_z = 1
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
-    if beta < 0 or delta < 0 or gamma < -2:
+    if beta < 0.3 or delta < 0.1 or gamma < 0:
         return -np.inf
-    if beta > 1 or delta > 1 or gamma > 3:
+    if beta > 0.6 or delta > 0.7 or gamma > 3:
         return -np.inf
-    if M1 < 11 or M1 > 13 or Ms0 < 9 or Ms0 > 12:
+    if M1 < 12 or M1 > 13 or Ms0 < 10.5 or Ms0 > 12:
         return -np.inf
     if ksi < 0 or ksi > 1:
         return -np.inf
     else:
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
+# def loglike_noksi(theta, idx_z):
+#     # return the likelihood for a fixed ksi
+#     # print(theta)
+#     M1, Ms0, beta, delta, gamma = theta[:]
+#     if beta < 0 or delta < 0 or gamma < -2:
+#         return -np.inf
+#     if beta > 2 or delta >  2 or gamma > 3:
+#         return -np.inf
+#     if M1 < 10 or M1 > 14 or Ms0 < 10 or Ms0 > 14:
+#         return -np.inf
+#     else:
+#         return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
 
-def loglike_noksi(theta, idx_z):
-    # return the likelihood for a fixed ksi
-    # print(theta)
-    M1, Ms0, beta, delta, gamma = theta[:]
-    if beta < 0 or delta < 0 or gamma < -2:
-        return -np.inf
-    if beta > 2 or delta >  2 or gamma > 3:
-        return -np.inf
-    if M1 < 10 or M1 > 14 or Ms0 < 10 or Ms0 > 14:
-        return -np.inf
-    else:
-        return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
+
+def negloglike(theta, idx_z):
+    return -loglike(theta, idx_z)
 
 
-def negloglike_noksi(theta, idx_z):
-    return -loglike_noksi(theta, idx_z)
+# def negloglike_noksi(theta, idx_z):
+#     return -loglike_noksi(theta, idx_z)
 
 """Find maximum likelihood estimation"""
 
@@ -213,11 +232,11 @@ def maxlikelihood(idx_z, theta0, bounds):
     load_smf()
     # idx_z = 0
     # theta0 = np.array([11, 10, 0.1, 0.1, 1])
-    # bounds = ((10, 14), (8, 13), (0, 1), (0, 1), (1, 5))
-    results = op.minimize(negloglike_noksi, theta0, bounds=bounds, args=(idx_z), method='TNC')
-    # results = op.basinhopping(negloglike_noksi, theta0, niter=1, T=1000, minimizer_kwargs={'args': idx_z})
-    results = op.minimize(negloglike_noksi, theta0, args=(idx_z), method='Nelder-Mead', options={'fatol':10**-6})
-    print(-loglike_noksi(theta0, idx_z))
+    # bounds = ((11, 13), (10, 12), (0, 1), (0, 1), (0, 3), (0, 1))
+    # results = op.minimize(negloglike_noksi, theta0, bounds=bounds, args=(idx_z), method='TNC')
+    # results = op.basinhopping(negloglike, theta0, niter=1, T=1000, minimizer_kwargs={'args': idx_z})
+    # results = op.minimize(negloglike_noksi, theta0, args=(idx_z), method='Nelder-Mead', options={'fatol':10**-6})
+    results = op.minimize(negloglike, theta0, args=(idx_z), method='Nelder-Mead', options={'fatol':10**-6})
     print(results)
 
 
@@ -235,7 +254,7 @@ def plotSMF(idx_z, iterations, burn):
     plt.errorbar(logMs, smf_cosmos[0][select, 1], 
         yerr=[smf_cosmos[0][select, 3], smf_cosmos[0][select, 2]], fmt='o')
     plt.ylim(-6, 0)
-    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=1000)]:
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.show()
@@ -275,10 +294,10 @@ def plotdist(chainfile, idx_z, iterations, burn):
 def runMCMC(idx_z, starting_point, std, iterations, burn):
     load_hmf()
     load_smf()
-    nwalker = 12
+    nwalker = 20
     nthreads = 1  # Put more for multiprocessing automatically.
-    # starting_point = np.array([12, 11, 0.5, 0.5, 2.5, 0.15])
-    # std = np.array([1, 1, 0.1, 0.1, 0.1, 0.01])
+    # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
+    # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
 
     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
     ndim = len(starting_point)
