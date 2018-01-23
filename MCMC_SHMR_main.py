@@ -112,16 +112,20 @@ def logMh(logMs, M1, Ms0, beta, delta, gamma):
 
 def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # SMF obtained from the SM-HM relation and the HMF
-    epsilon = 0.01
+    epsilon = 0.0001
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
     # print(logMs)
     # print(log_Mh1, log_Mh2)
     # index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
-    index_Mh = np.argmin(np.abs(
-        np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) -
-        np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
-    ), axis=1)  # Select the index of the HMF corresponing to the halo masses
+    # Select the index of the HMF corresponing to the halo masses
+    index_Mh = np.argmin(
+        np.abs(
+            np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) -
+            np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
+        ), axis=1)
+    # print(np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)))
+    # print(np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1))))
     log_phidirect = hmf_bolshoi[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
     # print(np.log10((log_Mh2 - log_Mh1)/epsilon))
     # Keep only points wher the halo mass is defined in the HMF
@@ -188,6 +192,7 @@ def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
             smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
             # smf_cosmos[idx_z][select, 1]))**2
         )
+    # print( (pred - smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))
     return chi2
 
 
@@ -209,7 +214,7 @@ def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
 
 def loglike(theta, idx_z):
     # return the likelihood
-    # bouds for the idx_z = 1
+    # bounds for the idx_z = 1
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
     if beta < 0.3 or delta < 0.5 or gamma < 1:
         return -np.inf
@@ -439,14 +444,25 @@ load_smf()
 load_hmf()
 select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
 logMs = smf_cosmos[idx_z][select, 0]
-plt.errorbar(logMs, smf_cosmos[0][select, 1], 
+plt.errorbar(logMs, smf_cosmos[idx_z][select, 1], 
     yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
 plt.ylim(-6, 0)
-logphi = log_phi_direct(logMs, idx_z, 12.2, 10.8, 0.3, 0, 0.3)
+# logphi = log_phi_direct(logMs, idx_z, 12.2, 10.8, 0.3, 0, 0.3)
+""" Leauthaud fit parameters for idx_z=0, we note a small difference maybe coming form the HMF"""
+# logphi = log_phi_direct(logMs, idx_z, 12.52, 10.916, 0.457, 0.566, 1.53)
+# # logphi = log_phi_true(logMs, idx_z, 12.52, 10.916, 0.457, 0.566, 1.53, 0.206**2)
+# logphi = log_phi_direct(logMs, idx_z, 12.518, 10.917, 0.456, 0.582, 1.48)
+
+""" Leauthaud fit parametres for idx_z=1 """
+# logphi = log_phi_direct(logMs, idx_z, 12.725, 11.038, 0.466, 0.61, 1.95)
+
+logphi = log_phi_direct(logMs, idx_z, 12.725, 11.038, 0.466, 0.61, 0.7) # fits better with smaller gamma
+
 plt.plot(logMs, logphi)
-# logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-# logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-# plt.plot(logMs, logmhalo)
+
+logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+plt.plot(logMs, logmhalo)
 
 """Good fit by eye for the idx_z=1, no_ksi
 starting_point = ([12.7, 11.1, 0.5, 0.3, 1.2])
