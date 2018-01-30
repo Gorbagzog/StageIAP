@@ -128,7 +128,7 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # print(np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1))))
     log_phidirect = hmf_bolshoi[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
     # print(np.log10((log_Mh2 - log_Mh1)/epsilon))
-    # Keep only points wher the halo mass is defined in the HMF
+    # Keep only points where the halo mass is defined in the HMF
     log_phidirect[log_Mh1 > hmf_bolshoi[idx_z][-1, 0]] = -1000
     log_phidirect[log_Mh1 < hmf_bolshoi[idx_z][0, 0]] = -1000
     # print(log_phidirect)
@@ -231,7 +231,7 @@ def loglike_noksi(theta, idx_z):
     # return the likelihood for a fixed ksi
     # print(theta)
     M1, Ms0, beta, delta, gamma = theta[:]
-    if beta < 0.3 or delta < 0.4 or gamma < 0:
+    if beta < 0.3 or delta < 0 or gamma < 0:
         return -np.inf
     if beta > 0.6 or delta >  1 or gamma > 3:
         return -np.inf
@@ -369,10 +369,10 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     plotchain(chainfile, idx_z, iterations, burn)
 
 
-def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads):
+def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     load_smf()
     load_hmf()
-    nwalker = 12
+    nwalker = 20
     # Put more nthreads for multiprocessing automatically.
     # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
     # std = np.array([1, 1, 0.1, 0.1, 0.1])
@@ -388,8 +388,9 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads):
 
     sampler.run_mcmc(p0, iterations)
     savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(savename, sampler.chain)
-
+    np.save(savenameln, sampler.lnprobability)
     plotchain(savename, idx_z, iterations, burn)
 
 
@@ -440,29 +441,29 @@ def MhPeak(idx_z, iterations, burn):
 # plt.plot(logMh(logMs, 12, 10, 0.5, 0.5, 2.5), logMs - logMh(logMs, 12, 10, 0.5, 0.5, 2.5))
 
 # Compare Observed and predicted SMF :
-load_smf()
-load_hmf()
-select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-logMs = smf_cosmos[idx_z][select, 0]
-plt.errorbar(logMs, smf_cosmos[idx_z][select, 1], 
-    yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
-plt.ylim(-6, 0)
-# logphi = log_phi_direct(logMs, idx_z, 12.2, 10.8, 0.3, 0, 0.3)
-""" Leauthaud fit parameters for idx_z=0, we note a small difference maybe coming form the HMF"""
-# logphi = log_phi_direct(logMs, idx_z, 12.52, 10.916, 0.457, 0.566, 1.53)
-# # logphi = log_phi_true(logMs, idx_z, 12.52, 10.916, 0.457, 0.566, 1.53, 0.206**2)
-# logphi = log_phi_direct(logMs, idx_z, 12.518, 10.917, 0.456, 0.582, 1.48)
+# load_smf()
+# load_hmf()
+# select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+# logMs = smf_cosmos[idx_z][select, 0]
+# plt.errorbar(logMs, smf_cosmos[idx_z][select, 1], 
+#     yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+# plt.ylim(-6, 0)
+# # logphi = log_phi_direct(logMs, idx_z, 12.2, 10.8, 0.3, 0, 0.3)
+# """ Leauthaud fit parameters for idx_z=0, we note a small difference maybe coming form the HMF"""
+# # logphi = log_phi_direct(logMs, idx_z, 12.52, 10.916, 0.457, 0.566, 1.53)
+# # # logphi = log_phi_true(logMs, idx_z, 12.52, 10.916, 0.457, 0.566, 1.53, 0.206**2)
+# # logphi = log_phi_direct(logMs, idx_z, 12.518, 10.917, 0.456, 0.582, 1.48)
 
-""" Leauthaud fit parametres for idx_z=1 """
-# logphi = log_phi_direct(logMs, idx_z, 12.725, 11.038, 0.466, 0.61, 1.95)
+# """ Leauthaud fit parametres for idx_z=1 """
+# # logphi = log_phi_direct(logMs, idx_z, 12.725, 11.038, 0.466, 0.61, 1.95)
 
-logphi = log_phi_direct(logMs, idx_z, 12.725, 11.038, 0.466, 0.61, 0.7) # fits better with smaller gamma
+# logphi = log_phi_direct(logMs, idx_z, 12.725, 11.038, 0.466, 0.61, 0.7) # fits better with smaller gamma
 
-plt.plot(logMs, logphi)
+# plt.plot(logMs, logphi)
 
-logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-plt.plot(logMs, logmhalo)
+# logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+# logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+# plt.plot(logMs, logmhalo)
 
 """Good fit by eye for the idx_z=1, no_ksi
 starting_point = ([12.7, 11.1, 0.5, 0.3, 1.2])
