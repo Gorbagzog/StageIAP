@@ -338,6 +338,9 @@ def plotdist(chainfile, idx_z, iterations, burn):
     plt.clf()
 
 
+def plotLnprob():
+    for k in range(12):
+        plt.plot(lnprob[k, :])
 
 """ Run MCMC """
 
