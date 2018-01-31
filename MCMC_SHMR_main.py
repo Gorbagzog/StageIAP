@@ -12,6 +12,7 @@ Started on december 18th by Louis Legrand at IAP and IAS.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 import emcee
 from astropy.cosmology import LambdaCDM
 import scipy.optimize as op
@@ -56,9 +57,13 @@ def load_smf():
         # VmaxD17 = get_Vmax_mod.main(redshifts[i], redshifts[i+1], cosmo=[70, 0.3, 0.7])
         # VmaxBP = get_Vmax_mod.main(redshifts[i], redshifts[i+1], cosmo=[67.74, 0.3089, 0.6911])
         # Add the log, equivalent to multiply by VmaxD17/VmaxBP
+        # smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+        # smf_cosmos[i][:, 2] = smf_cosmos[i][:, 2] + np.log10(VmaxD17/VmaxBP)
+        # smf_cosmos[i][:, 3] = smf_cosmos[i][:, 3] + np.log10(VmaxD17/VmaxBP)
+
+        """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and 
+        are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
         smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
-        smf_cosmos[i][:, 2] = smf_cosmos[i][:, 2] + np.log10(VmaxD17/VmaxBP)
-        smf_cosmos[i][:, 3] = smf_cosmos[i][:, 3] + np.log10(VmaxD17/VmaxBP)
 
         # Correction of the measured stellar mass
         # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
@@ -231,14 +236,17 @@ def loglike_noksi(theta, idx_z):
     # return the likelihood for a fixed ksi
     # print(theta)
     M1, Ms0, beta, delta, gamma = theta[:]
-    if beta < 0.3 or delta < 0 or gamma < 0:
-        return -np.inf
-    if beta > 0.6 or delta >  1 or gamma > 3:
-        return -np.inf
-    if M1 < 11 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
+    # if beta < 0 or delta < 0 or gamma < 0:
+    #     return -np.inf
+    # if beta > 0 or delta >  1 or gamma > 3:
+    #     return -np.inf
+    # if M1 < 11 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
+    #     return -np.inf
+    if beta < 0 or delta < 0  or gamma < 0:
         return -np.inf
     else:
         return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
+
 
 
 def negloglike(theta, idx_z):
@@ -321,6 +329,18 @@ def plotchain(chainfile, idx_z, iterations, burn):
     fig.savefig(figname + ".pdf")
     plt.close('all')
 
+
+def plotchain_noksi(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    fig = corner.corner(
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$'])
+    fig.savefig(figname + ".pdf")
+    plt.close('all')
+
+
     # for (p, loglike, state) in sampler.sample(p0, iterations=iterations):
     #     print(p)
     #     print(loglike)
@@ -338,8 +358,20 @@ def plotdist(chainfile, idx_z, iterations, burn):
     plt.clf()
 
 
+def plotdist_noksi(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    g = plots.getSubplotPlotter()
+    g.triangle_plot(samples, filled=True)
+    g.export(figname + '_gd.pdf' )
+    plt.clf()
+
+
 def plotLnprob():
-    for k in range(12):
+    for k in range(20):
         plt.plot(lnprob[k, :])
 
 """ Run MCMC """
@@ -349,7 +381,7 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     load_smf()
     load_hmf()
     start_time = time.time()
-    nwalker = 12
+    nwalker = 20
     # nthreads = 16  # Put more for multiprocessing automatically.
     # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
@@ -382,19 +414,28 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
 
     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
     ndim = len(starting_point)
-    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
+    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, a= 6, args=[idx_z], threads=nthreads)
 
     print("ndim = " + str(ndim))
     print("start = " + str(starting_point))
     print("std = " + str(std))
     print("iterations = " + str(iterations))
-
+    start_time = time.time()
     sampler.run_mcmc(p0, iterations)
+    ## Monitor the sampling progress 
+    # nsteps = iterations/100
+    # width = 30
+    # for i, result in enumerate(sampler.sample(p0, iterations=nsteps)):
+    #     n = int((width+1) * float(i) / nsteps)
+    #     sys.stdout.write("\r[{0}{1}]".format('#' * n, ' ' * (width - n)))
+    # sys.stdout.write("\n")
+    elapsed_time = time.time() - start_time
+    print('Time elapsed : ' + str(elapsed_time))
     savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(savename, sampler.chain)
     np.save(savenameln, sampler.lnprobability)
-    plotchain(savename, idx_z, iterations, burn)
+    plotchain_noksi(savename, idx_z, iterations, burn)
 
 
 def save_results(chainfile, idx_z, iterations, burn):
