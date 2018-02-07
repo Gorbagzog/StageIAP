@@ -240,36 +240,36 @@ def loglike_noksi(theta, idx_z):
     # print(theta)
     M1, Ms0, beta, delta, gamma = theta[:]
     if idx_z < 5 :
-        if beta < 0 or delta < 0 or gamma < 0:
+        if beta < 0 or delta < 0.4 or gamma < 0:
             return -np.inf
-        if beta > 1 or delta >  1 or gamma > 5:
+        if beta > 1 or delta > 0.4 or gamma > 5:
             return -np.inf
         if M1 < 11 or M1 > 13.2 or Ms0 < 10 or Ms0 > 12:
             return -np.inf
         else:
             return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
     elif idx_z == 5 :
-        if beta < 0 or delta < 0 or gamma < 0:
+        if beta < 0 or delta < 0.4 or gamma < 0:
             return -np.inf
-        if beta > 1 or delta >  1 or gamma > 5:
+        if beta > 1 or delta > 0.4 or gamma > 5:
             return -np.inf
         if M1 < 11.5 or M1 > 14 or Ms0 < 11 or Ms0 > 12:
             return -np.inf
         else:
             return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
     elif idx_z == 6 :
-        if beta < 0 or delta < 0 or gamma < 0:
+        if beta < 0 or delta < 0.4 or gamma < 0:
             return -np.inf
-        if beta > 1 or delta >  1 or gamma > 5:
+        if beta > 1 or delta > 0.4 or gamma > 5:
             return -np.inf
         if M1 < 12 or M1 > 15 or Ms0 < 10 or Ms0 > 13:
             return -np.inf
         else:
             return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
     elif idx_z > 6 :
-        if beta < 0 or delta < 0 or gamma < 0:
+        if beta < 0 or delta < 0.4 or gamma < 0:
             return -np.inf
-        if beta > 1 or delta >  1 or gamma > 5:
+        if beta > 1 or delta > 0.4 or gamma > 5:
             return -np.inf
         if M1 < 12 or M1 > 15 or Ms0 < 10 or Ms0 > 15:
             return -np.inf
@@ -283,6 +283,7 @@ def negloglike(theta, idx_z):
 
 def negloglike_noksi(theta, idx_z):
     return -loglike_noksi(theta, idx_z)
+
 
 """Find maximum likelihood estimation"""
 
@@ -298,7 +299,6 @@ def maxlikelihood(idx_z, theta0, bounds):
     # results = op.minimize(negloglike_noksi, theta0, args=(idx_z), method='Nelder-Mead', options={'fatol':10**-6})
     results = op.minimize(negloglike, theta0, args=(idx_z), method='Nelder-Mead', options={'fatol':10**-6})
     print(results)
-
 
 
 """Plots"""
@@ -397,8 +397,10 @@ def plotchain_noksi(chainfile, idx_z, iterations, burn):
     figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
 
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        # Cut the parameter delta from the chain
+    samples = samples[:, [0, 1, 2, 4]]
     fig = corner.corner(
-        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$'])
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\gamma$'])
     fig.savefig(figname + ".pdf")
     plt.close('all')
 
@@ -512,7 +514,7 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     plotSMF_noksi(idx_z, iterations, burn)
     plotSMHM_noksi(idx_z, iterations, burn)
     plot_Mhpeak(savename, idx_z, iterations, burn)
-    save_results(savename, idx_z, iterations, burn)
+    # save_results(savename, idx_z, iterations, burn)
 
 
 def save_results(chainfile, idx_z, iterations, burn):
