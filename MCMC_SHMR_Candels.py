@@ -23,51 +23,42 @@ import time
 
 
 def load_smf():
-    """Load the SMF from Iary Davidzon+17"""
-    # redshifts of the Iari SMF
+    # Code is copied from IaryDavidzonSMF.py as of 12 june
+    # redshifts of the Candels+15 data
     global redshifts
-    redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
     global numzbin
-    numzbin = np.size(redshifts) - 1
-    global smf_cosmos
-    smf_cosmos = []
-    for i in range(10):
-        smf_cosmos.append(np.loadtxt(
-            # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-            # '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
-            # + str(i) + '.dat')
-            '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
-            + str(i) + '.dat') # Use the 1/Vmax points directly and not the schechter fit on them
-            # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
-            # + str(i) + '.dat')
+    redshifts = np.array([3.5, 4.5, 5.5, 6.5, 7.5])
+    numzbin = np.size(redshifts)-1
+    global smf_candels
+    smf_candels = []
+    for i in range(numzbin):
+        smf_candels.append(np.loadtxt(
+            # Select the SMFs to use : JEWELS or v2
+            # '../Data/Candels/grazian15_68CL_z' + str(i+4) + '_JEWELS.txt')
+            '../Data/Candels/grazian15_68CL_v2_z' + str(i+4) + '.txt')
         )
     """Adapt SMF to match the Bolshoi-Planck Cosmology"""
     # Bolshoi-Planck cosmo : (flat LCMD)
     # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
     BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
 
-    # Davidzon+17 SMF cosmo : (flat LCDM)
+    # CANDELS+17 SMF cosmo : (flat LCDM) (same as Davidzon17_COSMO)
     # Om = 0.3, Ol = 0.7, h=0.7
     D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
 
-    for i in range(10):
+    for i in range(numzbin):
         # Correction of the comoving Volume :
         VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
         VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
         # VmaxD17 = get_Vmax_mod.main(redshifts[i], redshifts[i+1], cosmo=[70, 0.3, 0.7])
         # VmaxBP = get_Vmax_mod.main(redshifts[i], redshifts[i+1], cosmo=[67.74, 0.3089, 0.6911])
         # Add the log, equivalent to multiply by VmaxD17/VmaxBP
-        # smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
-        # smf_cosmos[i][:, 2] = smf_cosmos[i][:, 2] + np.log10(VmaxD17/VmaxBP)
-        # smf_cosmos[i][:, 3] = smf_cosmos[i][:, 3] + np.log10(VmaxD17/VmaxBP)
-
-        """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and
-        are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
-        smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
-
+        smf_candels[i][:, 1] = smf_candels[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+        smf_candels[i][:, 2] = smf_candels[i][:, 2] + np.log10(VmaxD17/VmaxBP)
+        smf_candels[i][:, 3] = smf_candels[i][:, 3] + np.log10(VmaxD17/VmaxBP)
         # Correction of the measured stellar mass
         # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
-        smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
+        smf_candels[i][:, 0] = smf_candels[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
 
 
 def load_hmf():
@@ -168,16 +159,16 @@ def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return the chi**2 between the observed and the expected SMF
     # select = np.where(np.logical_and(
-    #     smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
-    #     smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
-    select = np.where(smf_cosmos[idx_z][:, 1] > -6)  # select points where the smf is defined
+    #     smf_candels[idx_z][:, 1] > -6,  # select points where the smf is defined
+    #     smf_candels[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    select = np.where(smf_candels[idx_z][:, 1] > -6)  # select points where the smf is defined
     # We choose to limit the fit only fro abundances higher than 10**-6
-    logMs = smf_cosmos[idx_z][select, 0]
+    logMs = smf_candels[idx_z][select, 0]
     pred = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
         ((pred -
-                #smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
-                smf_cosmos[idx_z][select, 1]) / smf_cosmos[idx_z][select, 2])**2
+                #smf_candels[idx_z][select, 1]) / ((smf_candels[idx_z][select, 3] + smf_candels[idx_z][select, 2])/2))**2
+                smf_candels[idx_z][select, 1]) / smf_candels[idx_z][select, 2])**2
         )
     return chi2
 
@@ -185,20 +176,17 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
 def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
     # return the chi**2 between the observed and the expected SMF
     select = np.where(np.logical_and(
-        smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
-        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+        smf_candels[idx_z][:, 1] > -6,  # select points where the smf is defined
+        smf_candels[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
     # We choose to limit the fit only fro abundances higher than 10**-6
-    logMs = smf_cosmos[idx_z][select, 0]
+    logMs = smf_candels[idx_z][select, 0]
     pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     chi2 = np.sum(
         ((pred -
             # When using the VmaxFit2D (give the bands and not the sigma)
-            # smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] - smf_cosmos[idx_z][select, 2])/2))**2
-            # When using the Vmax directly (give the error bars directly)
-            smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
-            # smf_cosmos[idx_z][select, 1]))**2
+            smf_candels[idx_z][select, 1]) / ((smf_candels[idx_z][select, 3] - smf_candels[idx_z][select, 2])/2))**2
         )
-    # print( (pred - smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))
+    # print( (pred - smf_candels[idx_z][select, 1]) / ((smf_candels[idx_z][select, 3] + smf_candels[idx_z][select, 2])/2))
     return chi2
 
 
@@ -218,7 +206,6 @@ def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
 #     else:
 #         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
-
 def loglike(theta, idx_z):
     # return the likelihood
     # bounds for the idx_z = 1
@@ -233,7 +220,6 @@ def loglike(theta, idx_z):
         return -np.inf
     else:
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
-
 
 def loglike_noksi(theta, idx_z):
     # return the likelihood for a fixed ksi
@@ -277,6 +263,8 @@ def loglike_noksi(theta, idx_z):
             return -chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma)/2
 
 
+
+
 def negloglike(theta, idx_z):
     return -loglike(theta, idx_z)
 
@@ -307,14 +295,14 @@ def maxlikelihood(idx_z, theta0, bounds):
 def plotSMF_noksi(idx_z, iterations, burn):
     load_smf()
     load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    chain = np.load("../MCMC_Candels/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     select = np.where(np.logical_and(
-        smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
-        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
-    logMs = smf_cosmos[idx_z][select, 0]
-    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+        smf_candels[idx_z][:, 1] > -6,  # select points where the smf is defined
+        smf_candels[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    logMs = smf_candels[idx_z][select, 0]
+    plt.errorbar(logMs, smf_candels[idx_z][select, 1],
+        yerr=[smf_candels[idx_z][select, 3], smf_candels[idx_z][select, 2]], fmt='o')
     plt.ylim(-6, 0)
     for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
@@ -324,36 +312,22 @@ def plotSMF_noksi(idx_z, iterations, burn):
 def plotSMF(idx_z, iterations, burn):
     load_smf()
     load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    chain = np.load("../MCMC_Candels/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-    logMs = smf_cosmos[idx_z][select, 0]
-    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+    select = np.where(smf_candels[idx_z][:, 1] > -1000)[0]
+    logMs = smf_candels[idx_z][select, 0]
+    plt.errorbar(logMs, smf_candels[idx_z][select, 1],
+        yerr=[smf_candels[idx_z][select, 3], smf_candels[idx_z][select, 2]], fmt='o')
     plt.ylim(-6, 0)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.show()
 
-
 def plotSMHM(idx_z, iterations, burn):
     load_smf()
     load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    logMs = np.linspace(9, 11.5, num=200)
-    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
-    plt.show()
-
-
-def plotSMHM_noksi(idx_z, iterations, burn):
-    load_smf()
-    load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    chain = np.load("../MCMC_Candels/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     logMs = np.linspace(9, 11.5, num=200)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
@@ -365,7 +339,7 @@ def plotSMHM_noksi(idx_z, iterations, burn):
 
 def plotchain(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    figname = "../MCMC_Candels/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
 
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     fig = corner.corner(
@@ -376,7 +350,7 @@ def plotchain(chainfile, idx_z, iterations, burn):
 
 def plotchain_noksi(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    figname = "../MCMC_Candels/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
 
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     fig = corner.corner(
@@ -392,7 +366,7 @@ def plotchain_noksi(chainfile, idx_z, iterations, burn):
 
 def plotdist(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    figname = "../MCMC_Candels/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
@@ -404,7 +378,7 @@ def plotdist(chainfile, idx_z, iterations, burn):
 
 def plotdist_noksi(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    figname = "../MCMC_Candels/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
@@ -427,7 +401,7 @@ def plot_Mhpeak(chainfile, idx_z, iterations, burn):
     plt.hist(mhpeak, bins=100)
     plt.axvline(avg_mhpeak, color='orange')
     plt.title('idx_z = ' + str(idx_z) +', MhPeak = ' + str(avg_mhpeak) + '+/-' + str(std_mhpeak))
-    plt.savefig('../MCMC/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
+    plt.savefig('../MCMC_Candels/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
 
 """ Run MCMC """
 
@@ -452,7 +426,7 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     print("iterations = " + str(iterations))
 
     sampler.run_mcmc(p0, iterations)
-    chainfile = "../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chainfile = "../MCMC_Candels/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(chainfile, sampler.chain)
     print("--- %s seconds ---" % (time.time() - start_time))
 
@@ -486,8 +460,8 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     # sys.stdout.write("\n")
     elapsed_time = time.time() - start_time
     print('Time elapsed : ' + str(elapsed_time))
-    savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    savename = "../MCMC_Candels/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    savenameln = "../MCMC_Candels/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(savename, sampler.chain)
     np.save(savenameln, sampler.lnprobability)
     plotchain_noksi(savename, idx_z, iterations, burn)
@@ -500,8 +474,8 @@ def save_results(chainfile, idx_z, iterations, burn):
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
     res = samples.getTable()
-    #res.write("../MCMC/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
-    res.write("../MCMC/Results/Chain_Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+    #res.write("../MCMC_Candels/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+    res.write("../MCMC_Candels/Results/Chain_Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
 
 
 def MhPeak(chainfile, idx_z, iterations, burn):
@@ -543,10 +517,10 @@ def MhPeak(chainfile, idx_z, iterations, burn):
 # Compare Observed and predicted SMF :
 # load_smf()
 # load_hmf()
-# select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-# logMs = smf_cosmos[idx_z][select, 0]
-# plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-#     yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+# select = np.where(smf_candels[idx_z][:, 1] > -1000)[0]
+# logMs = smf_candels[idx_z][select, 0]
+# plt.errorbar(logMs, smf_candels[idx_z][select, 1],
+#     yerr=[smf_candels[idx_z][select, 3], smf_candels[idx_z][select, 2]], fmt='o')
 # plt.ylim(-6, 0)
 # # logphi = log_phi_direct(logMs, idx_z, 12.2, 10.8, 0.3, 0, 0.3)
 # """ Leauthaud fit parameters for idx_z=0, we note a small difference maybe coming form the HMF"""
@@ -609,8 +583,8 @@ starting_point = ([12.7, 11.1, 0.5, 0.3, 1.2])
 
 """Select the chains that converged"""
 
-# chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-# lnprob = np.load("../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+# chain = np.load("../MCMC_Candels/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+# lnprob = np.load("../MCMC_Candels/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
 # for k in range(20):
 #     plt.plot(lnprob[k, :])
 # select = np.where(lnprob[:, -1]>-30)
