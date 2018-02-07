@@ -373,12 +373,15 @@ def plotHMvsSM_noksi(idx_z, iterations, burn):
     chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     logMs = np.linspace(9, 11.5, num=200)
+    plt.clf()
     for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+        plt.plot(logMs, logmhalo, color="k", alpha=0.1)
+    plt.xlabel('Log Mstar')
+    plt.ylabel('Log Mhalo')
     # plt.show()
     plt.savefig('../MCMC/Plots/HMvsSM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
-
+    plt.clf()
 
 
 def plotchain(chainfile, idx_z, iterations, burn):
@@ -514,6 +517,7 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     plotSMF_noksi(idx_z, iterations, burn)
     plotSMHM_noksi(idx_z, iterations, burn)
     plot_Mhpeak(savename, idx_z, iterations, burn)
+    plotHMvsSM_noksi(idx_z, iterations, burn)
     # save_results(savename, idx_z, iterations, burn)
 
 
