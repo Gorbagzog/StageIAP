@@ -26,7 +26,9 @@ def load_smf():
     """Load the SMF from Iary Davidzon+17"""
     # redshifts of the Iari SMF
     global redshifts
+    global redshiftsbin
     redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+    redshiftsbin = (redshifts[1:]+redshifts[:-2])/2
     global numzbin
     numzbin = np.size(redshifts) - 1
     global smf_cosmos
@@ -300,153 +302,6 @@ def maxlikelihood(idx_z, theta0, bounds):
     print(results)
 
 
-
-"""Plots"""
-
-
-def plotSMF_noksi(idx_z, iterations, burn):
-    load_smf()
-    load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    select = np.where(np.logical_and(
-        smf_cosmos[idx_z][:, 1] > -7,  # select points where the smf is defined
-        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
-    logMs = smf_cosmos[idx_z][select, 0]
-    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
-    plt.ylim(-6, 0)
-    for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
-        logphi = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-        plt.plot(logMs, logphi, color="k", alpha=0.1)
-    plt.show()
-    plt.savefig('../MCMC/Plots/SMF_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
-
-
-def plotSMF(idx_z, iterations, burn):
-    load_smf()
-    load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-    logMs = smf_cosmos[idx_z][select, 0]
-    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
-    plt.ylim(-6, 0)
-    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-        plt.plot(logMs, logphi, color="k", alpha=0.1)
-    plt.show()
-    plt.savefig('../MCMC/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
-
-
-def plotSMHM(idx_z, iterations, burn):
-    load_smf()
-    load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    logMs = np.linspace(9, 11.5, num=200)
-    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
-    plt.savefig('../MCMC/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
-
-
-def plotSMHM_noksi(idx_z, iterations, burn):
-    load_smf()
-    load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    logMs = np.linspace(9, 11.5, num=200)
-    plt.figure()
-    for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
-        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
-    # plt.show()
-    plt.savefig('../MCMC/Plots/SMHM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
-
-
-def plotHMvsSM_noksi(idx_z, iterations, burn):
-    load_smf()
-    load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    logMs = np.linspace(9, 11.5, num=200)
-    for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
-        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
-    # plt.show()
-    plt.savefig('../MCMC/Plots/HMvsSM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
-
-
-
-def plotchain(chainfile, idx_z, iterations, burn):
-    chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    fig = corner.corner(
-        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi'])
-    fig.savefig(figname + ".pdf")
-    plt.close('all')
-
-
-def plotchain_noksi(chainfile, idx_z, iterations, burn):
-    chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    fig = corner.corner(
-        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$'])
-    fig.savefig(figname + ".pdf")
-    plt.close('all')
-
-
-    # for (p, loglike, state) in sampler.sample(p0, iterations=iterations):
-    #     print(p)
-    #     print(loglike)
-
-
-def plotdist(chainfile, idx_z, iterations, burn):
-    chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    samples = MCSamples(samples = samples, names = names)
-    g = plots.getSubplotPlotter()
-    g.triangle_plot(samples, filled=True)
-    g.export(figname + '_gd.pdf' )
-    plt.clf()
-
-
-def plotdist_noksi(chainfile, idx_z, iterations, burn):
-    chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    samples = MCSamples(samples = samples, names = names)
-    g = plots.getSubplotPlotter()
-    g.triangle_plot(samples, filled=True)
-    g.export(figname + '_gd.pdf' )
-    plt.clf()
-
-
-def plotLnprob():
-    for k in range(20):
-        plt.plot(lnprob[k, :])
-
-
-def plot_Mhpeak(chainfile, idx_z, iterations, burn):
-    mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
-    avg_mhpeak = np.mean(mhpeak)
-    std_mhpeak = np.std(mhpeak)
-    plt.figure()
-    plt.hist(mhpeak, bins=100)
-    plt.axvline(avg_mhpeak, color='orange')
-    plt.title('idx_z = ' + str(idx_z) +', MhPeak = ' + str(avg_mhpeak) + '+/-' + str(std_mhpeak))
-    plt.savefig('../MCMC/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
-
 """ Run MCMC """
 
 
@@ -552,6 +407,179 @@ def MhPeak(chainfile, idx_z, iterations, burn):
 
 # if __name__ == "__main__":
 #     main()
+
+"""Plots"""
+
+
+def plotSMF_noksi(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    select = np.where(np.logical_and(
+        smf_cosmos[idx_z][:, 1] > -7,  # select points where the smf is defined
+        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    logMs = smf_cosmos[idx_z][select, 0]
+    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
+        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+    plt.ylim(-6, 0)
+    for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
+        logphi = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+        plt.plot(logMs, logphi, color="k", alpha=0.1)
+    plt.show()
+    plt.savefig('../MCMC/Plots/SMF_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+
+
+def plotSMF(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+    logMs = smf_cosmos[idx_z][select, 0]
+    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
+        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+    plt.ylim(-6, 0)
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        plt.plot(logMs, logphi, color="k", alpha=0.1)
+    plt.show()
+    plt.savefig('../MCMC/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+
+
+def plotSMHM(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    logMs = np.linspace(9, 11.5, num=200)
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+    plt.savefig('../MCMC/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+
+
+def plotSMHM_noksi(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    logMs = np.linspace(9, 11.5, num=200)
+    plt.figure()
+    for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
+        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+    # plt.show()
+    plt.savefig('../MCMC/Plots/SMHM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+
+
+def plotHMvsSM_noksi(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    logMs = np.linspace(9, 11.5, num=200)
+    for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
+        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+    # plt.show()
+    plt.savefig('../MCMC/Plots/HMvsSM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+
+
+def plotchain(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    fig = corner.corner(
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi'])
+    fig.savefig(figname + ".pdf")
+    plt.close('all')
+
+
+def plotchain_noksi(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    fig = corner.corner(
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$'])
+    fig.savefig(figname + ".pdf")
+    plt.close('all')
+
+
+    # for (p, loglike, state) in sampler.sample(p0, iterations=iterations):
+    #     print(p)
+    #     print(loglike)
+
+
+def plotdist(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    g = plots.getSubplotPlotter()
+    g.triangle_plot(samples, filled=True)
+    g.export(figname + '_gd.pdf' )
+    plt.clf()
+
+
+def plotdist_noksi(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    g = plots.getSubplotPlotter()
+    g.triangle_plot(samples, filled=True)
+    g.export(figname + '_gd.pdf' )
+    plt.clf()
+
+
+def plotLnprob():
+    for k in range(20):
+        plt.plot(lnprob[k, :])
+
+
+def plot_Mhpeak(chainfile, idx_z, iterations, burn):
+    mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
+    avg_mhpeak = np.mean(mhpeak)
+    std_mhpeak = np.std(mhpeak)
+    plt.figure()
+    plt.hist(mhpeak, bins=100)
+    plt.axvline(avg_mhpeak, color='orange')
+    plt.title('idx_z = ' + str(idx_z) +', MhPeak = ' + str(avg_mhpeak) + '+/-' + str(std_mhpeak))
+    plt.savefig('../MCMC/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
+
+
+def plotSigmaHMvsSM(chainfile, idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    # chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chain = np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    numpoints = 100
+    logMs = np.linspace(9, 12, num=numpoints)
+    logmhalo = np.zeros([samples.shape[0], numpoints])
+    for idx_simu in range(samples.shape[0]):
+        M1, Ms0, beta, delta, gamma = samples[idx_simu]
+        logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+    av_logMh = np.average(logmhalo, axis=0)
+    conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = medain - 1sigma (68% confidence interval)
+    conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
+    # for i in range(numpoints):
+    #     av_logMh[i] = np.average(logmhalo[:, i])
+    plt.close('all')
+    plt.figure()
+    plt.fill_between(logMs, conf_min_logMh, conf_max_logMh)
+    plt.plot(logMs, av_logMh, label='z='+str(redshifts[idx_z]))
+    plt.xlabel('Log($M_{*}/M_{\odot}$')
+    plt.ylabel('Log($M_{h}/M_{\odot}$')
+    return av_logMh, conf_min_logMh, conf_max_logMh
+
+
 
 """Plots and tests"""
 
