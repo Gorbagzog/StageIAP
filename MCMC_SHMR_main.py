@@ -28,7 +28,7 @@ def load_smf():
     global redshifts
     global redshiftsbin
     redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-    redshiftsbin = (redshifts[1:]+redshifts[:-2])/2
+    redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
     global numzbin
     numzbin = np.size(redshifts) - 1
     global smf_cosmos
@@ -554,10 +554,10 @@ def plot_Mhpeak(chainfile, idx_z, iterations, burn):
     plt.savefig('../MCMC/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
 
 
-def plotSigmaHMvsSM(chainfile, idx_z, iterations, burn):
+def plotSigmaHMvsSM(idx_z, iterations, burn):
     load_smf()
     load_hmf()
-    # chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     numpoints = 100
@@ -573,13 +573,27 @@ def plotSigmaHMvsSM(chainfile, idx_z, iterations, burn):
     #     av_logMh[i] = np.average(logmhalo[:, i])
     plt.close('all')
     plt.figure()
-    plt.fill_between(logMs, conf_min_logMh, conf_max_logMh)
-    plt.plot(logMs, av_logMh, label='z='+str(redshifts[idx_z]))
-    plt.xlabel('Log($M_{*}/M_{\odot}$')
-    plt.ylabel('Log($M_{h}/M_{\odot}$')
+    plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
+    plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
     return av_logMh, conf_min_logMh, conf_max_logMh
 
 
+def temp():
+    # Plot Ms/Mh en ayant pris le Mh average. tester après en prenant la moyenne de Ms/Mh pour un Ms donné
+    numpoints = 100
+    logMs = np.linspace(9, 12, num=numpoints)
+    for idx_z in range(10):
+        plt.plot(tot[idx_z][0], logMs-tot[idx_z][0], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.fill_between(tot[idx_z][0], logMs -tot[idx_z][1], logMs-tot[idx_z][2], alpha=0.3)
+    plt.legend()
+    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
 
 """Plots and tests"""
 
