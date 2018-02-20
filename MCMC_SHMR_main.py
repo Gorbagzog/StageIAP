@@ -567,7 +567,7 @@ def plotSigmaHMvsSM(idx_z, iterations, burn):
         M1, Ms0, beta, delta, gamma = samples[idx_simu]
         logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
     av_logMh = np.average(logmhalo, axis=0)
-    conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = medain - 1sigma (68% confidence interval)
+    conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
     conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
     # for i in range(numpoints):
     #     av_logMh[i] = np.average(logmhalo[:, i])
@@ -579,8 +579,8 @@ def plotSigmaHMvsSM(idx_z, iterations, burn):
     plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.legend()
     plt.tight_layout()
-    plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
-        str(iterations) + "_burn=" + str(burn) + '.pdf')
+    # plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
+        # str(iterations) + "_burn=" + str(burn) + '.pdf')
     return av_logMh, conf_min_logMh, conf_max_logMh
 
 
@@ -594,6 +594,37 @@ def temp():
     plt.legend()
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+
+
+def plotSigmaSHMR(idx_z, iterations, burn):
+    load_smf()
+    load_hmf()
+    chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chain = np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    numpoints = 100
+    logMs = np.linspace(9, 12, num=numpoints)
+    logmhalo = np.zeros([samples.shape[0], numpoints])
+    for idx_simu in range(samples.shape[0]):
+        M1, Ms0, beta, delta, gamma = samples[idx_simu]
+        logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+    av_SHMR = np.average(logMs - logmhalo, axis=0)
+    conf_min_SHMR = np.percentile(logMs - logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+    conf_max_SHMR = np.percentile(logMs - logmhalo, 84, axis=0)
+    # for i in range(numpoints):
+    #     av_logMh[i] = np.average(logmhalo[:, i])
+    plt.close('all')
+    plt.figure()
+    plt.fill_between(logMs, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
+    plt.plot(logMs, av_SHMR, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
+    # plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
+        # str(iterations) + "_burn=" + str(burn) + '.pdf')
+    return av_logMh, conf_min_logMh, conf_max_logMh
+
 
 """Plots and tests"""
 
