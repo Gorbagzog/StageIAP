@@ -173,7 +173,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     #     smf_cosmos[idx_z][:, 1] > -6,  # select points where the smf is defined
     #     smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
     select = np.where(smf_cosmos[idx_z][:, 1] > -7)  # select points where the smf is defined
-    # We choose to limit the fit only fro abundances higher than 10**-6
+    # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf_cosmos[idx_z][select, 0]
     pred = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
@@ -186,18 +186,19 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
 
 def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
     # return the chi**2 between the observed and the expected SMF
-    select = np.where(np.logical_and(
-        smf_cosmos[idx_z][:, 1] > -7,  # select points where the smf is defined
-        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
-    # We choose to limit the fit only fro abundances higher than 10**-6
-    logMs = smf_cosmos[idx_z][select, 0]
-    pred = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+    # select = np.where(np.logical_and(
+    #     smf_cosmos[idx_z][:, 1] > -7,  # select points where the smf is defined
+    #     smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    # We choose to limit the fit only for abundances higher than 10**-7 --> no more necessary as the error bars are defined for en linear scale
+    # logMs = smf_cosmos[idx_z][select, 0]
+    pred = 10**log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     chi2 = np.sum(
-        ((pred -
             # When using the VmaxFit2D (give the bands and not the sigma)
             # smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] - smf_cosmos[idx_z][select, 2])/2))**2
-            # When using the Vmax directly (give the error bars directly)
-            smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
+            # When using the Vmax directly (give the error bars directly, in a linear scale)
+            # Need to use a linear scale to compute the chi2 with the right uncertainty
+        ((pred - 10**smf_cosmos[idx_z][:, 1]) / (
+            10**(smf_cosmos[idx_z][:, 2] + smf_cosmos[idx_z][:, 1]) - 10**smf_cosmos[idx_z][:, 1]))**2
             # smf_cosmos[idx_z][select, 1]))**2
         )
     # print( (pred - smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))
