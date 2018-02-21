@@ -363,10 +363,8 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     print('Time elapsed : ' + str(elapsed_time))
     savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    # plt.close('all')
-    # np.save(savename, sampler.chain)
-    # plt.close('all')
-    # np.save(savenameln, sampler.lnprobability)
+    np.save(savename, sampler.chain)
+    np.save(savenameln, sampler.lnprobability)
     # plt.close('all')
     # plotchain_noksi(savename, idx_z, iterations, burn)
     # plt.close('all')
