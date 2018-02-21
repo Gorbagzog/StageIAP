@@ -191,6 +191,7 @@ def chi2_noksi(idx_z, M1, Ms0, beta, delta, gamma):
     #     smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
     # We choose to limit the fit only for abundances higher than 10**-7 --> no more necessary as the error bars are defined for en linear scale
     # logMs = smf_cosmos[idx_z][select, 0]
+    logMs = smf_cosmos[idx_z][:, 0]
     pred = 10**log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     chi2 = np.sum(
             # When using the VmaxFit2D (give the bands and not the sigma)
@@ -362,13 +363,22 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     print('Time elapsed : ' + str(elapsed_time))
     savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    np.save(savename, sampler.chain)
-    np.save(savenameln, sampler.lnprobability)
-    plotchain_noksi(savename, idx_z, iterations, burn)
-    plotSMF_noksi(idx_z, iterations, burn)
-    plotSMHM_noksi(idx_z, iterations, burn)
-    plot_Mhpeak(savename, idx_z, iterations, burn)
-    save_results(savename, idx_z, iterations, burn)
+    # plt.close('all')
+    # np.save(savename, sampler.chain)
+    # plt.close('all')
+    # np.save(savenameln, sampler.lnprobability)
+    # plt.close('all')
+    # plotchain_noksi(savename, idx_z, iterations, burn)
+    # plt.close('all')
+    # # plotdist_noksi(savename, idx_z, iterations, burn)
+    # # plt.close('all')
+    # plotSMF_noksi(idx_z, iterations, burn)
+    # plt.close('all')
+    # plotSMHM_noksi(idx_z, iterations, burn)
+    # plt.close('all')
+    # plot_Mhpeak(savename, idx_z, iterations, burn)
+    # plt.close('all')
+    # save_results(savename, idx_z, iterations, burn)
 
 
 def save_results(chainfile, idx_z, iterations, burn):
@@ -417,17 +427,18 @@ def plotSMF_noksi(idx_z, iterations, burn):
     load_hmf()
     chain = np.load("../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    select = np.where(np.logical_and(
-        smf_cosmos[idx_z][:, 1] > -7,  # select points where the smf is defined
-        smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    # select = np.where(np.logical_and(
+    #     smf_cosmos[idx_z][:, 1] > -7,  # select points where the smf is defined
+    #     smf_cosmos[idx_z][:, 3] < 900))[0]  # select points where the error bar is defined
+    select = np.where(smf_cosmos[idx_z][:, 1] > -40)  # select points where the smf is defined
     logMs = smf_cosmos[idx_z][select, 0]
     plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
         yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
-    plt.ylim(-6, 0)
+    plt.ylim(-7.5, -1)
     for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-        plt.plot(logMs, logphi, color="k", alpha=0.1)
-    plt.show()
+        plt.plot(logMs[0], logphi[0], color="k", alpha=0.1)
+    # plt.show()
     plt.savefig('../MCMC/Plots/SMF_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
@@ -444,7 +455,7 @@ def plotSMF(idx_z, iterations, burn):
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
-    plt.show()
+    # plt.show()
     plt.savefig('../MCMC/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
@@ -483,7 +494,7 @@ def plotHMvsSM_noksi(idx_z, iterations, burn):
     logMs = np.linspace(9, 11.5, num=200)
     for M1, Ms0, beta, delta, gamma in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+        plt.plot(logMs, logmhalo, color="k", alpha=0.1)
     # plt.show()
     plt.savefig('../MCMC/Plots/HMvsSM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
@@ -539,8 +550,9 @@ def plotdist_noksi(chainfile, idx_z, iterations, burn):
     plt.clf()
 
 
-def plotLnprob():
-    for k in range(20):
+def plotLnprob(idx_z, iterations, nwalker=20):
+    lnprob = np.load("../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    for k in range(nwalker):
         plt.plot(lnprob[k, :])
 
 
@@ -572,18 +584,47 @@ def plotSigmaHMvsSM(idx_z, iterations, burn):
     conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
     # for i in range(numpoints):
     #     av_logMh[i] = np.average(logmhalo[:, i])
+    # plt.close('all')
+    # plt.figure()
+    # plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
+    # plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    # plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+    # plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
+    #     str(iterations) + "_burn=" + str(burn) + '.pdf')
+    return av_logMh, conf_min_logMh, conf_max_logMh
+
+
+def plotAllSigmaHMvsSM(iterations, burn):
+    load_smf()
+    load_hmf()
     plt.close('all')
     plt.figure()
-    plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
-    plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    numpoints = 100
+    logMs = np.linspace(9, 12, num=numpoints)
+    for idx_z in range(numzbin):
+        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chain = np.load(chainfile)
+        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        logmhalo = np.zeros([samples.shape[0], numpoints])
+        for idx_simu in range(samples.shape[0]):
+            M1, Ms0, beta, delta, gamma = samples[idx_simu]
+            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        av_logMh = np.average(logmhalo, axis=0)
+        conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+        conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
+        for i in range(numpoints):
+            av_logMh[i] = np.average(logmhalo[:, i])
+        plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
+        plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.legend()
     plt.tight_layout()
-    # plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
-        # str(iterations) + "_burn=" + str(burn) + '.pdf')
-    return av_logMh, conf_min_logMh, conf_max_logMh
-
+    plt.savefig('../MCMC/Plots/SigmaHMvsSM_Allz_niter=' +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 def temp():
     # Plot Ms/Mh en ayant pris le Mh average. tester après en prenant la moyenne de Ms/Mh pour un Ms donné
@@ -622,9 +663,39 @@ def plotSigmaSHMR(idx_z, iterations, burn):
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
     plt.tight_layout()
-    # plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
+    # plt.savefig('../MCMC/Plots/SigmaSHMRvsSM' + str(idx_z) + "_niter=" +
         # str(iterations) + "_burn=" + str(burn) + '.pdf')
     return av_logMh, conf_min_logMh, conf_max_logMh
+
+
+def plotAllSigmaSHMRvsSM(iterations, burn):
+    load_smf()
+    load_hmf()
+    numpoints = 100
+    logMs = np.linspace(9, 12, num=numpoints)
+    plt.close('all')
+    plt.figure()
+    for idx_z in range(numzbin):
+        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chain = np.load(chainfile)
+        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        logmhalo = np.zeros([samples.shape[0], numpoints])
+        for idx_simu in range(samples.shape[0]):
+            M1, Ms0, beta, delta, gamma = samples[idx_simu]
+            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        av_SHMR = np.average(logMs - logmhalo, axis=0)
+        conf_min_SHMR = np.percentile(logMs - logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+        conf_max_SHMR = np.percentile(logMs - logmhalo, 84, axis=0)
+    # for i in range(numpoints):
+    #     av_logMh[i] = np.average(logmhalo[:, i])
+        plt.fill_between(logMs, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
+        plt.plot(logMs, av_SHMR, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('../MCMC/Plots/SigmaSHMRvsSM_All_niter=' +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 
 """Plots and tests"""
