@@ -244,16 +244,50 @@ def loglike(theta, idx_z):
     # return the likelihood
     # bounds for the idx_z = 1
     M1, Ms0, beta, delta, gamma, ksi = theta[:]
-    if beta < 0.3 or delta < 0.5 or gamma < 1:
-        return -np.inf
-    if beta > 0.6 or delta > 0.7 or gamma > 2.7:
-        return -np.inf
-    if M1 < 12 or M1 > 13 or Ms0 < 10 or Ms0 > 12:
-        return -np.inf
-    if ksi < 0 or ksi > 1:
-        return -np.inf
-    else:
-        return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
+    if idx_z < 5 :
+        if beta < 0 or delta < 0 or gamma < 0:
+            return -np.inf
+        if beta > 1 or delta >  1 or gamma > 5:
+            return -np.inf
+        if M1 < 11 or M1 > 13.2 or Ms0 < 10 or Ms0 > 12:
+            return -np.inf
+        if ksi < 0 or ksi > 1:
+            return -np.inf
+        else:
+            return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
+    elif idx_z == 5 :
+        if beta < 0 or delta < 0 or gamma < 0:
+            return -np.inf
+        if beta > 1 or delta >  1 or gamma > 5:
+            return -np.inf
+        if M1 < 11.5 or M1 > 14 or Ms0 < 11 or Ms0 > 12:
+            return -np.inf
+        if ksi < 0 or ksi > 1:
+            return -np.inf
+        else:
+            return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
+    elif idx_z == 6 :
+        if beta < 0 or delta < 0 or gamma < 0:
+            return -np.inf
+        if beta > 1 or delta >  1 or gamma > 5:
+            return -np.inf
+        if M1 < 12 or M1 > 15 or Ms0 < 10 or Ms0 > 13:
+            return -np.inf
+        if ksi < 0 or ksi > 1:
+            return -np.inf
+        else:
+            return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
+    elif idx_z > 6 :
+        if beta < 0 or delta < 0 or gamma < 0:
+            return -np.inf
+        if beta > 1 or delta > 1 or gamma > 5:
+            return -np.inf
+        if M1 < 12 or M1 > 15 or Ms0 < 10 or Ms0 > 15:
+            return -np.inf
+        if ksi < 0 or ksi > 1:
+            return -np.inf
+        else:
+            return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
 
 
 def loglike_noksi(theta, idx_z):
@@ -342,14 +376,24 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     print("start = " + str(starting_point))
     print("std = " + str(std))
     print("iterations = " + str(iterations))
-
+    start_time = time.time()
     sampler.run_mcmc(p0, iterations)
+    elapsed_time = time.time() - start_time
+    print('Time elapsed : ' + str(elapsed_time))
     chainfile = "../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    savenameln = "../MCMC/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(chainfile, sampler.chain)
-    print("--- %s seconds ---" % (time.time() - start_time))
-
+    np.save(savenameln, sampler.lnprobability)
+    plt.close('all')
     plotchain(chainfile, idx_z, iterations, burn)
-
+    plotSMF(idx_z, iterations, burn)
+    plt.close('all')
+    plotSMHM(idx_z, iterations, burn)
+    plt.close('all')
+    plot_Mhpeak(savename, idx_z, iterations, burn)
+    plt.close('all')
+    plt.close('all')
+    save_results(savename, idx_z, iterations, burn)
 
 def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     load_smf()
@@ -393,10 +437,10 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     plt.close('all')
     plot_Mhpeak(savename, idx_z, iterations, burn)
     plt.close('all')
-    save_results(savename, idx_z, iterations, burn)
+    save_results_noksi(savename, idx_z, iterations, burn)
 
 
-def save_results(chainfile, idx_z, iterations, burn):
+def save_results_noksi(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
     # names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
@@ -405,6 +449,15 @@ def save_results(chainfile, idx_z, iterations, burn):
     res = samples.getTable()
     #res.write("../MCMC/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
     res.write("../MCMC/Results/Chain_Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+
+
+def save_results(chainfile, idx_z, iterations, burn):
+    chain = np.load(chainfile)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    res = samples.getTable()
+    res.write("../MCMC/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
 
 
 def MhPeak(chainfile, idx_z, iterations, burn):
@@ -477,7 +530,7 @@ def plotSMF(idx_z, iterations, burn):
     logMs = smf_cosmos[idx_z][select, 0]
     plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
         yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
-    plt.ylim(-6, 0)
+    plt.ylim(-7.5, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
