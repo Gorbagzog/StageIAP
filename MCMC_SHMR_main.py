@@ -84,7 +84,7 @@ def load_hmf():
     hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
     (density) [1/Mpc^3]
     """
-    global hmf_bolshoi
+    global hmf
     hmf_bolshoi_tot = []
     for i in range(numredshift_haloes):
         hmf_bolshoi_tot.append(
@@ -102,9 +102,9 @@ def load_hmf():
     print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
     print('Closest redshifts for Bolshoi HMFs : '
         + str(redshift_haloes[redshift_id_selec]))
-    hmf_bolshoi = []
+    hmf = []
     for i in redshift_id_selec:
-        hmf_bolshoi.append(hmf_bolshoi_tot[i])
+        hmf.append(hmf_bolshoi_tot[i])
 
     """Load Tinker+08 HMF computed with HFMCalc of Murray+13
     parameters : Delta = 200 times the mean density of the universe (same at all z)
@@ -149,9 +149,9 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # print(np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)))
     # print(np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1))))
     """ If only central HMF from Bolshoi or Tinker HMF :"""
-    log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    # log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
     """ If all haloes from Bolshoi"""
-    # log_phidirect = hmf[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    log_phidirect = hmf[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
     # print(np.log10((log_Mh2 - log_Mh1)/epsilon))
     # Keep only points where the halo mass is defined in the HMF
     log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = -1000
@@ -192,11 +192,12 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     select = np.where(smf_cosmos[idx_z][:, 1] > -7)  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf_cosmos[idx_z][select, 0]
-    pred = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+    pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
-        ((pred -
-                #smf_cosmos[idx_z][select, 1]) / ((smf_cosmos[idx_z][select, 3] + smf_cosmos[idx_z][select, 2])/2))**2
-                smf_cosmos[idx_z][select, 1]) / smf_cosmos[idx_z][select, 2])**2
+            # When using the Vmax directly (give the error bars directly, in a linear scale)
+            # Need to use a linear scale to compute the chi2 with the right uncertainty
+            ((pred - 10**smf_cosmos[idx_z][:, 1]) / (
+                10**(smf_cosmos[idx_z][:, 2] + smf_cosmos[idx_z][:, 1]) - 10**smf_cosmos[idx_z][:, 1]))**2
         )
     return chi2
 
@@ -358,7 +359,7 @@ def maxlikelihood(idx_z, theta0, bounds):
 """ Run MCMC """
 
 
-def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
+def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads=1):
     load_smf()
     load_hmf()
     start_time = time.time()
@@ -371,7 +372,7 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
     ndim = len(starting_point)
     sampler = emcee.EnsembleSampler(nwalker, ndim, loglike, args=[idx_z], threads=nthreads)
-
+    print("idx_z = " +str (idx_z))
     print("ndim = " + str(ndim))
     print("start = " + str(starting_point))
     print("std = " + str(std))
@@ -390,10 +391,9 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads):
     plt.close('all')
     plotSMHM(idx_z, iterations, burn)
     plt.close('all')
-    plot_Mhpeak(savename, idx_z, iterations, burn)
+    plot_Mhpeak(chainfile, idx_z, iterations, burn)
     plt.close('all')
-    plt.close('all')
-    save_results(savename, idx_z, iterations, burn)
+    save_results(chainfile, idx_z, iterations, burn)
 
 def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     load_smf()
