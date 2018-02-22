@@ -118,7 +118,7 @@ def load_hmf():
             np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
                 redshift_haloes[i]), usecols=(0, 7)))
         hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
-        hmf[i][:, 1] = hmf[i][:, 1] * (0.6774)**3
+        hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
 
 
 """Function definitions for computation of the theroretical SFM phi_true"""
@@ -126,7 +126,7 @@ def load_hmf():
 
 def logMh(logMs, M1, Ms0, beta, delta, gamma):
     # SM-HM relation
-    return M1 + beta*(logMs - Ms0) + (10 ** (delta * (logMs - Ms0))) / (1 + (10 ** (-gamma * (logMs - Ms0)))) - 0.5
+    return M1 + beta*(logMs - Ms0) 2+ (10 ** (delta * (logMs - Ms0))) / (1 + (10 ** (-gamma * (logMs - Ms0)))) - 0.5
     # Ms = 10**logMs
     # logMh = M1 + beta * np.log10(Ms / 10**Ms0) + (Ms / 10**Ms0)**delta / (1 + (Ms / 10**Ms0)**(-gamma)) - 0.5
     # return logMh

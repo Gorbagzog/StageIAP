@@ -12,10 +12,11 @@ MhaloTinker = np.loadtxt("../Plots/MhPeak/Tinker08_Dm200.txt")
 MhaloCosmos = np.loadtxt("../Plots/MhPeak/COSMOS.txt")
 MhaloCandels = np.loadtxt("../Plots/MhPeak/Candels.txt")
 
+MhaloCosmosTinker = np.loadtxt("../MCMC/MhPeak_Tinker08.txt")
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
 
-# TODO : check that there aure all in the same cosmo (h=0.7)
+# TODO : check that they are all in the same cosmo (h=0.7)
 
 # Leauthaud+17 use a different cosmology with H0=72
 redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2])
@@ -123,15 +124,18 @@ plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle
          label='Yang et al. 2012')
 # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
 #              fmt='d', markerfacecolor='none', capsize=5, label='"Revised" McCracken15')
-plt.errorbar(MhaloCosmos[:-2, 0], MhaloCosmos[:-2, 1], yerr=[MhaloCosmos[:-2, 2],
-             MhaloCosmos[:-2, 3]], fmt='o', color='red', capsize=3, label='Case 1',
+# plt.errorbar(MhaloCosmos[:-2, 0], MhaloCosmos[:-2, 1], yerr=[MhaloCosmos[:-2, 2],
+#              MhaloCosmos[:-2, 3]], fmt='o', color='red', capsize=3, label='Case 1',
+#              markersize=7)
+# plt.errorbar(MhaloTinker[:-2, 0], MhaloTinker[:-2, 1], yerr=[MhaloTinker[:-2, 2],
+#              MhaloTinker[:-2, 3]], fmt='^', color='blue', capsize=3, label='Case 2',
+#              markersize=7)
+# plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2],
+#              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
+#              label='Case 3', markersize=7)
+plt.errorbar(MhaloCosmosTinker[:, 0], MhaloCosmosTinker[:, 1], yerr=MhaloCosmosTinker[:, 2],
+             fmt='o', color='red', capsize=3, label='MCMC with Tinker HMF',
              markersize=7)
-plt.errorbar(MhaloTinker[:-2, 0], MhaloTinker[:-2, 1], yerr=[MhaloTinker[:-2, 2],
-             MhaloTinker[:-2, 3]], fmt='^', color='blue', capsize=3, label='Case 2',
-             markersize=7)
-plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2],
-             MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
-             label='Case 3', markersize=7)
 plt.xlabel('Redshift', size=20)
 plt.ylabel('Log($\mathrm{M_{halo}^{peak}}/\mathrm{M_{\odot}}$)', size=20)
 # plt.ylim(11.7, 13)
