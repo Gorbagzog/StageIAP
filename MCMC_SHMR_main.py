@@ -340,6 +340,7 @@ def negloglike(theta, idx_z):
 def negloglike_noksi(theta, idx_z):
     return -loglike_noksi(theta, idx_z)
 
+
 """Find maximum likelihood estimation"""
 
 
@@ -394,6 +395,7 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads=1):
     plot_Mhpeak(chainfile, idx_z, iterations, burn)
     plt.close('all')
     save_results(chainfile, idx_z, iterations, burn)
+
 
 def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     load_smf()
@@ -812,6 +814,47 @@ def plotFakeAllSigmaSHMRvsMH(iterations, burn):
     plt.savefig('../MCMC/Plots/SigmaFAKE_SHRMvsHM_Allz_niter=' +
         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
+
+def plotAllSHMRvsSM(iterations, burn):
+    load_smf()
+    load_hmf()
+    plt.close('all')
+    plt.figure()
+    numpoints = 100
+    logMs = np.linspace(9, 11.5, num=numpoints)
+    logMhbins = np.linspace(11.5, 14, num=numpoints)
+    avg_MSonMH = np.zeros([numzbin, numpoints-1])
+    confminus_MSonMH = np.zeros([numzbin, numpoints-1])
+    confplus_MSonMH = np.zeros([numzbin, numpoints-1])
+    for idx_z in range(numzbin):
+        chainfile = "../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chain = np.load(chainfile)
+        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        logmhalo = np.zeros([samples.shape[0], numpoints])
+        for idx_simu in range(samples.shape[0]):
+            M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
+            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        for idx_bin in range(numpoints-1):
+            idx_MhinBin = np.where(
+                            np.logical_and(
+                                logmhalo >= logMhbins[idx_bin],
+                                logmhalo < logMhbins[idx_bin+1]
+                            )
+            )
+            smhm_tmp = logMs[idx_MhinBin[1]] - logmhalo[idx_MhinBin]
+            avg_MSonMH[idx_z, idx_bin] = np.average(smhm_tmp)
+            confminus_MSonMH[idx_z, idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
+            confplus_MSonMH[idx_z, idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
+        plt.plot((logMhbins[1:] + logMhbins[:-1])/2, avg_MSonMH[idx_z],
+            label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.fill_between((logMhbins[1:] + logMhbins[:-1])/2,
+            confminus_MSonMH[idx_z], confplus_MSonMH[idx_z], alpha=0.3)
+    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('../MCMC/Plots/Sigma_SHRMvsHM_Allz_niter=' +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 """Plots and tests"""
 
