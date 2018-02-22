@@ -73,38 +73,52 @@ def load_smf():
 
 
 def load_hmf():
-    """Load HMF from Bolshoi Planck simulation"""
-    # redshifts of the BolshoiPlanck files
-    redshift_haloes = np.arange(0, 10, step=0.1)
-    numredshift_haloes = np.size(redshift_haloes)
-    """Definition of hmf_bolshoi columns :
-    hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
-    hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
-    (density) [1/Mpc^3]
-    hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
-    (density) [1/Mpc^3]
+    # """Load HMF from Bolshoi Planck simulation"""
+    # # redshifts of the BolshoiPlanck files
+    # redshift_haloes = np.arange(0, 10, step=0.1)
+    # numredshift_haloes = np.size(redshift_haloes)
+    # """Definition of hmf columns :
+    # hmf[redshift][:,0] = Log10(mass) [Msun]
+    # hmf[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
+    # (density) [1/Mpc^3]
+    # hmf[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
+    # (density) [1/Mpc^3]
+    # """
+    # global hmf
+    # hmf_bolshoi_tot = []
+    # for i in range(numredshift_haloes):
+    #     hmf_bolshoi_tot.append(
+    #         np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
+    #                    '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
+
+    # """Select the redhifts slices that matches the slices of Iary"""
+    # global redshift_id_selec
+    # redshift_id_selec = np.empty(numzbin)
+    # for i in range(numzbin):
+    #     redshift_id_selec[i] = np.argmin(
+    #         np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
+
+    # redshift_id_selec = redshift_id_selec.astype(int)
+    # print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
+    # print('Closest redshifts for Bolshoi HMFs : '
+    #     + str(redshift_haloes[redshift_id_selec]))
+    # hmf = []
+    # for i in redshift_id_selec:
+    #     hmf.append(hmf_bolshoi_tot[i])
+
+    """Load Tinker+08 HMF computed with HFMCalc of Murray+13
+    parameters : Delta = 200 times the mean density of the universe (same at all z)
     """
-    global hmf_bolshoi
-    hmf_bolshoi_tot = []
+    redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
+    numredshift_haloes = len(redshift_haloes)
+    global hmf
+    hmf = []
     for i in range(numredshift_haloes):
-        hmf_bolshoi_tot.append(
-            np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
-                       '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
-
-    """Select the redhifts slices that matches the slices of Iary"""
-    global redshift_id_selec
-    redshift_id_selec = np.empty(numzbin)
-    for i in range(numzbin):
-        redshift_id_selec[i] = np.argmin(
-            np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
-
-    redshift_id_selec = redshift_id_selec.astype(int)
-    print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
-    print('Closest redshifts for Bolshoi HMFs : '
-        + str(redshift_haloes[redshift_id_selec]))
-    hmf_bolshoi = []
-    for i in redshift_id_selec:
-        hmf_bolshoi.append(hmf_bolshoi_tot[i])
+        hmf.append(
+            np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
+                redshift_haloes[i]), usecols=(0, 7)))
+        hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
+        hmf[i][:, 1] = hmf[i][:, 1] * (0.6774)**3
 
 
 """Function definitions for computation of the theroretical SFM phi_true"""
@@ -125,22 +139,25 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
     # print(logMs)
     # print(log_Mh1, log_Mh2)
-    # index_Mh = np.argmin(np.abs(hmf_bolshoi[idx_z][:, 0] - log_Mh1))
+    # index_Mh = np.argmin(np.abs(hmf[idx_z][:, 0] - log_Mh1))
     # Select the index of the HMF corresponing to the halo masses
     index_Mh = np.argmin(
         np.abs(
-            np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)) -
-            np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1)))
+            np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)) -
+            np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1)))
         ), axis=1)
-    # print(np.tile(hmf_bolshoi[idx_z][:, 0], (len(log_Mh1), 1)))
-    # print(np.transpose(np.tile(log_Mh1, (len(hmf_bolshoi[idx_z][:, 0]), 1))))
-    log_phidirect = hmf_bolshoi[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    # print(np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)))
+    # print(np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1))))
+    """ If only central HMF from Bolshoi or Tinker HMF :"""
+    log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    """ If all haloes from Bolshoi"""
+    # log_phidirect = hmf[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
     # print(np.log10((log_Mh2 - log_Mh1)/epsilon))
     # Keep only points where the halo mass is defined in the HMF
-    log_phidirect[log_Mh1 > hmf_bolshoi[idx_z][-1, 0]] = -1000
-    log_phidirect[log_Mh1 < hmf_bolshoi[idx_z][0, 0]] = -1000
+    log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = -1000
+    log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = -1000
     # print(log_phidirect)
-    # print(hmf_bolshoi[idx_z][index_Mh, 2])
+    # print(hmf[idx_z][index_Mh, 2])
     # print(log_phidirect)
     return log_phidirect
 
@@ -365,18 +382,18 @@ def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
     savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(savename, sampler.chain)
     np.save(savenameln, sampler.lnprobability)
+    plt.close('all')
+    plotchain_noksi(savename, idx_z, iterations, burn)
+    plt.close('all')
+    # plotdist_noksi(savename, idx_z, iterations, burn)
     # plt.close('all')
-    # plotchain_noksi(savename, idx_z, iterations, burn)
-    # plt.close('all')
-    # # plotdist_noksi(savename, idx_z, iterations, burn)
-    # # plt.close('all')
-    # plotSMF_noksi(idx_z, iterations, burn)
-    # plt.close('all')
-    # plotSMHM_noksi(idx_z, iterations, burn)
-    # plt.close('all')
-    # plot_Mhpeak(savename, idx_z, iterations, burn)
-    # plt.close('all')
-    # save_results(savename, idx_z, iterations, burn)
+    plotSMF_noksi(idx_z, iterations, burn)
+    plt.close('all')
+    plotSMHM_noksi(idx_z, iterations, burn)
+    plt.close('all')
+    plot_Mhpeak(savename, idx_z, iterations, burn)
+    plt.close('all')
+    save_results(savename, idx_z, iterations, burn)
 
 
 def save_results(chainfile, idx_z, iterations, burn):
@@ -738,7 +755,7 @@ starting_point = ([12.7, 11.1, 0.5, 0.3, 1.2])
 # theta = np.array([12.7, 8.9, 0.3, 0.6, 2.5])
 # theta = np.array([ 11.73672883,  10.63457168 ,  0.55492575 ,  0.45137568  , 2.58689832])
 
-# plt.plot(hmf_bolshoi[0][:,0], hmf_bolshoi[0][:,2])
+# plt.plot(hmf[0][:,0], hmf[0][:,2])
 
 
 # thetavar = np.array([np.linspace(10, 14, num=100), np.full(100, 11), np.full(100,0.5),
