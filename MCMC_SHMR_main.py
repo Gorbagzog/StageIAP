@@ -802,29 +802,15 @@ def plotFakeAllSigmaSHMRvsMH(iterations, burn):
         #     av_logMh[i] = np.average(logmhalo[:, i])
         plt.fill_between(av_logMh, logMs - conf_min_logMh, logMs - conf_max_logMh, alpha=0.3)
         plt.plot(av_logMh, logMs - av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-    plt.plot([10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
-        [-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010], label='Harikane z=4')
-    plt.plot([10.975, 11.292, 12.041]+np.log10(67/70) , [-2.36, -2.206, -2.132], label='Hariakne z=6')
+    # plt.plot([10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
+    #     [-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010], label='Harikane z=4')
+    # plt.plot([10.975, 11.292, 12.041]+np.log10(67/70) , [-2.36, -2.206, -2.132], label='Hariakne z=6')
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
     plt.tight_layout()
     plt.savefig('../MCMC/Plots/SigmaFAKE_SHRMvsHM_Allz_niter=' +
         str(iterations) + "_burn=" + str(burn) + '.pdf')
-
-[10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
-[-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010]
-x	y
-10,516	-3,232
-10,690	-3,072
-10,966	-2,828
-11,230	-2,629
-11,336	-2,488
-11,690	-2,306
-11,940	-2,172
-12,219	-2,057
-12,610	-2,010
-
 
 
 """Plots and tests"""
