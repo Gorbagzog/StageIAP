@@ -75,50 +75,50 @@ def load_smf():
 def load_hmf():
     # """Load HMF from Bolshoi Planck simulation"""
     # # redshifts of the BolshoiPlanck files
-    # redshift_haloes = np.arange(0, 10, step=0.1)
-    # numredshift_haloes = np.size(redshift_haloes)
-    # """Definition of hmf columns :
-    # hmf[redshift][:,0] = Log10(mass) [Msun]
-    # hmf[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
-    # (density) [1/Mpc^3]
-    # hmf[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
-    # (density) [1/Mpc^3]
-    # """
-    # global hmf
-    # hmf_bolshoi_tot = []
-    # for i in range(numredshift_haloes):
-    #     hmf_bolshoi_tot.append(
-    #         np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
-    #                    '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
+    redshift_haloes = np.arange(0, 10, step=0.1)
+    numredshift_haloes = np.size(redshift_haloes)
+    """Definition of hmf columns :
+    hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
+    hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
+    (density) [1/Mpc^3]
+    hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
+    (density) [1/Mpc^3]
+    """
+    global hmf_bolshoi
+    hmf_bolshoi_tot = []
+    for i in range(numredshift_haloes):
+        hmf_bolshoi_tot.append(
+            np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
+                       '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
 
-    # """Select the redhifts slices that matches the slices of Iary"""
-    # global redshift_id_selec
-    # redshift_id_selec = np.empty(numzbin)
-    # for i in range(numzbin):
-    #     redshift_id_selec[i] = np.argmin(
-    #         np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
+    """Select the redhifts slices that matches the slices of Iary"""
+    global redshift_id_selec
+    redshift_id_selec = np.empty(numzbin)
+    for i in range(numzbin):
+        redshift_id_selec[i] = np.argmin(
+            np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
 
-    # redshift_id_selec = redshift_id_selec.astype(int)
-    # print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
-    # print('Closest redshifts for Bolshoi HMFs : '
-    #     + str(redshift_haloes[redshift_id_selec]))
-    # hmf = []
-    # for i in redshift_id_selec:
-    #     hmf.append(hmf_bolshoi_tot[i])
+    redshift_id_selec = redshift_id_selec.astype(int)
+    print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
+    print('Closest redshifts for Bolshoi HMFs : '
+        + str(redshift_haloes[redshift_id_selec]))
+    hmf_bolshoi = []
+    for i in redshift_id_selec:
+        hmf_bolshoi.append(hmf_bolshoi_tot[i])
 
     """Load Tinker+08 HMF computed with HFMCalc of Murray+13
     parameters : Delta = 200 times the mean density of the universe (same at all z)
     """
-    redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
-    numredshift_haloes = len(redshift_haloes)
-    global hmf
-    hmf = []
-    for i in range(numredshift_haloes):
-        hmf.append(
-            np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
-                redshift_haloes[i]), usecols=(0, 7)))
-        hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
-        hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
+    # redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
+    # numredshift_haloes = len(redshift_haloes)
+    # global hmf
+    # hmf = []
+    # for i in range(numredshift_haloes):
+    #     hmf.append(
+    #         np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
+    #             redshift_haloes[i]), usecols=(0, 7)))
+    #     hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
+    #     hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
 
 
 """Function definitions for computation of the theroretical SFM phi_true"""
@@ -126,7 +126,7 @@ def load_hmf():
 
 def logMh(logMs, M1, Ms0, beta, delta, gamma):
     # SM-HM relation
-    return M1 + beta*(logMs - Ms0) 2+ (10 ** (delta * (logMs - Ms0))) / (1 + (10 ** (-gamma * (logMs - Ms0)))) - 0.5
+    return M1 + beta*(logMs - Ms0) + (10 ** (delta * (logMs - Ms0))) / (1 + (10 ** (-gamma * (logMs - Ms0)))) - 0.5
     # Ms = 10**logMs
     # logMh = M1 + beta * np.log10(Ms / 10**Ms0) + (Ms / 10**Ms0)**delta / (1 + (Ms / 10**Ms0)**(-gamma)) - 0.5
     # return logMh
@@ -416,8 +416,19 @@ def MhPeak(chainfile, idx_z, iterations, burn):
     for i in range(chainsize):
         logmhalo = logMh(logMs, samples[i, 0], samples[i, 1], samples[i, 2], samples[i, 3], samples[i, 4])
         Mhalopeak_idx = np.argmax(logMs - logmhalo)
-        Mhalopeak[i]= logmhalo[Mhalopeak_idx]
+        Mhalopeak[i] = logmhalo[Mhalopeak_idx]
     return Mhalopeak
+
+
+def allMhPeak(iterations, burn):
+    mhpeakall = np.zeros(numzbin)
+    mhpeakallstd = np.zeros(numzbin)
+    for idx_z in range(numzbin):
+        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
+        mhpeakall[idx_z] = np.median(mhpeak)
+        mhpeakallstd[idx_z] = np.std(mhpeak)
+    return mhpeakall, mhpeakallstd
 
 
     # f = open("chain.dat", "w")
@@ -573,12 +584,13 @@ def plotLnprob(idx_z, iterations, nwalker=20):
 
 def plot_Mhpeak(chainfile, idx_z, iterations, burn):
     mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
-    avg_mhpeak = np.mean(mhpeak)
+    # avg_mhpeak = np.mean(mhpeak)
+    med_mhpeak = np.median(mhpeak)
     std_mhpeak = np.std(mhpeak)
     plt.figure()
     plt.hist(mhpeak, bins=100)
-    plt.axvline(avg_mhpeak, color='orange')
-    plt.title('idx_z = ' + str(idx_z) +', MhPeak = ' + str(avg_mhpeak) + '+/-' + str(std_mhpeak))
+    plt.axvline(med_mhpeak, color='orange')
+    plt.title(str(redshifts[idx_z]) +'<z<' + str(redshifts[idx_z+1]) + ', MhPeak = ' + str(med_mhpeak) + '+/-' + str(std_mhpeak))
     plt.savefig('../MCMC/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
 
 
@@ -630,8 +642,8 @@ def plotAllSigmaHMvsSM(iterations, burn):
         av_logMh = np.average(logmhalo, axis=0)
         conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
         conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
-        for i in range(numpoints):
-            av_logMh[i] = np.average(logmhalo[:, i])
+        # for i in range(numpoints):
+        #     av_logMh[i] = np.average(logmhalo[:, i])
         plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
         plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
@@ -641,13 +653,14 @@ def plotAllSigmaHMvsSM(iterations, burn):
     plt.savefig('../MCMC/Plots/SigmaHMvsSM_Allz_niter=' +
         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
+
 def temp():
     # Plot Ms/Mh en ayant pris le Mh average. tester après en prenant la moyenne de Ms/Mh pour un Ms donné
     numpoints = 100
     logMs = np.linspace(9, 12, num=numpoints)
     for idx_z in range(10):
         plt.plot(tot[idx_z][0], logMs-tot[idx_z][0], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-        plt.fill_between(tot[idx_z][0], logMs -tot[idx_z][1], logMs-tot[idx_z][2], alpha=0.3)
+        plt.fill_between(tot[idx_z][0], logMs - tot[idx_z][1], logMs-tot[idx_z][2], alpha=0.3)
     plt.legend()
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
@@ -698,19 +711,67 @@ def plotAllSigmaSHMRvsSM(iterations, burn):
         for idx_simu in range(samples.shape[0]):
             M1, Ms0, beta, delta, gamma = samples[idx_simu]
             logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        av_logMh = np.average(logmhalo, axis=0)
         av_SHMR = np.average(logMs - logmhalo, axis=0)
         conf_min_SHMR = np.percentile(logMs - logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
         conf_max_SHMR = np.percentile(logMs - logmhalo, 84, axis=0)
     # for i in range(numpoints):
     #     av_logMh[i] = np.average(logmhalo[:, i])
-        plt.fill_between(logMs, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
-        plt.plot(logMs, av_SHMR, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.fill_between(av_logMh, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
+        plt.plot(av_logMh, av_SHMR, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
     plt.tight_layout()
     plt.savefig('../MCMC/Plots/SigmaSHMRvsSM_All_niter=' +
         str(iterations) + "_burn=" + str(burn) + '.pdf')
+
+
+def plotFakeAllSigmaSHMRvsMH(iterations, burn):
+    load_smf()
+    load_hmf()
+    plt.close('all')
+    plt.figure()
+    numpoints = 100
+    logMs = np.linspace(9, 12, num=numpoints)
+    for idx_z in range(numzbin):
+        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chain = np.load(chainfile)
+        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        logmhalo = np.zeros([samples.shape[0], numpoints])
+        for idx_simu in range(samples.shape[0]):
+            M1, Ms0, beta, delta, gamma = samples[idx_simu]
+            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        av_logMh = np.average(logmhalo, axis=0)
+        conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+        conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
+        # for i in range(numpoints):
+        #     av_logMh[i] = np.average(logmhalo[:, i])
+        plt.fill_between(av_logMh, logMs - conf_min_logMh, logMs - conf_max_logMh, alpha=0.3)
+        plt.plot(av_logMh, logMs - av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    plt.plot([10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
+        [-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010], label='Harikane z=4')
+    plt.plot([10.975, 11.292, 12.041]+np.log10(67/70) , [-2.36, -2.206, -2.132], label='Hariakne z=6')
+    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('../MCMC/Plots/SigmaFAKE_SHRMvsHM_Allz_niter=' +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
+
+[10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
+[-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010]
+x	y
+10,516	-3,232
+10,690	-3,072
+10,966	-2,828
+11,230	-2,629
+11,336	-2,488
+11,690	-2,306
+11,940	-2,172
+12,219	-2,057
+12,610	-2,010
+
 
 
 """Plots and tests"""
