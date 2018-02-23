@@ -110,16 +110,16 @@ def load_hmf():
     """Load Tinker+08 HMF computed with HFMCalc of Murray+13
     parameters : Delta = 200 times the mean density of the universe (same at all z)
     """
-    # redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
-    # numredshift_haloes = len(redshift_haloes)
-    # global hmf
-    # hmf = []
-    # for i in range(numredshift_haloes):
-    #     hmf.append(
-    #         np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
-    #             redshift_haloes[i]), usecols=(0, 7)))
-    #     hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
-    #     hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
+    redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
+    numredshift_haloes = len(redshift_haloes)
+    global hmf
+    hmf = []
+    for i in range(numredshift_haloes):
+        hmf.append(
+            np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
+                redshift_haloes[i]), usecols=(0, 7)))
+        hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
+        hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
 
 
 """Function definitions for computation of the theroretical SFM phi_true"""
