@@ -20,7 +20,8 @@ from scipy import signal
 import corner
 from getdist import plots, MCSamples
 import time
-
+import os
+import datetime
 
 def load_smf():
     """Load the SMF from Iary Davidzon+17"""
@@ -359,17 +360,34 @@ def maxlikelihood(idx_z, theta0, bounds):
 
 """ Run MCMC """
 
-
-def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads=1):
+def runMCMC_allZ(numzbin, starting_point, std, iterations, burn, nthreads=1):
     load_smf()
     load_hmf()
-    start_time = time.time()
     nwalker = 20
-    # nthreads = 16  # Put more for multiprocessing automatically.
+    
+    # Create save direcory
+    now = datetime.datetime.now()
+    directory = "../MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        os.makedirs(directory+'/Chain')
+        os.makedirs(directory+'/Plots')
+        os.makedirs(directory+'/Plots/MhaloPeak')
+        os.makedirs(directory+'/Results')
+
+    # run all MCMC for all zbins
+    for idx_z in range(numzbin):
+        runMCMC(directory, idx_z, starting_point, std, iterations, burn, nthreads)
+
+
+def runMCMC(directory, idx_z, starting_point, std, iterations, burn, nthreads=1):
+    # load_smf()
+    # load_hmf()
+    # nwalker = 20
     # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
     # starting_point =  np.array([12.5, 11, 0.5, 0.7, 0.5, 0.15])
-
+    start_time = time.time()
     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
     ndim = len(starting_point)
     sampler = emcee.EnsembleSampler(nwalker, ndim, loglike, args=[idx_z], threads=nthreads)
@@ -382,64 +400,71 @@ def runMCMC(idx_z, starting_point, std, iterations, burn, nthreads=1):
     sampler.run_mcmc(p0, iterations)
     elapsed_time = time.time() - start_time
     print('Time elapsed : ' + str(elapsed_time))
-    chainfile = "../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    savenameln = "../MCMC/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+
+    # Save chains and loglike of chains
+    chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(chainfile, sampler.chain)
     np.save(savenameln, sampler.lnprobability)
+
+    # Plot all relevant figures
     plt.close('all')
-    plotchain(chainfile, idx_z, iterations, burn)
-    plotSMF(idx_z, iterations, burn)
+    plotchain(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
-    plotSMHM(idx_z, iterations, burn)
+    plotdist_noksi(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
-    plot_Mhpeak(chainfile, idx_z, iterations, burn)
+    plotSMF(directory, idx_z, iterations, burn)
     plt.close('all')
-    save_results(chainfile, idx_z, iterations, burn)
+    plotSMHM(directory, idx_z, iterations, burn)
+    plt.close('all')
+    plot_Mhpeak(directory, chainfile, idx_z, iterations, burn)
+    plt.close('all')
+    save_results(directory, chainfile, idx_z, iterations, burn)
 
 
-def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
-    load_smf()
-    load_hmf()
-    nwalker = 20
-    # Put more nthreads for multiprocessing automatically.
-    # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
-    # std = np.array([1, 1, 0.1, 0.1, 0.1])
+# def runMCMC_noksi(idx_z, starting_point, std, iterations, burn, nthreads=1):
+#     load_smf()
+#     load_hmf()
+#     nwalker = 20
+#     # Put more nthreads for multiprocessing automatically.
+#     # starting_point = np.array([12, 11, 0.5, 0.5, 2.5])
+#     # std = np.array([1, 1, 0.1, 0.1, 0.1])
 
-    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
-    ndim = len(starting_point)
-    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
-    print("idx_z = " +str (idx_z))
-    print("ndim = " + str(ndim))
-    print("start = " + str(starting_point))
-    print("std = " + str(std))
-    print("iterations = " + str(iterations))
-    start_time = time.time()
-    sampler.run_mcmc(p0, iterations)
-    ## Monitor the sampling progress
-    # nsteps = iterations/100
-    # width = 30
-    # for i, result in enumerate(sampler.sample(p0, iterations=nsteps)):
-    #     n = int((width+1) * float(i) / nsteps)
-    #     sys.stdout.write("\r[{0}{1}]".format('#' * n, ' ' * (width - n)))
-    # sys.stdout.write("\n")
-    elapsed_time = time.time() - start_time
-    print('Time elapsed : ' + str(elapsed_time))
-    savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    np.save(savename, sampler.chain)
-    np.save(savenameln, sampler.lnprobability)
-    plt.close('all')
-    plotchain_noksi(savename, idx_z, iterations, burn)
-    plt.close('all')
-    # plotdist_noksi(savename, idx_z, iterations, burn)
-    # plt.close('all')
-    plotSMF_noksi(idx_z, iterations, burn)
-    plt.close('all')
-    plotSMHM_noksi(idx_z, iterations, burn)
-    plt.close('all')
-    plot_Mhpeak(savename, idx_z, iterations, burn)
-    plt.close('all')
-    save_results_noksi(savename, idx_z, iterations, burn)
+#     p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
+#     ndim = len(starting_point)
+#     sampler = emcee.EnsembleSampler(nwalker, ndim, loglike_noksi, args=[idx_z], threads=nthreads)
+#     print("idx_z = " +str (idx_z))
+#     print("ndim = " + str(ndim))
+#     print("start = " + str(starting_point))
+#     print("std = " + str(std))
+#     print("iterations = " + str(iterations))
+#     start_time = time.time()
+#     sampler.run_mcmc(p0, iterations)
+#     ## Monitor the sampling progress
+#     # nsteps = iterations/100
+#     # width = 30
+#     # for i, result in enumerate(sampler.sample(p0, iterations=nsteps)):
+#     #     n = int((width+1) * float(i) / nsteps)
+#     #     sys.stdout.write("\r[{0}{1}]".format('#' * n, ' ' * (width - n)))
+#     # sys.stdout.write("\n")
+#     elapsed_time = time.time() - start_time
+#     print('Time elapsed : ' + str(elapsed_time))
+#     savename = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     savenameln = "../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     np.save(savename, sampler.chain)
+#     np.save(savenameln, sampler.lnprobability)
+#     plt.close('all')
+#     plotchain_noksi(savename, idx_z, iterations, burn)
+#     plt.close('all')
+#     # plotdist_noksi(savename, idx_z, iterations, burn)
+#     # plt.close('all')
+#     plotSMF_noksi(idx_z, iterations, burn)
+#     plt.close('all')
+#     plotSMHM_noksi(idx_z, iterations, burn)
+#     plt.close('all')
+#     plot_Mhpeak(savename, idx_z, iterations, burn)
+#     plt.close('all')
+#     save_results_noksi(savename, idx_z, iterations, burn)
 
 
 def save_results_noksi(chainfile, idx_z, iterations, burn):
@@ -453,13 +478,13 @@ def save_results_noksi(chainfile, idx_z, iterations, burn):
     res.write("../MCMC/Results/Chain_Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
 
 
-def save_results(chainfile, idx_z, iterations, burn):
+def save_results(directory, chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
     res = samples.getTable()
-    res.write("../MCMC/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+    res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
 
 
 def MhPeak(chainfile, idx_z, iterations, burn):
@@ -475,11 +500,11 @@ def MhPeak(chainfile, idx_z, iterations, burn):
     return Mhalopeak
 
 
-def allMhPeak(iterations, burn):
+def allMhPeak(directory, iterations, burn):
     mhpeakall = np.zeros(numzbin)
     mhpeakallstd = np.zeros(numzbin)
     for idx_z in range(numzbin):
-        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chainfile = directory+"/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
         mhpeakall[idx_z] = np.median(mhpeak)
         mhpeakallstd[idx_z] = np.std(mhpeak)
@@ -523,10 +548,10 @@ def plotSMF_noksi(idx_z, iterations, burn):
     plt.savefig('../MCMC/Plots/SMF_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSMF(idx_z, iterations, burn):
+def plotSMF(directory, idx_z, iterations, burn):
     load_smf()
     load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    chain = np.load(directory + "Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
     logMs = smf_cosmos[idx_z][select, 0]
@@ -537,20 +562,20 @@ def plotSMF(idx_z, iterations, burn):
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     # plt.show()
-    plt.savefig('../MCMC/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+    plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSMHM(idx_z, iterations, burn):
+def plotSMHM(directory, idx_z, iterations, burn):
     load_smf()
     load_hmf()
-    chain = np.load("../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    chain = np.load(directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     logMs = np.linspace(9, 11.5, num=200)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
-    plt.savefig('../MCMC/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+    plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
 def plotSMHM_noksi(idx_z, iterations, burn):
@@ -580,9 +605,9 @@ def plotHMvsSM_noksi(idx_z, iterations, burn):
     plt.savefig('../MCMC/Plots/HMvsSM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotchain(chainfile, idx_z, iterations, burn):
+def plotchain(directory, chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
 
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     fig = corner.corner(
@@ -619,9 +644,9 @@ def plotdist(chainfile, idx_z, iterations, burn):
     plt.clf()
 
 
-def plotdist_noksi(chainfile, idx_z, iterations, burn):
+def plotdist_noksi(directory, chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    figname = directory + "/Plots/Noksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
@@ -637,7 +662,7 @@ def plotLnprob(idx_z, iterations, nwalker=20):
         plt.plot(lnprob[k, :])
 
 
-def plot_Mhpeak(chainfile, idx_z, iterations, burn):
+def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn):
     mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
     # avg_mhpeak = np.mean(mhpeak)
     med_mhpeak = np.median(mhpeak)
@@ -646,7 +671,7 @@ def plot_Mhpeak(chainfile, idx_z, iterations, burn):
     plt.hist(mhpeak, bins=100)
     plt.axvline(med_mhpeak, color='orange')
     plt.title(str(redshifts[idx_z]) +'<z<' + str(redshifts[idx_z+1]) + ', MhPeak = ' + str(med_mhpeak) + '+/-' + str(std_mhpeak))
-    plt.savefig('../MCMC/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
+    plt.savefig(directory+'/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
 
 
 def plotSigmaHMvsSM(idx_z, iterations, burn):
@@ -815,7 +840,7 @@ def plotFakeAllSigmaSHMRvsMH(iterations, burn):
         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 
-def plotAllSHMRvsSM(iterations, burn):
+def plotAllSHMRvsSM(directory, iterations, burn):
     load_smf()
     load_hmf()
     plt.close('all')
@@ -827,7 +852,7 @@ def plotAllSHMRvsSM(iterations, burn):
     confminus_MSonMH = np.zeros([numzbin, numpoints-1])
     confplus_MSonMH = np.zeros([numzbin, numpoints-1])
     for idx_z in range(numzbin):
-        chainfile = "../MCMC/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
         logmhalo = np.zeros([samples.shape[0], numpoints])
@@ -853,7 +878,7 @@ def plotAllSHMRvsSM(iterations, burn):
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
     plt.tight_layout()
-    plt.savefig('../MCMC/Plots/Sigma_SHRMvsHM_Allz_niter=' +
+    plt.savefig(directory+'/Plots/Sigma_SHRMvsHM_Allz_niter=' +
         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 """Plots and tests"""
