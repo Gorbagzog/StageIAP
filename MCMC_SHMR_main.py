@@ -201,6 +201,7 @@ def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
     minbound = np.loadtxt(minboundfile, delimiter=',')
     maxbound = np.loadtxt(maxboundfile, delimiter=',')
     config = getconf.ConfigGetter('getconf', [paramfile])
+    save_path = config.getstr('Mass_functions.save_path')
     smf_name = config.getstr('Mass_functions.SMF')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
@@ -215,7 +216,7 @@ def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
     
     # Create save direcory
     now = datetime.datetime.now()
-    directory = "../MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
+    directory = save_path + "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
     print('Save direcory : ' + directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
