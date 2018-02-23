@@ -23,11 +23,13 @@ import time
 import os
 import datetime
 import getconf
+from shutil import copyfile
 
 
 def load_smf(smf_name):
     """Load the SMF"""
-    if smf_name is 'cosmos':
+    if smf_name == 'cosmos':
+        print('Use the COSMOS SMF')
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
         global redshifts
@@ -36,6 +38,7 @@ def load_smf(smf_name):
         redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
         global numzbin
         numzbin = np.size(redshifts) - 1
+        print('numzbin: '+str(numzbin))
         global smf_cosmos
         smf_cosmos = []
         for i in range(10):
@@ -77,6 +80,7 @@ def load_hmf(hmf_name):
     hmf = []
     if hmf_name in ['bolshoi_tot', 'bolshoi_cen']:
         """Load HMF from Bolshoi Planck simulation"""
+        print('Use Bolshoi tot or central MF (default central)')
         # redshifts of the BolshoiPlanck files
         redshift_haloes = np.arange(0, 10, step=0.1)
         numredshift_haloes = np.size(redshift_haloes)
@@ -104,14 +108,17 @@ def load_hmf(hmf_name):
             + str(redshift_haloes[redshift_id_selec]))
         for i in redshift_id_selec:
             hmf.append(hmf_bolshoi[i])
-        if hmf_name is 'bolshoi_tot':
-            # in the bolshoi tot case, change to the correct bolshoi HMF
-            hmf[:][:, 1] = hmf[:][:, 2]
+        if hmf_name == 'bolshoi_tot':
+            # In the bolshoi tot case, change to the correct bolshoi HMF
+            print('Use Bolshoi total HMF')
+            for i in range(numzbin):
+                hmf[i][:, 1] = hmf[i][:, 2]
 
-    if hmf_name is 'tinker200':
+    if hmf_name == 'tinker200':
         """Load Tinker+08 HMF computed with HFMCalc of Murray+13
         parameters : Delta = 200 times the mean density of the universe (same at all z)
         """
+        print('Use Tinker 200 HMF')
         redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
         numredshift_haloes = len(redshift_haloes)
         for i in range(numredshift_haloes):
@@ -142,14 +149,9 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
             np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)) -
             np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1)))
         ), axis=1)
-    if hmf_name in ['bolshoi_cen', 'tinker200']:
-        """only central HMF from Bolshoi or Tinker HMF :"""
-        log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
-    if hmf_name is 'bolshoi_tot':
-        """all haloes from Bolshoi"""
-        log_phidirect = hmf[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
 
-    log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = -1000
+    log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = -1000 # Do not use points with halo masses not defined in the HMF
     log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = -1000
 
     return log_phidirect
@@ -188,6 +190,7 @@ def loglike(theta, idx_z, minbound, maxbound):
     else:
         return -np.inf
    
+
 def negloglike(theta, idx_z, minbound, maxbound):
     return -loglike(theta, idx_z, minbound, maxbound)
 
@@ -195,33 +198,41 @@ def negloglike(theta, idx_z, minbound, maxbound):
 
 def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
     # Load parameters and config
-    minbound = np.loadtxt('minboundfile')
-    maxbound = np.loadtxt('maxboundfile')
+    minbound = np.loadtxt(minboundfile, delimiter=',')
+    maxbound = np.loadtxt(maxboundfile, delimiter=',')
     config = getconf.ConfigGetter('getconf', [paramfile])
     smf_name = config.getstr('Mass_functions.SMF')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
     burn = config.getint('MCMC_run_parameters.burn')
-    starting_point = config.getint('MCMC_run_parameters.starting_point')
-    std = config.getint('MCMC_run_parameters.std')
+    starting_point = np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
+    std = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
     nthreads = config.getint('MCMC_run_parameters.nthreads')
     nwalkers = config.getint('MCMC_run_parameters.nwalkers')
-
+    # global numzbin
     load_smf(smf_name)
     load_hmf(hmf_name)
     
     # Create save direcory
     now = datetime.datetime.now()
     directory = "../MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
+    print('Save direcory : ' + directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
         os.makedirs(directory+'/Chain')
         os.makedirs(directory+'/Plots')
         os.makedirs(directory+'/Plots/MhaloPeak')
         os.makedirs(directory+'/Results')
+        print('Created new directory')
+    # Copy parameter files in the save directory
+    copyfile(paramfile, directory + '/' + paramfile)
+    copyfile(minboundfile, directory + '/' + minboundfile)
+    copyfile(maxboundfile, directory + '/' + maxboundfile)
 
     # run all MCMC for all zbins
     for idx_z in range(numzbin):
+        print('Min bound: ' + str(minbound[idx_z]))
+        print('Max bound: ' + str(maxbound[idx_z]))
         runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers)
 
 
@@ -233,30 +244,32 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
     # starting_point =  np.array([12.5, 11, 0.5, 0.7, 0.5, 0.15])
     start_time = time.time()
-    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalker)
+    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalkers)
     ndim = len(starting_point)
-    sampler = emcee.EnsembleSampler(nwalker, ndim, loglike, args=[idx_z, minbound, maxbound], threads=nthreads)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike, args=[idx_z, minbound, maxbound], threads=nthreads)
     print("idx_z = " +str (idx_z))
     print("ndim = " + str(ndim))
     print("start = " + str(starting_point))
     print("std = " + str(std))
     print("iterations = " + str(iterations))
+    print("burn = " + str(burn))
     start_time = time.time()
     sampler.run_mcmc(p0, iterations)
     elapsed_time = time.time() - start_time
     print('Time elapsed : ' + str(elapsed_time))
-
+    print('acceptance fraction :')
+    print(sampler.acceptance_fraction)
     # Save chains and loglike of chains
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(chainfile, sampler.chain)
     np.save(savenameln, sampler.lnprobability)
-
+    sampler.reset()
     # Plot all relevant figures
     plt.close('all')
     plotchain(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
-    plotdist_noksi(directory, chainfile, idx_z, iterations, burn)
+    plotdist(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
     plotSMF(directory, idx_z, iterations, burn)
     plt.close('all')
@@ -306,7 +319,7 @@ def allMhPeak(directory, iterations, burn):
 def plotSMF(directory, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
-    chain = np.load(directory + "Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+    chain = np.load(directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
     logMs = smf_cosmos[idx_z][select, 0]
@@ -357,9 +370,9 @@ def plotchain(directory, chainfile, idx_z, iterations, burn):
     plt.close('all')
 
 
-def plotdist(chainfile, idx_z, iterations, burn):
+def plotdist(directory, chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
-    figname = "../MCMC/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
@@ -387,10 +400,10 @@ def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn):
     plt.savefig(directory+'/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
 
 
-def plotSigmaHMvsSM(idx_z, iterations, burn):
+def plotSigmaHMvsSM(direcory, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
-    chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chainfile = directory + "/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     numpoints = 100
