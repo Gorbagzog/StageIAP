@@ -22,103 +22,104 @@ from getdist import plots, MCSamples
 import time
 import os
 import datetime
-import getconf
+
+def load_smf():
+    """Load the SMF from Iary Davidzon+17"""
+    # redshifts of the Iari SMF
+    global redshifts
+    global redshiftsbin
+    redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+    redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
+    global numzbin
+    numzbin = np.size(redshifts) - 1
+    global smf_cosmos
+    smf_cosmos = []
+    for i in range(10):
+        smf_cosmos.append(np.loadtxt(
+            # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
+            # '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
+            # + str(i) + '.dat')
+            '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
+            + str(i) + '.dat') # Use the 1/Vmax points directly and not the schechter fit on them
+            # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
+            # + str(i) + '.dat')
+        )
+    """Adapt SMF to match the Bolshoi-Planck Cosmology"""
+    # Bolshoi-Planck cosmo : (flat LCMD)
+    # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
+    BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
+
+    # Davidzon+17 SMF cosmo : (flat LCDM)
+    # Om = 0.3, Ol = 0.7, h=0.7
+    D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
+
+    for i in range(10):
+        # Correction of the comoving Volume :
+        VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
+        VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+        # VmaxD17 = get_Vmax_mod.main(redshifts[i], redshifts[i+1], cosmo=[70, 0.3, 0.7])
+        # VmaxBP = get_Vmax_mod.main(redshifts[i], redshifts[i+1], cosmo=[67.74, 0.3089, 0.6911])
+        # Add the log, equivalent to multiply by VmaxD17/VmaxBP
+        # smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+        # smf_cosmos[i][:, 2] = smf_cosmos[i][:, 2] + np.log10(VmaxD17/VmaxBP)
+        # smf_cosmos[i][:, 3] = smf_cosmos[i][:, 3] + np.log10(VmaxD17/VmaxBP)
+
+        """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and
+        are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
+        smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+
+        # Correction of the measured stellar mass
+        # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
+        smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
 
 
-def load_smf(smf_name):
-    if smf_name == 'cosmos':
-        """Load the SMF from Iary Davidzon+17"""
-        # redshifts of the Iari SMF
-        global redshifts
-        global redshiftsbin
-        redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-        redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
-        global numzbin
-        numzbin = np.size(redshifts) - 1
-        global smf_cosmos
-        smf_cosmos = []
-        for i in range(10):
-            smf_cosmos.append(np.loadtxt(
-                # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-                # '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
-                # + str(i) + '.dat')
-                '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
-                + str(i) + '.dat') # Use the 1/Vmax points directly and not the schechter fit on them
-                # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
-                # + str(i) + '.dat')
-            )
-        """Adapt SMF to match the Bolshoi-Planck Cosmology"""
-        # Bolshoi-Planck cosmo : (flat LCMD)
-        # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
-        BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
+def load_hmf():
+    # """Load HMF from Bolshoi Planck simulation"""
+    # # redshifts of the BolshoiPlanck files
+    redshift_haloes = np.arange(0, 10, step=0.1)
+    numredshift_haloes = np.size(redshift_haloes)
+    """Definition of hmf columns :
+    hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
+    hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
+    (density) [1/Mpc^3]
+    hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
+    (density) [1/Mpc^3]
+    """
+    global hmf
+    hmf_bolshoi_tot = []
+    for i in range(numredshift_haloes):
+        hmf_bolshoi_tot.append(
+            np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
+                       '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
 
-        # Davidzon+17 SMF cosmo : (flat LCDM)
-        # Om = 0.3, Ol = 0.7, h=0.7
-        D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
+    """Select the redhifts slices that matches the slices of Iary"""
+    global redshift_id_selec
+    redshift_id_selec = np.empty(numzbin)
+    for i in range(numzbin):
+        redshift_id_selec[i] = np.argmin(
+            np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
 
-        for i in range(numzbin):
-            # Correction of the comoving Volume :
-            VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
-            VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+    redshift_id_selec = redshift_id_selec.astype(int)
+    print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
+    print('Closest redshifts for Bolshoi HMFs : '
+        + str(redshift_haloes[redshift_id_selec]))
+    hmf = []
+    for i in redshift_id_selec:
+        hmf.append(hmf_bolshoi_tot[i])
 
-            """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and
-            are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
-            smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
-
-            # Correction of the measured stellar mass
-            # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
-            smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
-
-
-def load_hmf(hmf_name):
-    if hmf_name == 'bolshoi':
-        """Load HMF from Bolshoi Planck simulation"""
-        # redshifts of the BolshoiPlanck files
-        redshift_haloes = np.arange(0, 10, step=0.1)
-        numredshift_haloes = np.size(redshift_haloes)
-        """Definition of hmf columns :
-        hmf_bolshoi[redshift][:,0] = Log10(mass) [Msun]
-        hmf_bolshoi[redshift][:,1] = Log10(cen_mf), ie central haloes mass function
-        (density) [1/Mpc^3]
-        hmf_bolshoi[redshift][:,2] = Log10(all_macc_mf), ie all haloes mass function
-        (density) [1/Mpc^3]
-        """
-        global hmf
-        hmf_bolshoi_tot = []
-        for i in range(numredshift_haloes):
-            hmf_bolshoi_tot.append(
-                np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
-                        '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
-
-        """Select the redhifts slices that matches the slices of Iary"""
-        global redshift_id_selec
-        redshift_id_selec = np.empty(numzbin)
-        for i in range(numzbin):
-            redshift_id_selec[i] = np.argmin(
-                np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
-
-        redshift_id_selec = redshift_id_selec.astype(int)
-        print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
-        print('Closest redshifts for Bolshoi HMFs : '
-            + str(redshift_haloes[redshift_id_selec]))
-        hmf = []
-        for i in redshift_id_selec:
-            hmf.append(hmf_bolshoi_tot[i])
-
-    if hmf_name == 'tinker200':
-        """Load Tinker+08 HMF computed with HFMCalc of Murray+13
-        parameters : Delta = 200 times the mean density of the universe (same at all z)
-        """
-        redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
-        numredshift_haloes = len(redshift_haloes)
-        global hmf
-        hmf = []
-        for i in range(numredshift_haloes):
-            hmf.append(
-                np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
-                    redshift_haloes[i]), usecols=(0, 7)))
-            hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
-            hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
+    """Load Tinker+08 HMF computed with HFMCalc of Murray+13
+    parameters : Delta = 200 times the mean density of the universe (same at all z)
+    """
+    # redshift_haloes = np.array([0.35, 0.65, 0.95, 1.3, 1.75, 2.25, 2.75, 3.25, 4, 5])
+    # numredshift_haloes = len(redshift_haloes)
+    # global hmf
+    # hmf = []
+    # for i in range(numredshift_haloes):
+    #     hmf.append(
+    #         np.loadtxt('../Data/Tinker08HMF/HMFCalc_Dm200/mVector_PLANCK-SMT_z{:1.2f}.txt'.format(
+    #             redshift_haloes[i]), usecols=(0, 7)))
+    #     hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
+    #     hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
 
 
 """Function definitions for computation of the theroretical SFM phi_true"""
@@ -152,10 +153,13 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
     """ If all haloes from Bolshoi"""
     log_phidirect = hmf[idx_z][index_Mh, 2] + np.log10((log_Mh2 - log_Mh1)/epsilon)
-
+    # print(np.log10((log_Mh2 - log_Mh1)/epsilon))
+    # Keep only points where the halo mass is defined in the HMF
     log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = -1000
     log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = -1000
-
+    # print(log_phidirect)
+    # print(hmf[idx_z][index_Mh, 2])
+    # print(log_phidirect)
     return log_phidirect
 
 
@@ -167,6 +171,18 @@ def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     logphitrue = logphi1 + ksi**2 / 2 * np.log(10) * ((logphi2 - logphi1)/epsilon)**2
     return logphitrue
 
+
+# def phi_expect(z1, z2, logMs, M1, Ms0, beta, delta, gamma, ksi):
+#     # Take into account that the observed SMF is for a range of redshift
+#     numpoints = 10
+#     redshifts = np.linspace(z1, z2, num=numpoints)
+#     top = 0
+#     bot = 0
+#     for i in range(numpoints - 1):
+#         dVc = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+#         top += phi_true(redshifts[i], logMs, M1, Ms0, beta, delta, gamma, ksi) * dVc
+#         bot += dVc
+#     return top/bot
 
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
@@ -344,22 +360,10 @@ def maxlikelihood(idx_z, theta0, bounds):
 
 """ Run MCMC """
 
-def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
-    # Load parameters and config
-    minbound = np.loadtext('minboundfile')
-    maxbound = np.loadtxt('maxboundfile')
-    config = getconf.ConfigGetter('getconf', [paramfile])
-    smf_name = config.getstr('Mass_functions.SMF')
-    hmf_name = config.getstr('Mass_functions.HMF')
-    iterations = config.getint('MCMC_run_parameters.iterations')
-    burn = config.getint('MCMC_run_parameters.burn')
-    starting_point = config.getint('MCMC_run_parameters.starting_point')
-    std = config.getint('MCMC_run_parameters.std')
-    nthreads = config.getint('MCMC_run_parameters.nthreads')
-    nwalkers = config.getint('MCMC_run_parameters.nwalkers')
-
-    load_smf(smf_name)
-    load_hmf(hmf_name)
+def runMCMC_allZ(starting_point, std, iterations, burn, nthreads=1):
+    load_smf()
+    load_hmf()
+    nwalker = 20
     
     # Create save direcory
     now = datetime.datetime.now()
@@ -373,10 +377,10 @@ def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
 
     # run all MCMC for all zbins
     for idx_z in range(numzbin):
-        runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers)
+        runMCMC(directory, idx_z, starting_point, std, iterations, burn, nthreads)
 
 
-def runMCMC(directory, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers):
+def runMCMC(directory, idx_z, starting_point, std, iterations, burn, nthreads=1):
     # load_smf()
     # load_hmf()
     # nwalker = 20
