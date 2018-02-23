@@ -201,7 +201,7 @@ def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
     minbound = np.loadtxt(minboundfile, delimiter=',')
     maxbound = np.loadtxt(maxboundfile, delimiter=',')
     config = getconf.ConfigGetter('getconf', [paramfile])
-    save_path = config.getstr('Mass_functions.save_path')
+    save_path = config.getstr('Path.save_path')
     smf_name = config.getstr('Mass_functions.SMF')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
