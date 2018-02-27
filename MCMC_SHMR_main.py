@@ -286,7 +286,7 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
     plt.close('all')
     plot_Mhpeak(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
-    # save_results(directory, chainfile, idx_z, iterations, burn)
+    save_results(directory, chainfile, idx_z, iterations, burn)
 
 
 def save_results(directory, chainfile, idx_z, iterations, burn):
@@ -296,8 +296,9 @@ def save_results(directory, chainfile, idx_z, iterations, burn):
     samples = MCSamples(samples = samples, names = names)
     res = samples.getTable()
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+    del chain
 
-
+    
 def MhPeak(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
