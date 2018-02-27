@@ -290,24 +290,24 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
 
 
 def save_results(directory, chainfile, idx_z, iterations, burn):
-    with np.load(chainfile) as chain:
-        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        samples = MCSamples(samples = samples, names = names)
-        res = samples.getTable()
-        res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+    chain = np.load(chainfile)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    res = samples.getTable()
+    res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
 
 
 def MhPeak(chainfile, idx_z, iterations, burn):
-    with np.load(chainfile) as chain:
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        chainsize = np.shape(samples)[0]
-        logMs = np.linspace(8, 12, num=300)
-        Mhalopeak = np.zeros(chainsize)
-        for i in range(chainsize):
-            logmhalo = logMh(logMs, samples[i, 0], samples[i, 1], samples[i, 2], samples[i, 3], samples[i, 4])
-            Mhalopeak_idx = np.argmax(logMs - logmhalo)
-            Mhalopeak[i] = logmhalo[Mhalopeak_idx]
+    chain = np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    chainsize = np.shape(samples)[0]
+    logMs = np.linspace(8, 12, num=300)
+    Mhalopeak = np.zeros(chainsize)
+    for i in range(chainsize):
+        logmhalo = logMh(logMs, samples[i, 0], samples[i, 1], samples[i, 2], samples[i, 3], samples[i, 4])
+        Mhalopeak_idx = np.argmax(logMs - logmhalo)
+        Mhalopeak[i] = logmhalo[Mhalopeak_idx]
     return Mhalopeak
 
 
@@ -329,32 +329,34 @@ def plotSMF(directory, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    with np.load(chainfile) as chain:
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-        logMs = smf_cosmos[idx_z][select, 0]
-        plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-            yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
-        plt.ylim(-7.5, -1)
-        for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-            logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-            plt.plot(logMs, logphi, color="k", alpha=0.1)
-        # plt.show()
-        plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+    chain = np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chain.close()
+    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+    logMs = smf_cosmos[idx_z][select, 0]
+    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
+        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+    plt.ylim(-7.5, -1)
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        plt.plot(logMs, logphi, color="k", alpha=0.1)
+    # plt.show()
+    plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
 def plotSMHM(directory, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
     chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    with np.load(chainfile) as chain : 
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        logMs = np.linspace(9, 11.5, num=200)
-        for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-            logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-            logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-            plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
-        plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
+    chain =  np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chain.close()
+    logMs = np.linspace(9, 11.5, num=200)
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+    plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
 # def plotHMvsSM_noksi(idx_z, iterations, burn):
@@ -372,25 +374,26 @@ def plotSMHM(directory, idx_z, iterations, burn):
 
 def plotchain(directory, chainfile, idx_z, iterations, burn):
     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-
-    with np.load(chainfile) as chain:
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        fig = corner.corner(
-            samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi'])
-        fig.savefig(figname + ".pdf")
-        plt.close('all')
+    chain = np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chain.close()
+    fig = corner.corner(
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi'])
+    fig.savefig(figname + ".pdf")
+    plt.close('all')
 
 
 def plotdist(directory, chainfile, idx_z, iterations, burn):
     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
-    with np.load(chainfile) as chain:
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        samples = MCSamples(samples = samples, names = names)
-        g = plots.getSubplotPlotter()
-        g.triangle_plot(samples, filled=True)
-        g.export(figname + '_gd.pdf' )
-        plt.close('all')
+    chain = np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    # chain.close()
+    g = plots.getSubplotPlotter()
+    g.triangle_plot(samples, filled=True)
+    g.export(figname + '_gd.pdf' )
+    plt.close('all')
 
 
 def plotLnprob(idx_z, iterations, nwalker=20):
@@ -417,6 +420,7 @@ def plotSigmaHMvsSM(directory, idx_z, iterations, burn):
     chainfile = directory + "/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chain.close()
     numpoints = 100
     logMs = np.linspace(9, 12, num=numpoints)
     logmhalo = np.zeros([samples.shape[0], numpoints])
@@ -452,6 +456,7 @@ def plotAllSigmaHMvsSM(iterations, burn):
         chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        # chain.close()
         logmhalo = np.zeros([samples.shape[0], numpoints])
         for idx_simu in range(samples.shape[0]):
             M1, Ms0, beta, delta, gamma = samples[idx_simu]
@@ -489,6 +494,7 @@ def plotSigmaSHMR(idx_z, iterations, burn):
     chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chain.close()
     numpoints = 100
     logMs = np.linspace(9, 12, num=numpoints)
     logmhalo = np.zeros([samples.shape[0], numpoints])
@@ -524,6 +530,7 @@ def plotAllSigmaSHMRvsSM(iterations, burn):
         chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        # chain.close()
         logmhalo = np.zeros([samples.shape[0], numpoints])
         for idx_simu in range(samples.shape[0]):
             M1, Ms0, beta, delta, gamma = samples[idx_simu]
@@ -555,6 +562,7 @@ def plotFakeAllSigmaSHMRvsMH(iterations, burn):
         chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        # chain.close()
         logmhalo = np.zeros([samples.shape[0], numpoints])
         for idx_simu in range(samples.shape[0]):
             M1, Ms0, beta, delta, gamma = samples[idx_simu]
@@ -592,6 +600,7 @@ def plotAllSHMRvsSM(directory, iterations, burn):
         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        # chain.close()
         logmhalo = np.zeros([samples.shape[0], numpoints])
         for idx_simu in range(samples.shape[0]):
             M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
