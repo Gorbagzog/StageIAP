@@ -197,7 +197,7 @@ def negloglike(theta, idx_z, minbound, maxbound):
 
 """ Run MCMC """
 
-def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
+def runMCMC_allZ(paramfile):
     # Load parameters and config
    
     config = getconf.ConfigGetter('getconf', [paramfile])
