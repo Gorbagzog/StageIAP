@@ -194,19 +194,25 @@ def loglike(theta, idx_z, minbound, maxbound):
 def negloglike(theta, idx_z, minbound, maxbound):
     return -loglike(theta, idx_z, minbound, maxbound)
 
+
 """ Run MCMC """
 
 def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
     # Load parameters and config
-    minbound = np.loadtxt(minboundfile, delimiter=',')
-    maxbound = np.loadtxt(maxboundfile, delimiter=',')
+   
     config = getconf.ConfigGetter('getconf', [paramfile])
     save_path = config.getstr('Path.save_path')
     smf_name = config.getstr('Mass_functions.SMF')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
     burn = config.getint('MCMC_run_parameters.burn')
-    starting_point = np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
+    minboundfile = config.getstr('Values.minbound')
+    maxboundfile = config.getstr('Values.maxbound')
+    minbound = np.loadtxt(minboundfile, delimiter=',')
+    maxbound = np.loadtxt(maxboundfile, delimiter=',')
+    starting_point_file = config.getstr('Values.starting_point') 
+    starting_point = np.loadtxt(starting_point_file, delimiter=',')
+    # np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
     std = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
     nthreads = config.getint('MCMC_run_parameters.nthreads')
     nwalkers = config.getint('MCMC_run_parameters.nwalkers')
@@ -247,12 +253,12 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
     # starting_point =  np.array([12.5, 11, 0.5, 0.7, 0.5, 0.15])
     start_time = time.time()
-    p0 = emcee.utils.sample_ball(starting_point, std, size=nwalkers)
-    ndim = len(starting_point)
+    p0 = emcee.utils.sample_ball(starting_point[idx_z], std, size=nwalkers)
+    ndim = len(starting_point[idx_z])
     sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike, args=[idx_z, minbound, maxbound], threads=nthreads)
     print("idx_z = " +str (idx_z))
     print("ndim = " + str(ndim))
-    print("start = " + str(starting_point))
+    print("start = " + str(starting_point[idx_z]))
     print("std = " + str(std))
     print("iterations = " + str(iterations))
     print("burn = " + str(burn))
@@ -340,7 +346,7 @@ def plotSMF(directory, idx_z, iterations, burn):
 def plotSMHM(directory, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
-    chainfile =  directory  "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     with np.load(chainfile) as chain : 
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
         logMs = np.linspace(9, 11.5, num=200)
@@ -405,7 +411,7 @@ def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn):
     plt.savefig(directory+'/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
 
 
-def plotSigmaHMvsSM(direcory, idx_z, iterations, burn):
+def plotSigmaHMvsSM(directory, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
     chainfile = directory + "/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
