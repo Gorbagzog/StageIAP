@@ -231,7 +231,8 @@ def runMCMC_allZ(paramfile, minboundfile, maxboundfile):
     copyfile(maxboundfile, directory + '/' + maxboundfile)
 
     # run all MCMC for all zbins
-    for idx_z in range(numzbin):
+    # for idx_z in range(numzbin):
+    for idx_z in [6, 7, 8, 9]:
         print('Min bound: ' + str(minbound[idx_z]))
         print('Max bound: ' + str(maxbound[idx_z]))
         runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers)
@@ -270,15 +271,15 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
     plt.close('all')
     plotchain(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
-    plotdist(directory, chainfile, idx_z, iterations, burn)
-    plt.close('all')
+    # plotdist(directory, chainfile, idx_z, iterations, burn)
+    # plt.close('all')
     plotSMF(directory, idx_z, iterations, burn)
     plt.close('all')
     plotSMHM(directory, idx_z, iterations, burn)
     plt.close('all')
     plot_Mhpeak(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
-    save_results(directory, chainfile, idx_z, iterations, burn)
+    # save_results(directory, chainfile, idx_z, iterations, burn)
 
 
 def save_results(directory, chainfile, idx_z, iterations, burn):
