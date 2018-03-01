@@ -688,12 +688,87 @@ def plotAllSHMRvsSM(directory):
         9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
         color='black', linestyle=':')
     plt.plot((logMhbins[1:] + logMhbins[:-1])/2,
-        11.5 - (logMhbins[1:] + logMhbins[:-1])/2,
+        11.8 - (logMhbins[1:] + logMhbins[:-1])/2,
         color='black', linestyle=':')
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
     plt.tight_layout()
+
+
+def plotSHMR_delta(directory, iterations, burn):
+    load_smf('cosmos')
+    load_hmf('bolshoi_tot')
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
+    print(Ms_min)
+    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
+    Ms_max = 11.8
+    numpoints = 100
+    logMs = np.empty([numzbin, numpoints])
+    nselect = 100000  # Number of samples o randomly select in the chains
+    logMhbins = np.linspace(11.5, 14, num=numpoints)
+    av_logMh = np.empty([numzbin, numpoints])
+    conf_min_logMh = np.empty([numzbin, numpoints])
+    conf_max_logMh = np.empty([numzbin, numpoints])
+    for idx_z in range(numzbin):
+        logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
+        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chain = np.load(chainfile)
+        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+        #print(len(samples))
+        samples = samples[np.random.randint(len(samples), size=nselect)]
+        del chain
+        print('Chain loaded for idx_z = '+str(idx_z))
+        nsimu = samples.shape[0]
+        print(nsimu)
+        logmhalo = np.zeros([nsimu, numpoints])
+        for idx_simu in range(nsimu):
+            # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
+            logmhalo[idx_simu, :] = logMh(logMs[idx_z], *samples[idx_simu][:-1])
+            if idx_simu % (nsimu/10) == 0:
+                print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
+        print('    All logmhalo computed')
+        av_logMh[idx_z] = np.average(logmhalo, axis=0)
+        conf_min_logMh[idx_z] = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+        conf_max_logMh[idx_z] = np.percentile(logmhalo, 84, axis=0)
+    np.save(directory + '/av_logMh.npy', av_logMh)
+    np.save(directory + '/conf_min_logMh.npy', conf_min_logMh)
+    np.save(directory + '/conf_max_logMh.npy', conf_max_logMh)
+    print('Arrays saved')
+    # av_logMh = np.load(directory + '/av_logMh.npy')
+    # conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
+    # conf_max_logMh = np.load(directory + '/conf_min_logMh.npy')
+    plt.figure()
+    for idx_z in range(numzbin):
+        plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], alpha=0.3)
+        plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    plt.figure()
+    for idx_z in range(numzbin):
+        x = av_logMh[idx_z]
+        y = logMs[idx_z] - av_logMh[idx_z]
+        xerr = [x - conf_min_logMh[idx_z], conf_max_logMh[idx_z] - x]
+        # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
+        yerr = [xerr[1], xerr[0]]
+        # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
+        plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
+        plt.plot(x, y, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    plt.plot((logMhbins[1:] + logMhbins[:-1])/2,
+        11.8 - (logMhbins[1:] + logMhbins[:-1])/2,
+        color='black', linestyle=':', label='Log($M_{*}/M_{\odot}$) = 11.8')
+    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+    # plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
+    #     str(iterations) + "_burn=" + str(burn) + '.pdf')
+
 
 """Plots and tests"""
 
