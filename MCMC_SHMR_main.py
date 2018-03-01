@@ -622,6 +622,7 @@ def plotAllSHMRvsSM(directory, iterations, burn):
             if idx_simu % (nsimu/10) == 0:
                 print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
         print('    All logmhalo computed')
+        print('Computing bins of halo mass..')
         for idx_bin in range(numpoints-1):
             idx_MhinBin = np.where(
                             np.logical_and(
@@ -633,8 +634,7 @@ def plotAllSHMRvsSM(directory, iterations, burn):
             avg_MSonMH[idx_bin] = np.average(smhm_tmp)
             confminus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
             confplus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
-
-            # print('Bin ' +str(idx_bin) + ' computed')
+        print('Bins computed')
         np.save(directory + '/Plots/avg_MSonMH' + str(idx_z) + '.npy', avg_MSonMH)
         np.save(directory + '/Plots/confminus_MSonMH' + str(idx_z) + '.npy', confminus_MSonMH)
         np.save(directory + '/Plots/confplus_MSonMH' + str(idx_z) + '.npy', confplus_MSonMH)
