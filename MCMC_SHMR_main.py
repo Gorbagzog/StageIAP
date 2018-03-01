@@ -189,7 +189,7 @@ def loglike(theta, idx_z, minbound, maxbound):
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
     else:
         return -np.inf
-   
+
 
 def negloglike(theta, idx_z, minbound, maxbound):
     return -loglike(theta, idx_z, minbound, maxbound)
@@ -199,7 +199,7 @@ def negloglike(theta, idx_z, minbound, maxbound):
 
 def runMCMC_allZ(paramfile):
     # Load parameters and config
-   
+
     config = getconf.ConfigGetter('getconf', [paramfile])
     save_path = config.getstr('Path.save_path')
     smf_name = config.getstr('Mass_functions.SMF')
@@ -210,7 +210,7 @@ def runMCMC_allZ(paramfile):
     maxboundfile = config.getstr('Values.maxbound')
     minbound = np.loadtxt(minboundfile, delimiter=',')
     maxbound = np.loadtxt(maxboundfile, delimiter=',')
-    starting_point_file = config.getstr('Values.starting_point') 
+    starting_point_file = config.getstr('Values.starting_point')
     starting_point = np.loadtxt(starting_point_file, delimiter=',')
     # np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
     std = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
@@ -219,7 +219,7 @@ def runMCMC_allZ(paramfile):
     # global numzbin
     load_smf(smf_name)
     load_hmf(hmf_name)
-    
+
     # Create save direcory
     now = datetime.datetime.now()
     directory = save_path + "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
@@ -299,7 +299,7 @@ def save_results(directory, chainfile, idx_z, iterations, burn):
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
     del chain
 
-    
+
 def MhPeak(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
@@ -600,12 +600,12 @@ def plotAllSHMRvsSM(directory, iterations, burn):
     Ms_max = 11.8
     nselect = 100000  # Number of samples o randomly select in the chains
     logMhbins = np.linspace(11.5, 14, num=numpoints)
-    avg_MSonMH = np.zeros([numzbin, numpoints-1])
-    confminus_MSonMH = np.zeros([numzbin, numpoints-1])
-    confplus_MSonMH = np.zeros([numzbin, numpoints-1])
     for idx_z in range(1):
         idx_z += 9
         logMs = np.linspace(9, 11.8, num=numpoints)
+        avg_MSonMH = np.zeros(numpoints-1)
+        confminus_MSonMH = np.zeros(numpoints-1)
+        confplus_MSonMH = np.zeros(numpoints-1)
         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
@@ -627,13 +627,13 @@ def plotAllSHMRvsSM(directory, iterations, burn):
                             np.logical_and(
                                 logmhalo >= logMhbins[idx_bin],
                                 logmhalo < logMhbins[idx_bin+1]
-                            ) 
+                            )
             )  # Select points that have a halo mass inside the bin
             smhm_tmp = logMs[idx_MhinBin[1]] - logmhalo[idx_MhinBin]
-            avg_MSonMH[idx_z, idx_bin] = np.average(smhm_tmp)
-            confminus_MSonMH[idx_z, idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
-            confplus_MSonMH[idx_z, idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
-        
+            avg_MSonMH[idx_bin] = np.average(smhm_tmp)
+            confminus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
+            confplus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
+
             # print('Bin ' +str(idx_bin) + ' computed')
         np.save(directory + '/Plots/avg_MSonMH' + str(idx_z) + '.npy', avg_MSonMH)
         np.save(directory + '/Plots/confminus_MSonMH' + str(idx_z) + '.npy', confminus_MSonMH)
@@ -641,27 +641,28 @@ def plotAllSHMRvsSM(directory, iterations, burn):
         mh_plotmax = np.min(logmhalo[:, -1])
         print(mh_plotmax)
         idx_mhplotmax = np.argmin(np.abs(logMhbins -  mh_plotmax))
+        plt.save(directory + '/Plots/idx_mhplotmax' + str(idx_z) + '.npy', idx_mhplotmax)
         print(idx_mhplotmax)
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[idx_z, :idx_mhplotmax-1],
+        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
             label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
         plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            confminus_MSonMH[idx_z, :idx_mhplotmax-1], confplus_MSonMH[idx_z, :idx_mhplotmax-1], alpha=0.3)
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, 
-            9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, 
+            confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
+        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+            9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
             'b--')
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, 
-            11.8 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, 
+        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+            11.8 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
             'b--')
         print('Ploted redshift bin ' + str(idx_z))
         del logmhalo
         del idx_MhinBin
         del samples
-    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(directory+'/Plots/Test=' +
-        str(iterations) + "_burn=" + str(burn) + '.pdf')
+        plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+        plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(directory+'/Plots/Test' +
+        str(iterations) + "_burn=" + str(burn) + 'z' + str(idx_z) + '.pdf')
 
 """Plots and tests"""
 
