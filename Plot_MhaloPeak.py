@@ -12,7 +12,9 @@ MhaloTinker = np.loadtxt("../Plots/MhPeak/Tinker08_Dm200.txt")
 MhaloCosmos = np.loadtxt("../Plots/MhPeak/COSMOS.txt")
 MhaloCandels = np.loadtxt("../Plots/MhPeak/Candels.txt")
 
-MhaloCosmosTinker = np.loadtxt("../MCMC/MhPeak_Tinker08.txt")
+MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_Tinker08.txt")
+
+MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
 
@@ -134,7 +136,13 @@ plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle
 #              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
 #              label='Case 3', markersize=7)
 plt.errorbar(MhaloCosmosTinker[:, 0], MhaloCosmosTinker[:, 1], yerr=MhaloCosmosTinker[:, 2],
-             fmt='o', color='red', capsize=3, label='MCMC with Tinker HMF',
+             fmt='o', color='blue', capsize=3, label='MCMC with Tinker HMF',
+             markersize=7)
+plt.errorbar(MhaloCosmosMCMC[:-2, 0], MhaloCosmosMCMC[:-2, 1], yerr=MhaloCosmosMCMC[:-2, 2],
+             fmt='o', color='red', capsize=3, label='MCMC with COSMOS + Bolshoi Tot',
+             markersize=7)
+plt.errorbar(MhaloCosmosMCMC[8:, 0], MhaloCosmosMCMC[8:, 1], yerr=MhaloCosmosMCMC[8:, 2],
+             fmt='-', linestyle='none', color='red', capsize=3, lolims=True,
              markersize=7)
 plt.xlabel('Redshift', size=20)
 plt.ylabel('Log($\mathrm{M_{halo}^{peak}}/\mathrm{M_{\odot}}$)', size=20)
