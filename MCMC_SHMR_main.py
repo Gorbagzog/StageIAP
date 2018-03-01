@@ -12,11 +12,11 @@ Started on december 18th by Louis Legrand at IAP and IAS.
 
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
+# import sys
 import emcee
 from astropy.cosmology import LambdaCDM
-import scipy.optimize as op
-from scipy import signal
+# import scipy.optimize as op
+# from scipy import signal
 import corner
 from getdist import plots, MCSamples
 import time
@@ -28,21 +28,21 @@ from shutil import copyfile
 
 def load_smf(smf_name):
     """Load the SMF"""
+    global redshifts
+    global numzbin
+    global smf
     if smf_name == 'cosmos':
         print('Use the COSMOS SMF')
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
-        global redshifts
-        global redshiftsbin
         redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
         redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
-        global numzbin
         numzbin = np.size(redshifts) - 1
         print('numzbin: '+str(numzbin))
-        global smf_cosmos
-        smf_cosmos = []
+
+        smf = []
         for i in range(10):
-            smf_cosmos.append(np.loadtxt(
+            smf.append(np.loadtxt(
                 # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
                 # '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
                 # + str(i) + '.dat')
@@ -55,24 +55,55 @@ def load_smf(smf_name):
         # Bolshoi-Planck cosmo : (flat LCMD)
         # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
         BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
-
         # Davidzon+17 SMF cosmo : (flat LCDM)
         # Om = 0.3, Ol = 0.7, h=0.7
         D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
-
         for i in range(numzbin):
             # Correction of the comoving Volume :
             VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
             VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
-
             """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and
             are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
-            smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
-
+            smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxBP)
             # Correction of the measured stellar mass
             # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
-            smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
-
+            smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
+    if smf_name == 'candels':
+        print('Use the COSMOS SMF')
+        """Load the SMF from Candels Grazian"""
+        # Code is copied from IaryDavidzonSMF.py as of 12 june
+        # redshifts of the Candels+15 data
+        redshifts = np.array([3.5, 4.5, 5.5, 6.5, 7.5])
+        numzbin = np.size(redshifts)-1
+        print('numzbin: '+str(numzbin))
+        smf = []
+        for i in range(numzbin):
+            smf.append(np.loadtxt(
+                # Select the SMFs to use : JEWELS or v2
+                # '../Data/Candels/grazian15_68CL_z' + str(i+4) + '_JEWELS.txt')
+                '../Data/Candels/grazian15_68CL_v2_z' + str(i+4) + '.txt')
+            )
+        """Adapt SMF to match the Bolshoi-Planck Cosmology"""
+        # Bolshoi-Planck cosmo : (flat LCMD)
+        # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
+        BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
+        # CANDELS+17 SMF cosmo : (flat LCDM) (same as Davidzon17_COSMO)
+        # Om = 0.3, Ol = 0.7, h=0.7
+        C17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
+        for i in range(numzbin):
+            # Correction of the comoving Volume :
+            VmaxD17 = C17_Cosmo.comoving_volume(redshifts[i+1]) - C17_Cosmo.comoving_volume(redshifts[i])
+            VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+            # Add the log, equivalent to multiply by VmaxD17/VmaxBP
+            smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+            smf[i][:, 2] = smf[i][:, 2] + np.log10(VmaxD17/VmaxBP)
+            smf[i][:, 3] = smf[i][:, 3] + np.log10(VmaxD17/VmaxBP)
+            # Correction of the measured stellar mass
+            # Equivalent to multiply by (BP_Cosmo.H0/C17_Cosmo.H0)**-2
+            smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/C17_Cosmo.H0)
+            """/!\ problem with error bars in candels SMF !!"""
+            # plt.errorbar(smf[idx_z][:, 0], smf[idx_z][:, 1],
+            #   yerr=[smf[idx_z][:,1]-smf[idx_z][:, 2], smf[idx_z][:, 3]- smf[idx_z][:,1]])
 
 def load_hmf(hmf_name):
     """Load the HMF"""
@@ -166,18 +197,17 @@ def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     return logphitrue
 
 
-
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """"return the chi**2 between the observed and the expected SMF"""
-    select = np.where(smf_cosmos[idx_z][:, 1] > -7)  # select points where the smf is defined
+    select = np.where(smf[idx_z][:, 1] > -7)[0]  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
-    logMs = smf_cosmos[idx_z][select, 0]
+    logMs = smf[idx_z][select[:], 0]
     pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
             # When using the Vmax directly (give the error bars directly, in a linear scale)
             # Need to use a linear scale to compute the chi2 with the right uncertainty
-            ((pred - 10**smf_cosmos[idx_z][:, 1]) / (
-                10**(smf_cosmos[idx_z][:, 2] + smf_cosmos[idx_z][:, 1]) - 10**smf_cosmos[idx_z][:, 1]))**2
+            ((pred - 10**smf[idx_z][select, 1]) / (
+                10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
         )
     return chi2
 
@@ -197,9 +227,10 @@ def negloglike(theta, idx_z, minbound, maxbound):
 
 """ Run MCMC """
 
-def runMCMC_allZ(paramfile):
-    # Load parameters and config
 
+def runMCMC_allZ(paramfile):
+    """Main function to run all MCMC on all zbins based on the param file"""
+    # Load parameters and config
     config = getconf.ConfigGetter('getconf', [paramfile])
     save_path = config.getstr('Path.save_path')
     smf_name = config.getstr('Mass_functions.SMF')
@@ -334,10 +365,10 @@ def plotSMF(directory, idx_z, iterations, burn):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
-    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-    logMs = smf_cosmos[idx_z][select, 0]
-    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+    select = np.where(smf[idx_z][:, 1] > -1000)[0]
+    logMs = smf[idx_z][select, 0]
+    plt.errorbar(logMs, smf[idx_z][select, 1],
+        yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     plt.ylim(-7.5, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
@@ -782,10 +813,10 @@ def plotSHMR_delta(directory, iterations, burn):
 # Compare Observed and predicted SMF :
 # load_smf()
 # load_hmf()
-# select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
-# logMs = smf_cosmos[idx_z][select, 0]
-# plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
-#     yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
+# select = np.where(smf[idx_z][:, 1] > -1000)[0]
+# logMs = smf[idx_z][select, 0]
+# plt.errorbar(logMs, smf[idx_z][select, 1],
+#     yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
 # plt.ylim(-6, 0)
 # # logphi = log_phi_direct(logMs, idx_z, 12.2, 10.8, 0.3, 0, 0.3)
 # """ Leauthaud fit parameters for idx_z=0, we note a small difference maybe coming form the HMF"""
