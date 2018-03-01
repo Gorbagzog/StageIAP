@@ -641,7 +641,7 @@ def plotAllSHMRvsSM(directory, iterations, burn):
         mh_plotmax = np.min(logmhalo[:, -1])
         print(mh_plotmax)
         idx_mhplotmax = np.argmin(np.abs(logMhbins -  mh_plotmax))
-        plt.save(directory + '/Plots/idx_mhplotmax' + str(idx_z) + '.npy', idx_mhplotmax)
+        np.save(directory + '/Plots/idx_mhplotmax' + str(idx_z) + '.npy', idx_mhplotmax)
         print(idx_mhplotmax)
         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
             label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
@@ -663,6 +663,37 @@ def plotAllSHMRvsSM(directory, iterations, burn):
         plt.tight_layout()
         plt.savefig(directory+'/Plots/Test' +
         str(iterations) + "_burn=" + str(burn) + 'z' + str(idx_z) + '.pdf')
+
+
+def plotAllSHMRvsSM(directory):
+    """Load previously computed SHMR(HM) and plot them in one figure"""
+    numzbin = 10
+    numpoints = 100
+    avg_MSonMH = np.zeros(numpoints-1)
+    confminus_MSonMH = np.zeros(numpoints-1)
+    confplus_MSonMH = np.zeros(numpoints-1)
+    logMhbins = np.linspace(11.5, 14, num=numpoints)
+    plt.figure()
+    redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+    for idx_z in range(numzbin):
+        avg_MSonMH = np.load(directory + '/avg_MSonMH' + str(idx_z) + '.npy')
+        confminus_MSonMH = np.load(directory + '/confminus_MSonMH' + str(idx_z) + '.npy')
+        confplus_MSonMH = np.load(directory + '/confplus_MSonMH' + str(idx_z) + '.npy')
+        idx_mhplotmax = np.load(directory + '/idx_mhplotmax' + str(idx_z) + '.npy')
+        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
+            label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+            confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
+    plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+        9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+        color='black', linestyle=':')
+    plt.plot((logMhbins[1:] + logMhbins[:-1])/2,
+        11.5 - (logMhbins[1:] + logMhbins[:-1])/2,
+        color='black', linestyle=':')
+    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.legend()
+    plt.tight_layout()
 
 """Plots and tests"""
 
