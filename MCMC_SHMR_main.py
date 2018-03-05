@@ -805,24 +805,40 @@ def plotSHMR_delta(directory, iterations, burn):
 
 def plotMsMh_fixedMh(directory):
     load_smf('cosmos')
-    av_logMh = np.load('../MCMC_select/av_logMh.npy')
-    conf_min_logMh = np.load('../MCMC_select/conf_min_logMh.npy')
-    conf_max_logMh = np.load('../MCMC_select/conf_max_logMh.npy')
-    idx_12 = np.empty(numzbin)
-    idx_13 = np.empty(numzbin)
-    smhm_12 = np.empty(numzbin)
-    conf_smhm_12 = np.empty(numzbin)
-    smhm_13 = np.empty(numzbin)
-    confmin_smhm_13 = np.empty(numzbin)
-    confmax_smhm_13 = np.empty(numzbin)
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
+    print(Ms_min)
+    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
+    Ms_max = 11.8
+    numpoints = 100
+    logMs = np.empty([numzbin, numpoints])
     for idx_z in range(numzbin):
-        idx_12[idx_z] = np.argmin(av_logMh[idx_z, :] - 12)
-        idx_13[idx_z] = np.argmin(av_logMh[idx_z, :] - 13)
-        smhm_12[idx_z] = logMs[idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
-        conf_smhm_12[idx_z] = [conf_min_logMh[idx_12[idx_z]], conf_max_logMh[idx_12[idx_z]]]
-        smhm_13[idx_z] = logMs[idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]
-    plt.plot(redshiftsbin, smhm_12)
-
+        logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
+    av_logMh = np.load('../MCMC_Tinker_save_3-5/av_logMh.npy')
+    conf_min_logMh = np.load('../MCMC_Tinker_save_3-5/conf_min_logMh.npy')
+    conf_max_logMh = np.load('../MCMC_Tinker_save_3-5/conf_max_logMh.npy')
+    idx_12 = np.zeros(numzbin).astype('int')
+    idx_13 = np.zeros(numzbin).astype('int')
+    smhm_12 = np.zeros(numzbin)
+    conf_smhm_12 = np.zeros([2, numzbin])
+    smhm_13 = np.zeros(numzbin)
+    conf_smhm_13 = np.zeros([2, numzbin])
+    for idx_z in range(numzbin):
+        idx_12[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 12))
+        idx_13[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 13))
+        smhm_12[idx_z] = logMs[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
+        smhm_13[idx_z] = logMs[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]
+        # The error interval on the log of the SMHM ratio is the same as the error on the Halo mass
+        conf_smhm_12[:, idx_z] = [av_logMh[idx_z, idx_12[idx_z]] - conf_min_logMh[idx_z, idx_12[idx_z]], 
+            conf_max_logMh[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]]
+        conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]], 
+            conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
+    plt.figure()
+    plt.errorbar(redshiftsbin, smhm_12, yerr=conf_smhm_12, capsize=3, label='$M_{h} = 10^{12} M_{\odot}$')
+    plt.errorbar(redshiftsbin, smhm_13, yerr=conf_smhm_13, capsize=3, label='$M_{h} = 10^{13} M_{\odot}$')
+    plt.xlabel('Redshift', size=20)
+    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.legend()
+    plt.show()
 
 """Plots and tests"""
 
