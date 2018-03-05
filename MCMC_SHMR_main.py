@@ -263,7 +263,7 @@ def runMCMC_allZ(paramfile):
         os.makedirs(directory+'/Results')
         print('Created new directory')
     # Copy parameter files in the save directory
-    copyfile(paramfile, directory + '/' + starting_point_file)
+    copyfile(starting_point_file, directory + '/' + starting_point_file)
     copyfile(paramfile, directory + '/' + paramfile)
     copyfile(minboundfile, directory + '/' + minboundfile)
     copyfile(maxboundfile, directory + '/' + maxboundfile)
