@@ -264,14 +264,14 @@ def runMCMC_allZ(paramfile):
         os.makedirs(directory+'/Results')
         print('Created new directory')
     # Copy parameter files in the save directory
-    copyfile(paramfile, directory + '/' + starting_point_file)
+    copyfile(starting_point_file, directory + '/' + starting_point_file)
     copyfile(paramfile, directory + '/' + paramfile)
     copyfile(minboundfile, directory + '/' + minboundfile)
     copyfile(maxboundfile, directory + '/' + maxboundfile)
 
     # run all MCMC for all zbins
-    for idx_z in range(numzbin):
-    # for idx_z in [6, 7, 8, 9]:
+    # for idx_z in range(numzbin):
+    for idx_z in [0, 9]:
         print('Starting MCMC run for idx_z =' + str(idx_z) )
         print('Min bound: ' + str(minbound[idx_z]))
         print('Max bound: ' + str(maxbound[idx_z]))
@@ -441,6 +441,8 @@ def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn):
     # avg_mhpeak = np.mean(mhpeak)
     med_mhpeak = np.median(mhpeak)
     std_mhpeak = np.std(mhpeak)
+    with open(directory + "/MhaloPeak.txt", "a") as myfile:
+        myfile.write(str(idx_z) + "  " + str(med_mhpeak) + "  " + str(std_mhpeak) + "\n")
     plt.figure()
     plt.hist(mhpeak, bins=100)
     plt.axvline(med_mhpeak, color='orange')
