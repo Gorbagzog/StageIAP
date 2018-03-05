@@ -813,9 +813,9 @@ def plotMsMh_fixedMh(directory):
     logMs = np.empty([numzbin, numpoints])
     for idx_z in range(numzbin):
         logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
-    av_logMh = np.load('../MCMC_Tinker_save_3-5/av_logMh.npy')
-    conf_min_logMh = np.load('../MCMC_Tinker_save_3-5/conf_min_logMh.npy')
-    conf_max_logMh = np.load('../MCMC_Tinker_save_3-5/conf_max_logMh.npy')
+    av_logMh = np.load(directory + '/av_logMh.npy')
+    conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
+    conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
     idx_12 = np.zeros(numzbin).astype('int')
     idx_13 = np.zeros(numzbin).astype('int')
     smhm_12 = np.zeros(numzbin)
@@ -828,9 +828,9 @@ def plotMsMh_fixedMh(directory):
         smhm_12[idx_z] = logMs[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
         smhm_13[idx_z] = logMs[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]
         # The error interval on the log of the SMHM ratio is the same as the error on the Halo mass
-        conf_smhm_12[:, idx_z] = [av_logMh[idx_z, idx_12[idx_z]] - conf_min_logMh[idx_z, idx_12[idx_z]], 
+        conf_smhm_12[:, idx_z] = [av_logMh[idx_z, idx_12[idx_z]] - conf_min_logMh[idx_z, idx_12[idx_z]],
             conf_max_logMh[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]]
-        conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]], 
+        conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]],
             conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
     plt.figure()
     plt.errorbar(redshiftsbin, smhm_12, yerr=conf_smhm_12, capsize=3, label='$M_{h} = 10^{12} M_{\odot}$')
