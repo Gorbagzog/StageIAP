@@ -31,6 +31,7 @@ def load_smf(smf_name):
     global redshifts
     global numzbin
     global smf
+    global redshiftsbin
     if smf_name == 'cosmos':
         print('Use the COSMOS SMF')
         """Load the SMF from Iary Davidzon+17"""
@@ -631,8 +632,8 @@ def plotAllSHMRvsSM(directory, iterations, burn):
     Ms_max = 11.8
     nselect = 100000  # Number of samples o randomly select in the chains
     logMhbins = np.linspace(11.5, 14, num=numpoints)
-    for idx_z in range(1):
-        idx_z += 9
+    for idx_z in range(numzbin):
+        # idx_z += 9
         logMs = np.linspace(9, 11.8, num=numpoints)
         avg_MSonMH = np.zeros(numpoints-1)
         confminus_MSonMH = np.zeros(numpoints-1)
@@ -799,6 +800,26 @@ def plotSHMR_delta(directory, iterations, burn):
     plt.show()
     # plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
     #     str(iterations) + "_burn=" + str(burn) + '.pdf')
+
+def plotMsMh_fixedMh(directory):
+    load_smf('cosmos')
+    av_logMh = np.load('../MCMC_select/av_logMh.npy')
+    conf_min_logMh = np.load('../MCMC_select/conf_min_logMh.npy')
+    conf_max_logMh = np.load('../MCMC_select/conf_max_logMh.npy')
+    idx_12 = np.empty(numzbin)
+    idx_13 = np.empty(numzbin)
+    smhm_12 = np.empty(numzbin)
+    conf_smhm_12 = np.empty(numzbin)
+    smhm_13 = np.empty(numzbin)
+    confmin_smhm_13 = np.empty(numzbin)
+    confmax_smhm_13 = np.empty(numzbin)
+    for idx_z in range(numzbin):
+        idx_12[idx_z] = np.argmin(av_logMh[idx_z, :] - 12)
+        idx_13[idx_z] = np.argmin(av_logMh[idx_z, :] - 13)
+        smhm_12[idx_z] = logMs[idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
+        conf_smhm_12[idx_z] = [conf_min_logMh[idx_12[idx_z]], conf_max_logMh[idx_12[idx_z]]]
+        smhm_13[idx_z] = logMs[idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]
+    plt.plot(redshiftsbin, smhm_12)
 
 
 """Plots and tests"""
