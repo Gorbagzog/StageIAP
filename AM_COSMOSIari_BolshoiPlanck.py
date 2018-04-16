@@ -51,7 +51,8 @@ for i in range(numredshift_haloes):
 # Plot central HMF and central+satellite HMF
 plt.close('all')
 plt.figure()
-for i in [0, 20, 40, 60]:
+#for i in [0, 20, 40, 60]:
+for i in [redshift_id_selec[0]]:
     p = plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 2], label='z='+str(redshift_haloes[i]))
     plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 1], linestyle='--', color=p[0].get_color())
 plt.ylim(10**-6, 10**-0.5)

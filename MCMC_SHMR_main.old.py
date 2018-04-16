@@ -12,11 +12,11 @@ Started on december 18th by Louis Legrand at IAP and IAS.
 
 import numpy as np
 import matplotlib.pyplot as plt
-# import sys
+import sys
 import emcee
 from astropy.cosmology import LambdaCDM
-# import scipy.optimize as op
-# from scipy import signal
+import scipy.optimize as op
+from scipy import signal
 import corner
 from getdist import plots, MCSamples
 import time
@@ -28,22 +28,21 @@ from shutil import copyfile
 
 def load_smf(smf_name):
     """Load the SMF"""
-    global redshifts
-    global numzbin
-    global smf
-    global redshiftsbin
     if smf_name == 'cosmos':
         print('Use the COSMOS SMF')
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
+        global redshifts
+        global redshiftsbin
         redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
         redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
+        global numzbin
         numzbin = np.size(redshifts) - 1
         print('numzbin: '+str(numzbin))
-
-        smf = []
+        global smf_cosmos
+        smf_cosmos = []
         for i in range(10):
-            smf.append(np.loadtxt(
+            smf_cosmos.append(np.loadtxt(
                 # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
                 # '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
                 # + str(i) + '.dat')
@@ -56,55 +55,24 @@ def load_smf(smf_name):
         # Bolshoi-Planck cosmo : (flat LCMD)
         # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
         BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
+
         # Davidzon+17 SMF cosmo : (flat LCDM)
         # Om = 0.3, Ol = 0.7, h=0.7
         D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
+
         for i in range(numzbin):
             # Correction of the comoving Volume :
             VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
             VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+
             """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and
             are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
-            smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+            smf_cosmos[i][:, 1] = smf_cosmos[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+
             # Correction of the measured stellar mass
             # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
-            smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
-    if smf_name == 'candels':
-        print('Use the COSMOS SMF')
-        """Load the SMF from Candels Grazian"""
-        # Code is copied from IaryDavidzonSMF.py as of 12 june
-        # redshifts of the Candels+15 data
-        redshifts = np.array([3.5, 4.5, 5.5, 6.5, 7.5])
-        numzbin = np.size(redshifts)-1
-        print('numzbin: '+str(numzbin))
-        smf = []
-        for i in range(numzbin):
-            smf.append(np.loadtxt(
-                # Select the SMFs to use : JEWELS or v2
-                # '../Data/Candels/grazian15_68CL_z' + str(i+4) + '_JEWELS.txt')
-                '../Data/Candels/grazian15_68CL_v2_z' + str(i+4) + '.txt')
-            )
-        """Adapt SMF to match the Bolshoi-Planck Cosmology"""
-        # Bolshoi-Planck cosmo : (flat LCMD)
-        # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
-        BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
-        # CANDELS+17 SMF cosmo : (flat LCDM) (same as Davidzon17_COSMO)
-        # Om = 0.3, Ol = 0.7, h=0.7
-        C17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
-        for i in range(numzbin):
-            # Correction of the comoving Volume :
-            VmaxD17 = C17_Cosmo.comoving_volume(redshifts[i+1]) - C17_Cosmo.comoving_volume(redshifts[i])
-            VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
-            # Add the log, equivalent to multiply by VmaxD17/VmaxBP
-            smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxBP)
-            smf[i][:, 2] = smf[i][:, 2] + np.log10(VmaxD17/VmaxBP)
-            smf[i][:, 3] = smf[i][:, 3] + np.log10(VmaxD17/VmaxBP)
-            # Correction of the measured stellar mass
-            # Equivalent to multiply by (BP_Cosmo.H0/C17_Cosmo.H0)**-2
-            smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/C17_Cosmo.H0)
-            """/!\ problem with error bars in candels SMF !!"""
-            # plt.errorbar(smf[idx_z][:, 0], smf[idx_z][:, 1],
-            #   yerr=[smf[idx_z][:,1]-smf[idx_z][:, 2], smf[idx_z][:, 3]- smf[idx_z][:,1]])
+            smf_cosmos[i][:, 0] = smf_cosmos[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
+
 
 def load_hmf(hmf_name):
     """Load the HMF"""
@@ -198,17 +166,18 @@ def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     return logphitrue
 
 
+
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """"return the chi**2 between the observed and the expected SMF"""
-    select = np.where(smf[idx_z][:, 1] > -7)[0]  # select points where the smf is defined
+    select = np.where(smf_cosmos[idx_z][:, 1] > -7)  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
-    logMs = smf[idx_z][select[:], 0]
+    logMs = smf_cosmos[idx_z][select, 0]
     pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     chi2 = np.sum(
             # When using the Vmax directly (give the error bars directly, in a linear scale)
             # Need to use a linear scale to compute the chi2 with the right uncertainty
-            ((pred - 10**smf[idx_z][select, 1]) / (
-                10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
+            ((pred - 10**smf_cosmos[idx_z][:, 1]) / (
+                10**(smf_cosmos[idx_z][:, 2] + smf_cosmos[idx_z][:, 1]) - 10**smf_cosmos[idx_z][:, 1]))**2
         )
     return chi2
 
@@ -220,7 +189,7 @@ def loglike(theta, idx_z, minbound, maxbound):
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
     else:
         return -np.inf
-
+   
 
 def negloglike(theta, idx_z, minbound, maxbound):
     return -loglike(theta, idx_z, minbound, maxbound)
@@ -228,10 +197,9 @@ def negloglike(theta, idx_z, minbound, maxbound):
 
 """ Run MCMC """
 
-
 def runMCMC_allZ(paramfile):
-    """Main function to run all MCMC on all zbins based on the param file"""
     # Load parameters and config
+   
     config = getconf.ConfigGetter('getconf', [paramfile])
     save_path = config.getstr('Path.save_path')
     smf_name = config.getstr('Mass_functions.SMF')
@@ -242,7 +210,7 @@ def runMCMC_allZ(paramfile):
     maxboundfile = config.getstr('Values.maxbound')
     minbound = np.loadtxt(minboundfile, delimiter=',')
     maxbound = np.loadtxt(maxboundfile, delimiter=',')
-    starting_point_file = config.getstr('Values.starting_point')
+    starting_point_file = config.getstr('Values.starting_point') 
     starting_point = np.loadtxt(starting_point_file, delimiter=',')
     # np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
     std = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
@@ -251,7 +219,7 @@ def runMCMC_allZ(paramfile):
     # global numzbin
     load_smf(smf_name)
     load_hmf(hmf_name)
-
+    
     # Create save direcory
     now = datetime.datetime.now()
     directory = save_path + "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
@@ -264,14 +232,13 @@ def runMCMC_allZ(paramfile):
         os.makedirs(directory+'/Results')
         print('Created new directory')
     # Copy parameter files in the save directory
-    copyfile(starting_point_file, directory + '/' + starting_point_file)
     copyfile(paramfile, directory + '/' + paramfile)
     copyfile(minboundfile, directory + '/' + minboundfile)
     copyfile(maxboundfile, directory + '/' + maxboundfile)
 
     # run all MCMC for all zbins
-    # for idx_z in range(numzbin):
-    for idx_z in [0, 9]:
+    for idx_z in range(numzbin):
+    # for idx_z in [6, 7, 8, 9]:
         print('Starting MCMC run for idx_z =' + str(idx_z) )
         print('Min bound: ' + str(minbound[idx_z]))
         print('Max bound: ' + str(maxbound[idx_z]))
@@ -331,7 +298,7 @@ def save_results(directory, chainfile, idx_z, iterations, burn):
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
     del chain
 
-
+    
 def MhPeak(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
@@ -366,10 +333,10 @@ def plotSMF(directory, idx_z, iterations, burn):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
-    select = np.where(smf[idx_z][:, 1] > -1000)[0]
-    logMs = smf[idx_z][select, 0]
-    plt.errorbar(logMs, smf[idx_z][select, 1],
-        yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
+    select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+    logMs = smf_cosmos[idx_z][select, 0]
+    plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
+        yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
     plt.ylim(-7.5, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
@@ -441,8 +408,6 @@ def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn):
     # avg_mhpeak = np.mean(mhpeak)
     med_mhpeak = np.median(mhpeak)
     std_mhpeak = np.std(mhpeak)
-    with open(directory + "/MhaloPeak.txt", "a") as myfile:
-        myfile.write(str(idx_z) + "  " + str(med_mhpeak) + "  " + str(std_mhpeak) + "\n")
     plt.figure()
     plt.hist(mhpeak, bins=100)
     plt.axvline(med_mhpeak, color='orange')
@@ -624,220 +589,46 @@ def plotFakeAllSigmaSHMRvsMH(iterations, burn):
 def plotAllSHMRvsSM(directory, iterations, burn):
     load_smf('cosmos')
     load_hmf('bolshoi_tot')
-    # plt.close('all')
+    #plt.close('all')
     plt.figure()
     numpoints = 100
-    # Use the interploation formula of Mlim(z) in Davidzon et al. 2017
     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
-    print(Ms_min)
-    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-    Ms_max = 11.8
-    nselect = 100000  # Number of samples o randomly select in the chains
     logMhbins = np.linspace(11.5, 14, num=numpoints)
-    for idx_z in range(numzbin):
-        # idx_z += 9
-        logMs = np.linspace(9, 11.8, num=numpoints)
-        avg_MSonMH = np.zeros(numpoints-1)
-        confminus_MSonMH = np.zeros(numpoints-1)
-        confplus_MSonMH = np.zeros(numpoints-1)
+    avg_MSonMH = np.zeros([numzbin, numpoints-1])
+    confminus_MSonMH = np.zeros([numzbin, numpoints-1])
+    confplus_MSonMH = np.zeros([numzbin, numpoints-1])
+    for idx_z in range(1):
+        logMs = np.linspace(Ms_min[idx_z], 11.8, num=numpoints)
         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        #print(len(samples))
-        samples = samples[np.random.randint(len(samples), size=nselect)]
-        del chain
-        print('Chain loaded for idx_z = '+str(idx_z))
-        nsimu = samples.shape[0]
-        print(nsimu)
-        logmhalo = np.zeros([nsimu, numpoints])
-        for idx_simu in range(nsimu):
-            # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
-            logmhalo[idx_simu, :] = logMh(logMs, *samples[idx_simu][:-1])
-            if idx_simu % (nsimu/10) == 0:
-                print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
-        print('    All logmhalo computed')
-        print('Computing bins of halo mass..')
+        samples = samples[np.random.randint(len(samples), size=100000)]
+        # chain.close()
+        logmhalo = np.zeros([samples.shape[0], numpoints])
+        for idx_simu in range(samples.shape[0]):
+            M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
+            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
         for idx_bin in range(numpoints-1):
             idx_MhinBin = np.where(
                             np.logical_and(
                                 logmhalo >= logMhbins[idx_bin],
                                 logmhalo < logMhbins[idx_bin+1]
                             )
-            )  # Select points that have a halo mass inside the bin
+            )
             smhm_tmp = logMs[idx_MhinBin[1]] - logmhalo[idx_MhinBin]
-            avg_MSonMH[idx_bin] = np.average(smhm_tmp)
-            confminus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
-            confplus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
-        print('Bins computed')
-        np.save(directory + '/Plots/avg_MSonMH' + str(idx_z) + '.npy', avg_MSonMH)
-        np.save(directory + '/Plots/confminus_MSonMH' + str(idx_z) + '.npy', confminus_MSonMH)
-        np.save(directory + '/Plots/confplus_MSonMH' + str(idx_z) + '.npy', confplus_MSonMH)
-        mh_plotmax = np.min(logmhalo[:, -1])
-        print(mh_plotmax)
-        idx_mhplotmax = np.argmin(np.abs(logMhbins -  mh_plotmax))
-        np.save(directory + '/Plots/idx_mhplotmax' + str(idx_z) + '.npy', idx_mhplotmax)
-        print(idx_mhplotmax)
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
+            avg_MSonMH[idx_z, idx_bin] = np.average(smhm_tmp)
+            confminus_MSonMH[idx_z, idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
+            confplus_MSonMH[idx_z, idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
+        plt.plot((logMhbins[1:] + logMhbins[:-1])/2, avg_MSonMH[idx_z], 'ro',
             label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-        plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            'b--')
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            11.8 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            'b--')
-        print('Ploted redshift bin ' + str(idx_z))
-        del logmhalo
-        del idx_MhinBin
-        del samples
-        plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-        plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(directory+'/Plots/Test' +
-        str(iterations) + "_burn=" + str(burn) + 'z' + str(idx_z) + '.pdf')
-
-
-def plotAllSHMRvsSM(directory):
-    """Load previously computed SHMR(HM) and plot them in one figure"""
-    numzbin = 10
-    numpoints = 100
-    avg_MSonMH = np.zeros(numpoints-1)
-    confminus_MSonMH = np.zeros(numpoints-1)
-    confplus_MSonMH = np.zeros(numpoints-1)
-    logMhbins = np.linspace(11.5, 14, num=numpoints)
-    plt.figure()
-    redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-    for idx_z in range(numzbin):
-        avg_MSonMH = np.load(directory + '/avg_MSonMH' + str(idx_z) + '.npy')
-        confminus_MSonMH = np.load(directory + '/confminus_MSonMH' + str(idx_z) + '.npy')
-        confplus_MSonMH = np.load(directory + '/confplus_MSonMH' + str(idx_z) + '.npy')
-        idx_mhplotmax = np.load(directory + '/idx_mhplotmax' + str(idx_z) + '.npy')
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
-            label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-        plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
-    # plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-    #     9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-    #     color='black', linestyle=':')
-    # plt.plot((logMhbins[1:] + logMhbins[:-1])/2,
-    #     11.8 - (logMhbins[1:] + logMhbins[:-1])/2,
-    #     color='black', linestyle=':')
+        plt.fill_between((logMhbins[1:] + logMhbins[:-1])/2,
+            confminus_MSonMH[idx_z], confplus_MSonMH[idx_z], alpha=0.3)
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
     plt.tight_layout()
-
-
-def plotSHMR_delta(directory, iterations, burn):
-    load_smf('cosmos')
-    load_hmf('bolshoi_tot')
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
-    print(Ms_min)
-    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-    Ms_max = 11.8
-    numpoints = 100
-    logMs = np.empty([numzbin, numpoints])
-    nselect = 100000  # Number of samples o randomly select in the chains
-    logMhbins = np.linspace(11.5, 14, num=numpoints)
-    av_logMh = np.empty([numzbin, numpoints])
-    conf_min_logMh = np.empty([numzbin, numpoints])
-    conf_max_logMh = np.empty([numzbin, numpoints])
-    for idx_z in range(numzbin):
-        logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
-        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        chain = np.load(chainfile)
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        #print(len(samples))
-        samples = samples[np.random.randint(len(samples), size=nselect)]
-        del chain
-        print('Chain loaded for idx_z = '+str(idx_z))
-        nsimu = samples.shape[0]
-        print(nsimu)
-        logmhalo = np.zeros([nsimu, numpoints])
-        for idx_simu in range(nsimu):
-            # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
-            logmhalo[idx_simu, :] = logMh(logMs[idx_z], *samples[idx_simu][:-1])
-            if idx_simu % (nsimu/10) == 0:
-                print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
-        print('    All logmhalo computed')
-        av_logMh[idx_z] = np.average(logmhalo, axis=0)
-        conf_min_logMh[idx_z] = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
-        conf_max_logMh[idx_z] = np.percentile(logmhalo, 84, axis=0)
-    np.save(directory + '/av_logMh.npy', av_logMh)
-    np.save(directory + '/conf_min_logMh.npy', conf_min_logMh)
-    np.save(directory + '/conf_max_logMh.npy', conf_max_logMh)
-    print('Arrays saved')
-    # av_logMh = np.load(directory + '/av_logMh.npy')
-    # conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
-    # conf_max_logMh = np.load(directory + '/conf_min_logMh.npy')
-    plt.figure()
-    for idx_z in range(numzbin-2):
-        plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], alpha=0.3)
-        plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
-    plt.figure()
-    for idx_z in range(numzbin-2):
-        x = av_logMh[idx_z]
-        y = logMs[idx_z] - av_logMh[idx_z]
-        xerr = [x - conf_min_logMh[idx_z], conf_max_logMh[idx_z] - x]
-        # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
-        yerr = [xerr[1], xerr[0]]
-        # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
-        plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
-        plt.plot(x, y, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-    }$) = 11.8')
-    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-    # plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
-    #     str(iterations) + "_burn=" + str(burn) + '.pdf')
-
-def plotMsMh_fixedMh(directory):
-    load_smf('cosmos')
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
-    print(Ms_min)
-    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-    Ms_max = 11.8
-    numpoints = 100
-    logMs = np.empty([numzbin, numpoints])
-    for idx_z in range(numzbin):
-        logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
-    av_logMh = np.load(directory + '/av_logMh.npy')
-    conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
-    conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
-    idx_12 = np.zeros(numzbin).astype('int')
-    idx_13 = np.zeros(numzbin).astype('int')
-    smhm_12 = np.zeros(numzbin)
-    conf_smhm_12 = np.zeros([2, numzbin])
-    smhm_13 = np.zeros(numzbin)
-    conf_smhm_13 = np.zeros([2, numzbin])
-    for idx_z in range(numzbin):
-        idx_12[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 12))
-        idx_13[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 13))
-        smhm_12[idx_z] = logMs[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
-        smhm_13[idx_z] = logMs[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]
-        # The error interval on the log of the SMHM ratio is the same as the error on the Halo mass
-        conf_smhm_12[:, idx_z] = [av_logMh[idx_z, idx_12[idx_z]] - conf_min_logMh[idx_z, idx_12[idx_z]],
-            conf_max_logMh[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]]
-        conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]],
-            conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
-    plt.figure()
-    plt.errorbar(redshiftsbin, smhm_12, yerr=conf_smhm_12, capsize=3, label='$M_{h} = 10^{12} M_{\odot}$')
-    plt.errorbar(redshiftsbin, smhm_13, yerr=conf_smhm_13, capsize=3, label='$M_{h} = 10^{13} M_{\odot}$')
-    plt.xlabel('Redshift', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    plt.savefig(directory+'/Plots/Test=' +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 """Plots and tests"""
 
@@ -851,10 +642,10 @@ def plotMsMh_fixedMh(directory):
 # Compare Observed and predicted SMF :
 # load_smf()
 # load_hmf()
-# select = np.where(smf[idx_z][:, 1] > -1000)[0]
-# logMs = smf[idx_z][select, 0]
-# plt.errorbar(logMs, smf[idx_z][select, 1],
-#     yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
+# select = np.where(smf_cosmos[idx_z][:, 1] > -1000)[0]
+# logMs = smf_cosmos[idx_z][select, 0]
+# plt.errorbar(logMs, smf_cosmos[idx_z][select, 1],
+#     yerr=[smf_cosmos[idx_z][select, 3], smf_cosmos[idx_z][select, 2]], fmt='o')
 # plt.ylim(-6, 0)
 # # logphi = log_phi_direct(logMs, idx_z, 12.2, 10.8, 0.3, 0, 0.3)
 # """ Leauthaud fit parameters for idx_z=0, we note a small difference maybe coming form the HMF"""
