@@ -64,13 +64,13 @@ for i in range(numredshift_haloes_tinker):
             redshift_haloes_tinker[i]), usecols=(0, 7)))
     hmf_tinker[i][:, 0] = np.log10(hmf_tinker[i][:, 0] / 0.6774)
     hmf_tinker[i][:, 1] = hmf_tinker[i][:, 1] * (0.6774)**3
-    #hmf[i][:, 0] = np.log10(hmf[i][:, 0])
+    # hmf_tinker[i][:, 0] = np.log10(hmf_tinker[i][:, 0])
 
 
 
 
 """ Plot Tinker"""
-#for i in range(numredshift_haloes):
+# for i in range(numredshift_haloes):
 plt.figure()
 for i in [0]:
     plt.semilogy(hmf_tinker[i][:, 0], hmf_tinker[i][:, 1], label=redshift_haloes_tinker[i])
@@ -104,11 +104,27 @@ for j in range(numzbin):
     plt.figure()
     i = redshift_id_selec[j]
     print(i)
-    p = plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 2], label='z='+str(redshift_haloes_bolshoi[i]))
+    p = plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 2], label='z={:1.2f}'.format(redshift_haloes_bolshoi[i]))
     plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 1], linestyle='--', color=p[0].get_color())
-    
+
     plt.semilogy(hmf_tinker[j][:, 0], hmf_tinker[j][:, 1], label=redshift_haloes_tinker[j])
 
     plt.ylim(10**-6, 10**-1)
     plt.xlim(9.5, 15)
     plt.legend()
+    # plt.savefig('../Plots/Tinker_vs_Bolshoi_HMF/z='+str(redshift_haloes_bolshoi[i])+'.pdf')
+
+plt.figure()
+for j in [0, 3, 7]:
+    i = redshift_id_selec[j]
+    print(i)
+    print(str(redshift_haloes_bolshoi[i]))
+    p = plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 2], label='Bolshoï Planck z={:1.1f}'.format(redshift_haloes_bolshoi[i]))
+    # plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 1], linestyle='--', color=p[0].get_color())
+    plt.semilogy(hmf_tinker[j][:, 0], hmf_tinker[j][:, 1],linestyle='--', color=p[0].get_color(), label='Tinker z='+str(redshift_haloes_tinker[j]))
+    plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=20)
+    plt.ylabel('dN/dlog($M_{vir}$)   [$Mpc^{-3}$]', size=20)
+    plt.ylim(10**-6, 10**-1)
+    plt.xlim(9.5, 15)
+    plt.legend()
+    plt.tight_layout()
