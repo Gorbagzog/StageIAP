@@ -37,10 +37,15 @@ for i in range(numredshift_haloes):
             redshift_haloes[i]), usecols=(0, 7)))
     hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
     hmf[i][:, 1] = hmf[i][:, 1] * (0.6774)**3
+    #hmf[i][:, 0] = np.log10(hmf[i][:, 0])
 
 """ Plot"""
-# for i in range(numredshift_haloes):
-#     plt.plot(hmf[i][:, 0], hmf[i][:, 1])
+#for i in range(numredshift_haloes):
+for i in [0]:
+    plt.semilogy(hmf[i][:, 0], hmf[i][:, 1], label=redshift_haloes[i])
+    plt.ylim(10**-6, 10**-1)
+    plt.xlim(9.5, 15)
+plt.legend()
 
 """ Compute Halo cumulative density """
 

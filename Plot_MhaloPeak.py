@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 
 """Load different MhaloPeak values"""
 
-MhaloTinker = np.loadtxt("../Plots/MhPeak/Tinker08_Dm200.txt")
-MhaloCosmos = np.loadtxt("../Plots/MhPeak/COSMOS.txt")
-MhaloCandels = np.loadtxt("../Plots/MhPeak/Candels.txt")
+# MhaloTinker = np.loadtxt("../Plots/MhPeak/Tinker08_Dm200.txt")
+# MhaloCosmos = np.loadtxt("../Plots/MhPeak/COSMOS.txt")
+# MhaloCandels = np.loadtxt("../Plots/MhPeak/Candels.txt")
 
-MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_Tinker08.txt")
+MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
 
 MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
 
@@ -50,14 +50,14 @@ MhaloPeakMcCracken15 = np.array([12.15, 12.1, 12.2, 12.35, 12.4])
 # Load Coupon+17 draft Peak values
 # We use PeakPosMCMCMean and PeakPosMCMCstd
 # Values are given in Log10(Mh*h^-1 Msun)
-redshiftCoupon17 = np.array([0.34, 0.52, 0.70, 0.90, 1.17, 1.50,
-                            1.77, 2.15, 2.75, 3.37, 3.96, 4.83])
-MhaloPeakCoupon17 = np.zeros([np.size(redshiftCoupon17)])
-MhaloSigmaCoupon17 = np.zeros([np.size(redshiftCoupon17)])
-for i in range(len(redshiftCoupon17)):
-    MhaloPeakCoupon17[i], MhaloSigmaCoupon17[i] = np.loadtxt(
-        '../Data/Coupon17/peak/peak_{:1.2f}.ascii'.format(redshiftCoupon17[i]),
-        usecols=(2, 3))
+# redshiftCoupon17 = np.array([0.34, 0.52, 0.70, 0.90, 1.17, 1.50,
+#                             1.77, 2.15, 2.75, 3.37, 3.96, 4.83])
+# MhaloPeakCoupon17 = np.zeros([np.size(redshiftCoupon17)])
+# MhaloSigmaCoupon17 = np.zeros([np.size(redshiftCoupon17)])
+# for i in range(len(redshiftCoupon17)):
+#     MhaloPeakCoupon17[i], MhaloSigmaCoupon17[i] = np.loadtxt(
+#         '../Data/Coupon17/peak/peak_{:1.2f}.ascii'.format(redshiftCoupon17[i]),
+#         usecols=(2, 3))
 
 # Graphic read of MhaloPeakvalues in Yang+2012 for SMF1 :
 redshiftYang12 = np.array([0.1, 0.5, 1.15, 1.80, 2.75, 3.75])
@@ -112,9 +112,9 @@ plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014, elinewidth=1
              fmt='D', c='purple', markerfacecolor='white', capsize=2, label='Martinez-Manso et al. 2014')
 # plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
             #  fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
-plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
-             fmt='v', c='violet', markerfacecolor='white', capsize=2, label='Ishikawa et al. 2017',
-             elinewidth=1)
+# plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
+#              fmt='v', c='violet', markerfacecolor='white', capsize=2, label='Ishikawa et al. 2017',
+#              elinewidth=1)
 plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=5,
              fmt='*', c='orange', markerfacecolor='white', capsize=2, label='Cowley et al. 2017',
              elinewidth=1,)
@@ -135,20 +135,23 @@ plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle
 # plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2],
 #              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
 #              label='Case 3', markersize=7)
-plt.errorbar(MhaloCosmosTinker[:, 0], MhaloCosmosTinker[:, 1], yerr=MhaloCosmosTinker[:, 2],
-             fmt='o', color='blue', capsize=3, label='MCMC with Tinker HMF',
+plt.errorbar(MhaloCosmosTinker[:-3, 0], MhaloCosmosTinker[:-3, 1], yerr=MhaloCosmosTinker[:-3, 2],
+             fmt='o', color='blue', capsize=3, label='AM, COSMOS + Tinker',
              markersize=7)
-plt.errorbar(MhaloCosmosMCMC[:-2, 0], MhaloCosmosMCMC[:-2, 1], yerr=MhaloCosmosMCMC[:-2, 2],
-             fmt='o', color='red', capsize=3, label='MCMC with COSMOS + Bolshoi Tot',
+plt.errorbar(MhaloCosmosTinker[7:, 0], MhaloCosmosTinker[7:, 1], yerr=MhaloCosmosTinker[7:, 2],
+             fmt='-', linestyle='none', color='blue', capsize=3, lolims=True,
+             markersize=7, alpha=0.5)
+plt.errorbar(MhaloCosmosMCMC[:-3, 0], MhaloCosmosMCMC[:-3, 1], yerr=MhaloCosmosMCMC[:-3, 2],
+             fmt='o', color='red', capsize=3, label='AM, COSMOS + Bolshoi', # label='AM, COSMOS + Bolshoi Tot'
              markersize=7)
-plt.errorbar(MhaloCosmosMCMC[8:, 0], MhaloCosmosMCMC[8:, 1], yerr=MhaloCosmosMCMC[8:, 2],
+plt.errorbar(MhaloCosmosMCMC[7:, 0], MhaloCosmosMCMC[7:, 1], yerr=MhaloCosmosMCMC[7:, 2],
              fmt='-', linestyle='none', color='red', capsize=3, lolims=True,
-             markersize=7)
+             markersize=7, alpha=0.5)
 plt.xlabel('Redshift', size=20)
 plt.ylabel('Log($\mathrm{M_{halo}^{peak}}/\mathrm{M_{\odot}}$)', size=20)
 # plt.ylim(11.7, 13)
 plt.ylim(11.7, 14)
-plt.xlim(0, 8)
+plt.xlim(0, 6)
 # plt.xlim(0.2, 8)
 # plt.xscale('log')
 # box = ax.get_position()
