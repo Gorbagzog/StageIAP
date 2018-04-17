@@ -115,15 +115,16 @@ for j in range(numzbin):
     # plt.savefig('../Plots/Tinker_vs_Bolshoi_HMF/z='+str(redshift_haloes_bolshoi[i])+'.pdf')
 
 plt.figure()
-for j in [0, 3, 7]:
+for j in [0, 3, 7, 9]:
     i = redshift_id_selec[j]
     print(i)
     print(str(redshift_haloes_bolshoi[i]))
-    p = plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 2], label='Bolshoï Planck z={:1.1f}'.format(redshift_haloes_bolshoi[i]))
+    p = plt.semilogy(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 2], label='Bolshoï-Planck z={:1.1f}'.format(redshift_haloes_bolshoi[i]))
     # plt.plot(hmf_bolshoi[i][:, 0], 10**hmf_bolshoi[i][:, 1], linestyle='--', color=p[0].get_color())
     plt.semilogy(hmf_tinker[j][:, 0], hmf_tinker[j][:, 1],linestyle='--', color=p[0].get_color(), label='Tinker z='+str(redshift_haloes_tinker[j]))
     plt.xlabel('Log($M_{h}$) [Log($M_{\odot}$)]', size=20)
-    plt.ylabel('dN/dlog($M_{vir}$)   [$Mpc^{-3}$]', size=20)
+    #plt.ylabel('dN/dlog($M_{vir}$)   [$Mpc^{-3}$]', size=20)
+    plt.ylabel('$\phi_{halo}$   [$Mpc^{-3}$]', size=20)
     plt.ylim(10**-6, 10**-1)
     plt.xlim(9.5, 15)
     plt.legend()
