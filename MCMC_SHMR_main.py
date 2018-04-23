@@ -24,6 +24,7 @@ import os
 import datetime
 import getconf
 from shutil import copyfile
+import hmf as hmf_calc
 
 
 def load_smf(smf_name):
@@ -161,8 +162,7 @@ def load_hmf(hmf_name):
             hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
 
 
-
-"""Function definitions for computation of the theroretical SFM phi_true"""
+"""Function definitions for computation of the theoretical SMF phi_true"""
 
 
 def logMh(logMs, M1, Ms0, beta, delta, gamma):
@@ -792,11 +792,11 @@ def plotSHMR_delta(directory, iterations, burn):
         # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
         plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
         plt.plot(x, y, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-    }$) = 11.8')
+    # \}$) = 11.8')
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
-    plt.tight_layout()
+    plt.tight_laout()
     plt.show()
     # plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
     #     str(iterations) + "_burn=" + str(burn) + '.pdf')
@@ -820,7 +820,7 @@ def plotMsMh_fixedMh(directory):
     conf_smhm_12 = np.zeros([2, numzbin])
     smhm_13 = np.zeros(numzbin)
     conf_smhm_13 = np.zeros([2, numzbin])
-    for idx_z in range(numzbin):
+    for idx_z in range(numzbin-2):
         idx_12[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 12))
         idx_13[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 13))
         smhm_12[idx_z] = logMs[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
@@ -831,8 +831,8 @@ def plotMsMh_fixedMh(directory):
         conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]],
             conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
     plt.figure()
-    plt.errorbar(redshiftsbin, smhm_12, yerr=conf_smhm_12, capsize=3, label='$M_{h} = 10^{12} M_{\odot}$')
-    plt.errorbar(redshiftsbin, smhm_13, yerr=conf_smhm_13, capsize=3, label='$M_{h} = 10^{13} M_{\odot}$')
+    plt.errorbar(redshiftsbin[:-2], smhm_12[:-2], yerr=conf_smhm_12[:, :-2], capsize=3, label='$M_{h} = 10^{12} M_{\odot}$')
+    plt.errorbar(redshiftsbin[:-2], smhm_13[:-2], yerr=conf_smhm_13[:, :-2], capsize=3, label='$M_{h} = 10^{13} M_{\odot}$')
     plt.xlabel('Redshift', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
