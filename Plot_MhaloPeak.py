@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 # MhaloCosmos = np.loadtxt("../Plots/MhPeak/COSMOS.txt")
 # MhaloCandels = np.loadtxt("../Plots/MhPeak/Candels.txt")
 
-# MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
-MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_CosmosTinker.txt")
+MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
+# MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_CosmosTinker.txt")
 
 MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
 
@@ -105,11 +105,11 @@ plt.figure(figsize=(8, 6))
 # plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
 #              yerr=MhaloSigmaCoupon17,
 #              fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
-plt.errorbar(redshiftHarikane, MhaloPeakHarikane + np.log10(67.74/70),
-             yerr=MhaloSigmaHarikane, elinewidth=1,
-             c='brown', label='Harikane et al. 2018',
-             fmt='-', linestyle='none', capsize=3, lolims=True,
-             markersize=7)
+# plt.errorbar(redshiftHarikane, MhaloPeakHarikane + np.log10(67.74/70),
+#              yerr=MhaloSigmaHarikane, elinewidth=1,
+#              c='brown', label='Harikane et al. 2018',
+#              fmt='-', linestyle='none', capsize=3, lolims=True,
+#              markersize=7)
 
 plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud + np.log10(72/70),
              yerr=MhaloSigmaLeauthaud, markersize=5, elinewidth=1,
@@ -149,17 +149,17 @@ plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle
 #              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
 #              label='Case 3', markersize=7)
 plt.errorbar(MhaloCosmosTinker[:-3, 0], MhaloCosmosTinker[:-3, 1], yerr=MhaloCosmosTinker[:-3, 2],
-             fmt='o', color='blue', capsize=3, label='AM, COSMOS + Tinker',
+             fmt='o', color='red', capsize=3, label='AM, COSMOS + Tinker',
              markersize=7)
 plt.errorbar(MhaloCosmosTinker[7:, 0], MhaloCosmosTinker[7:, 1], yerr=MhaloCosmosTinker[7:, 2],
-             fmt='-', linestyle='none', color='blue', capsize=3, lolims=True,
-             markersize=7, alpha=0.5)
-plt.errorbar(MhaloCosmosMCMC[:-3, 0], MhaloCosmosMCMC[:-3, 1], yerr=MhaloCosmosMCMC[:-3, 2],
-             fmt='o', color='red', capsize=3, label='AM, COSMOS + Bolshoi', # label='AM, COSMOS + Bolshoi Tot'
-             markersize=7)
-plt.errorbar(MhaloCosmosMCMC[7:, 0], MhaloCosmosMCMC[7:, 1], yerr=MhaloCosmosMCMC[7:, 2],
              fmt='-', linestyle='none', color='red', capsize=3, lolims=True,
-             markersize=7, alpha=0.5)
+             markersize=7)
+# plt.errorbar(MhaloCosmosMCMC[:-3, 0], MhaloCosmosMCMC[:-3, 1], yerr=MhaloCosmosMCMC[:-3, 2],
+#              fmt='o', color='red', capsize=3, label='AM, COSMOS + Bolshoi', # label='AM, COSMOS + Bolshoi Tot'
+#              markersize=7)
+# plt.errorbar(MhaloCosmosMCMC[7:, 0], MhaloCosmosMCMC[7:, 1], yerr=MhaloCosmosMCMC[7:, 2],
+#              fmt='-', linestyle='none', color='red', capsize=3, lolims=True,
+#              markersize=7, alpha=0.5)
 plt.xlabel('Redshift', size=20)
 plt.ylabel('Log($\mathrm{M_{halo}^{peak}}/\mathrm{M_{\odot}}$)', size=20)
 # plt.ylim(11.7, 13)

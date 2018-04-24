@@ -248,6 +248,7 @@ def runMCMC_allZ(paramfile):
     std = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
     nthreads = config.getint('MCMC_run_parameters.nthreads')
     nwalkers = config.getint('MCMC_run_parameters.nwalkers')
+    selected_redshifts = np.array(config.getlist('MCMC_run_parameters.redshifts')).astype('int')
     # global numzbin
     load_smf(smf_name)
     load_hmf(hmf_name)
@@ -268,10 +269,11 @@ def runMCMC_allZ(paramfile):
     copyfile(paramfile, directory + '/' + paramfile)
     copyfile(minboundfile, directory + '/' + minboundfile)
     copyfile(maxboundfile, directory + '/' + maxboundfile)
-
+    print(selected_redshifts)
     # run all MCMC for all zbins
     # for idx_z in range(numzbin):
-    for idx_z in [0, 9]:
+    for idx_z in selected_redshifts:
+        print(idx_z)
         print('Starting MCMC run for idx_z =' + str(idx_z) )
         print('Min bound: ' + str(minbound[idx_z]))
         print('Max bound: ' + str(maxbound[idx_z]))
