@@ -30,7 +30,7 @@ MhaloSigmaHarikane = np.array([0.1, 0.1, 0.3])
 
 # Leauthaud+17 use a different cosmology with H0=72
 redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2])
-MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12]))
+MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12])) + np.log10(72/70)
 MhaloSigmaLeauthaud = np.log10(np.array(
     [1.05 * 10**12, 1.55 * 10**12, 1.5 * 10**12])) - MhaloPeakLeauthaud
 MstarPeakLeauthaud = np.array([3.55 * 10**10, 4.9 * 10**10, 5.75 * 10**10])
@@ -112,7 +112,7 @@ plt.figure(figsize=(8, 6))
 #              fmt='-', linestyle='none', capsize=3, lolims=True,
 #              markersize=7)
 
-plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud + np.log10(72/70),
+plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud,
              yerr=MhaloSigmaLeauthaud, markersize=5, elinewidth=1,
              fmt='o', c='green', markerfacecolor='white', capsize=1, label='Leauthaud et al. 2011')
 plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12, elinewidth=1,
