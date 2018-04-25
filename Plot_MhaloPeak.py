@@ -12,10 +12,11 @@ import matplotlib.pyplot as plt
 # MhaloCosmos = np.loadtxt("../Plots/MhPeak/COSMOS.txt")
 # MhaloCandels = np.loadtxt("../Plots/MhPeak/Candels.txt")
 
-MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
+# MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
 # MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_CosmosTinker.txt")
+MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_4-24/MhPeak_CosmosTinker.txt")
 
-MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
+# MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
 
