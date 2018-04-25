@@ -348,10 +348,11 @@ def MhPeak(chainfile, idx_z, iterations, burn):
 
 
 def allMhPeak(directory, iterations, burn):
+    numzbin = 10
     mhpeakall = np.zeros(numzbin)
     mhpeakallstd = np.zeros(numzbin)
     for idx_z in range(numzbin):
-        chainfile = directory+"/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
         mhpeakall[idx_z] = np.median(mhpeak)
         mhpeakallstd[idx_z] = np.std(mhpeak)
@@ -483,15 +484,16 @@ def plotSigmaHMvsSM(directory, idx_z, iterations, burn):
     return av_logMh, conf_min_logMh, conf_max_logMh
 
 
-def plotAllSigmaHMvsSM(iterations, burn):
+def plotAllSigmaHMvsSM(directory, iterations, burn):
     # load_smf()
     # load_hmf()
+    numzbin =10
     plt.close('all')
     plt.figure()
     numpoints = 100
     logMs = np.linspace(9, 12, num=numpoints)
     for idx_z in range(numzbin):
-        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        chainfile = '../'+directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
         # chain.close()

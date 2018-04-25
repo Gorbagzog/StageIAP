@@ -148,7 +148,7 @@ plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle
 # plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2],
 #              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
 #              label='Case 3', markersize=7)
-plt.errorbar(MhaloCosmosTinker[:-3, 0], MhaloCosmosTinker[:-3, 1], yerr=MhaloCosmosTinker[:-3, 2],
+plt.errorbar(MhaloCosmosTinker[:-3, 0], MhaloCosmosTinker[:-3, 1] + np.log10(67/70), yerr=MhaloCosmosTinker[:-3, 2],
              fmt='o', color='red', capsize=3, label='AM, COSMOS + Tinker',
              markersize=7)
 plt.errorbar(MhaloCosmosTinker[7:, 0], MhaloCosmosTinker[7:, 1], yerr=MhaloCosmosTinker[7:, 2],
