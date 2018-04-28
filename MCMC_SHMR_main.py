@@ -339,13 +339,23 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
 
 
 def save_results(directory, chainfile, idx_z, iterations, burn):
+    chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     chain = np.load(chainfile)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    samples = MCSamples(samples = samples, names = names)
+    samples = MCSamples(samples=samples, names=names)
     res = samples.getTable()
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
-    del chain
+    """Save results in a numpy array"""
+    marge = samples.getMargeStats()
+    results = np.empty([3, len(names)])
+    for i in range(len(names)):
+        results[0, i] = marge.names[i].mean
+        results[1, i] = marge.names[i].limits[2].lower  ## Take the 2 sigma (95%) confidence interval
+        results[2, i] = marge.names[i].limits[2].upper
+    print(results)
+    np.save(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy", results)
+    del chain, samples, res, marge
 
 
 def MhPeak(chainfile, idx_z, iterations, burn):
@@ -856,6 +866,15 @@ def plotMsMh_fixedMh(directory):
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+def plotParams(directory, iterations):
+    """Plot best fit param evolution with z"""
+    results = np.empty([numzbin, 3, 6])
+    for i in range(numzbin):
+        results[i, :, :] = np.load(directory+"/Results/Chain_ksi_z" + str(i) + "_niter=" + str(iterations) + ".npy")
+    for j in range(6):
+        plt.figure()
+        plt.errorbar(redshiftsbin, results[:, 0, j], yerr=[results[:, 0, j] - results[:, 1, j], results[:, 2, j]- results[:, 0, j]])
 
 """Plots and tests"""
 
