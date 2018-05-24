@@ -389,7 +389,7 @@ def gelman_rubin(chain):
 
 
 def test_convergence(directory, iterations, burn):
-    """Tets the convergence of the chains"""
+    """Test the convergence of the chains"""
     numzbin = 10
     ndim_arr = [6]
     for idx_z in range(numzbin):
@@ -822,6 +822,7 @@ def plotSHMR_delta(directory, iterations, burn):
     av_logMh = np.empty([numzbin, numpoints])
     conf_min_logMh = np.empty([numzbin, numpoints])
     conf_max_logMh = np.empty([numzbin, numpoints])
+
     for idx_z in range(numzbin):
         logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -849,17 +850,18 @@ def plotSHMR_delta(directory, iterations, burn):
     print('Arrays saved')
     # av_logMh = np.load(directory + '/av_logMh.npy')
     # conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
-    # conf_max_logMh = np.load(directory + '/conf_min_logMh.npy')
+    # conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
     plt.figure()
     for idx_z in range(numzbin):
         plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], alpha=0.3)
         plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
     """PLot the Behroozi SHMR"""
-    log_ms_boo, log_mh_boo = np.load('SHMR_Behroozi_z0.npy')
-    plt.plot(log_ms_boo, log_mh_boo, c='black', linestyle='--', label='Behroozi et al. 2013, z=0.35')
-    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.legend()
+    # log_ms_boo, log_mh_boo = np.load('SHMR_Behroozi_z0.npy')
+    # plt.plot(log_ms_boo, log_mh_boo, c='black', linestyle='--', label='Behroozi et al. 2013, z=0.35')
+    plt.xlabel('$\mathrm{log}_{10}(M_{*}/M_{\odot})$', size=17)
+    plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
+    plt.tick_params(axis='both', which='major', labelsize=13)
+    plt.legend(prop={'size': 12})
     plt.tight_layout()
     plt.show()
 
@@ -874,19 +876,20 @@ def plotSHMR_delta(directory, iterations, burn):
         plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
         plt.plot(x, y, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
     logspace = np.linspace(11, 16)
-    plt.plot(logspace, 11.8 -logspace, c='black', linestyle='--', label='$\mathrm{Log(M_{*}/M_{\odot})} = 11.8$')
-    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.xlim(11.4, 14.6)
-    plt.ylim(-2.45, -0.9)
-    plt.legend()
+    plt.plot(logspace, 11.8 -logspace, c='black', linestyle='--', label='$M_{*}= 10^{11.8} M_{\odot}$')
+    plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
+    plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=17)
+    plt.tick_params(axis='both', which='major', labelsize=13)
+    plt.xlim(11.2, 14.6)
+    plt.ylim(-2.85, -0.9)
+    plt.legend(ncol=2, loc=3)
     plt.tight_layout()
     plt.show()
     # plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
     #     str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 def plotMsMh_fixedMh(directory):
-    # load_smf('cosmos')
+    load_smf('cosmos')
     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
@@ -915,10 +918,11 @@ def plotMsMh_fixedMh(directory):
         conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]],
             conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
     plt.figure()
-    plt.errorbar(redshiftsbin[:-2], smhm_12[:-2], yerr=conf_smhm_12[:, :-2], capsize=3, label='$M_{h} = 10^{12} M_{\odot}$')
-    plt.errorbar(redshiftsbin[:-2], smhm_13[:-2], yerr=conf_smhm_13[:, :-2], capsize=3, label='$M_{h} = 10^{13} M_{\odot}$')
-    plt.xlabel('Redshift', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+    plt.errorbar(redshiftsbin[:-2], smhm_12[:-2], yerr=conf_smhm_12[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{12} M_{\odot}$')
+    plt.errorbar(redshiftsbin[:-2], smhm_13[:-2], yerr=conf_smhm_13[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{13} M_{\odot}$')
+    plt.xlabel('Redshift', size=17)
+    plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\mathrm{h}})$', size=17)
+    plt.tick_params(axis='both', which='major', labelsize=13)
     plt.legend()
     plt.tight_layout()
     plt.show()

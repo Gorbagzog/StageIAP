@@ -164,8 +164,10 @@ plt.errorbar(redshiftsbin[ MhaloCosmosTinker[:,0].astype('int')[7:]], MhaloCosmo
 # plt.errorbar(MhaloCosmosMCMC[7:, 0], MhaloCosmosMCMC[7:, 1], yerr=MhaloCosmosMCMC[7:, 2],
 #              fmt='-', linestyle='none', color='red', capsize=3, lolims=True,
 #              markersize=7, alpha=0.5)
-plt.xlabel('Redshift', size=20)
-plt.ylabel('Log($\mathrm{M_{halo}^{peak}}/\mathrm{M_{\odot}}$)', size=20)
+plt.tick_params(axis='both', which='major', labelsize=13)
+plt.xticks(np.arange(0, 5.5, 0.5))
+plt.xlabel('Redshift', size=17)
+plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', size=17)
 # plt.ylim(11.7, 13)
 plt.ylim(11.7, 13.8)
 plt.xlim(0, 5.5)
