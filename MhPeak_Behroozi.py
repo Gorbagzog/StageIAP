@@ -84,16 +84,32 @@ print(time.time() - t)
 
 """Plot"""
 
-temp = [redshift, MhaloPeak]
+# temp = [redshift, MhaloPeak]
 
-plt.figure()
-plt.plot(temp[0], temp[1])
-plt.show()
+# plt.figure()
+# plt.plot(temp[0], temp[1])
+# plt.show()
 
 """Save file"""
 
-np.savetxt('MhaloPeakBehroozi.txt', temp)
+# np.savetxt('MhaloPeakBehroozi.txt', temp)
 
 # test = np.loadtxt('MhaloPeakBehroozi.txt')
 # print(test[0])
 # print(test[1])
+
+"""PLot Ms vs Mh"""
+redshiftcosmos = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+redshiftsbin = (redshiftcosmos[1:]+redshiftcosmos[:-1])/2
+plt.figure()
+numzbin=10
+for i in range(numzbin):
+    plt.plot(log_Ms(log_Mh, redshiftsbin[i]), log_Mh, label='z='+str(redshiftsbin[i]))
+plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+np.save('SHMR_Behroozi_z0', np.array([log_Ms(log_Mh, redshiftsbin[0]), log_Mh]))
+

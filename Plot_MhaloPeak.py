@@ -14,7 +14,12 @@ import matplotlib.pyplot as plt
 
 # MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
 # MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_CosmosTinker.txt")
-MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_4-24/MhPeak_CosmosTinker.txt")
+MhaloCosmosTinker = np.loadtxt("../MCMC_2018-4-25T18-31/MhaloPeak.txt")
+# MhaloCosmosTinker[:,0] = MhaloCosmosTinker[:,0].astype('int')
+
+MhaloCosmosTinker[:,1] += np.log10(67.74/70)
+redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
 
 # MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
 
@@ -24,22 +29,20 @@ MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_4-24/MhPeak_CosmosTinker.txt
 
 # Harikane et al+17 -> only the minimal position of the peak, not the complete shape of SHMR
 redshiftHarikane = np.array([3.8, 4.9, 5.9])
-MhaloPeakHarikane = np.log10(np.array([2 * 10**12, 2 * 10**12, 8 * 10**11]))
+MhaloPeakHarikane = np.log10(np.array([2 * 10**12, 2 * 10**12, 8 * 10**11])) + np.log10(67.74/70)
 MhaloSigmaHarikane = np.array([0.1, 0.1, 0.3])
 
 
 # Leauthaud+17 use a different cosmology with H0=72
-redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2])
+redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2]) - 0.1 # shift redshift to see the points
 MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12])) + np.log10(72/70)
 MhaloSigmaLeauthaud = np.log10(np.array(
     [1.05 * 10**12, 1.55 * 10**12, 1.5 * 10**12])) - MhaloPeakLeauthaud
-MstarPeakLeauthaud = np.array([3.55 * 10**10, 4.9 * 10**10, 5.75 * 10**10])
-MstarSigmaLeauthaud = np.array([0.17, 0.15, 0.13])*10**10
-
-redshiftBehroozi = np.array([])
+# MstarPeakLeauthaud = np.array([3.55 * 10**10, 4.9 * 10**10, 5.75 * 10**10])
+# MstarSigmaLeauthaud = np.array([0.17, 0.15, 0.13])*10**10
 
 redshiftCoupon15 = np.array([0.75])
-MhaloPeakCoupon15 = np.log10(np.array([1.92*10**12]))
+MhaloPeakCoupon15 = np.log10(np.array([1.92*10**12])) + np.log10(72/70)
 MhaloSigmaCoupon15 = np.array([[np.log10((1.92 + 0.17)) - np.log10(1.92)],
                                [np.log10(1.92) - np.log10(1.92 - 0.14)]])
 
@@ -52,8 +55,8 @@ MhaloPeakMartinezManso2014 = 12.44
 MhaloSigmaMartinezManso2014 = [[0.08], [0.08]]
 
 # Test graphic reading of McCracken+15 Mpeak
-redshiftMcCracken15 = np.array([0.65, 0.95, 1.3, 1.75, 2.25])
-MhaloPeakMcCracken15 = np.array([12.15, 12.1, 12.2, 12.35, 12.4])
+# redshiftMcCracken15 = np.array([0.65, 0.95, 1.3, 1.75, 2.25])
+# MhaloPeakMcCracken15 = np.array([12.15, 12.1, 12.2, 12.35, 12.4])
 
 # Load Coupon+17 draft Peak values
 # We use PeakPosMCMCMean and PeakPosMCMCstd
@@ -78,7 +81,7 @@ MhaloPeakIshikawa17 = np.array([12.10, 11.99, 11.77]) - np.log10(0.7)
 MhaloSigmaIshikawa17 = np.array([0.053, 0.057, 0.097])
 
 # MhaloPeak from Cowley+2017
-redshiftCowley17 = np.array([1.75, 2.5]) + 0.1  # shift redshift to see the points
+redshiftCowley17 = np.array([1.75, 2.5]) - 0.1 # shift redshift to see the points
 MhaloPeakCowley17 = np.array([12.33, 12.5])
 MhaloSigmaCowley17 = np.array([[0.06, 0.08], [0.07, 0.10]])
 
@@ -100,17 +103,12 @@ MhaloPeakYang12curve = tmp[1]
 
 """Plot"""
 
-plt.figure(figsize=(8, 6))
+plt.figure(figsize=(10, 5))
 # ax = plt.subplot(111)
 # plt.figure()
 # plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
 #              yerr=MhaloSigmaCoupon17,
 #              fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
-# plt.errorbar(redshiftHarikane, MhaloPeakHarikane + np.log10(67.74/70),
-#              yerr=MhaloSigmaHarikane, elinewidth=1,
-#              c='brown', label='Harikane et al. 2018',
-#              fmt='-', linestyle='none', capsize=3, lolims=True,
-#              markersize=7)
 
 plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud,
              yerr=MhaloSigmaLeauthaud, markersize=5, elinewidth=1,
@@ -130,8 +128,13 @@ plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17,
              fmt='v', c='violet', markerfacecolor='white', capsize=2, label='Ishikawa et al. 2017',
              elinewidth=1)
 plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=5,
-             fmt='*', c='orange', markerfacecolor='white', capsize=2, label='Cowley et al. 2017',
+             fmt='*', c='orange', markerfacecolor='white', capsize=2, label='Cowley et al. 2018',
              elinewidth=1,)
+plt.errorbar(redshiftHarikane, MhaloPeakHarikane,
+             yerr=0.1, elinewidth=1,
+             c='brown', label='Harikane et al. 2018, low lim',
+             fmt='o', linestyle='none', capsize=3, lolims=True,
+             markersize=3)
 plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
          label='Behroozi et al. 2013')
 plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
@@ -149,12 +152,12 @@ plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle
 # plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2],
 #              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
 #              label='Case 3', markersize=7)
-plt.errorbar(MhaloCosmosTinker[:-3, 0], MhaloCosmosTinker[:-3, 1] + np.log10(67/70), yerr=MhaloCosmosTinker[:-3, 2],
-             fmt='o', color='red', capsize=3, label='AM, COSMOS + Tinker',
-             markersize=7)
-plt.errorbar(MhaloCosmosTinker[7:, 0], MhaloCosmosTinker[7:, 1], yerr=MhaloCosmosTinker[7:, 2],
-             fmt='-', linestyle='none', color='red', capsize=3, lolims=True,
-             markersize=7)
+plt.errorbar(redshiftsbin[ MhaloCosmosTinker[:,0].astype('int')[:-3]], MhaloCosmosTinker[:-3, 1] + np.log10(67/70), yerr=MhaloCosmosTinker[:-3, 2],
+             fmt='o', color='red', capsize=3, label='This work',
+             markersize=8)
+plt.errorbar(redshiftsbin[ MhaloCosmosTinker[:,0].astype('int')[7:]], MhaloCosmosTinker[7:, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
+             fmt='o', linestyle='none', color='red', capsize=3, markeredgewidth=2,  lolims=True,
+             markersize=6)
 # plt.errorbar(MhaloCosmosMCMC[:-3, 0], MhaloCosmosMCMC[:-3, 1], yerr=MhaloCosmosMCMC[:-3, 2],
 #              fmt='o', color='red', capsize=3, label='AM, COSMOS + Bolshoi', # label='AM, COSMOS + Bolshoi Tot'
 #              markersize=7)
@@ -164,8 +167,8 @@ plt.errorbar(MhaloCosmosTinker[7:, 0], MhaloCosmosTinker[7:, 1], yerr=MhaloCosmo
 plt.xlabel('Redshift', size=20)
 plt.ylabel('Log($\mathrm{M_{halo}^{peak}}/\mathrm{M_{\odot}}$)', size=20)
 # plt.ylim(11.7, 13)
-plt.ylim(11.7, 14)
-plt.xlim(0, 6)
+plt.ylim(11.7, 13.8)
+plt.xlim(0, 5.5)
 # plt.xlim(0.2, 8)
 # plt.xscale('log')
 # box = ax.get_position()
@@ -175,7 +178,7 @@ plt.xlim(0, 6)
 # Put a legend below current axis
 # ax.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", fontsize=12)
 # ax.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
-plt.legend(loc=1, ncol=2, fontsize=12)
+plt.legend(loc=2, ncol=2, fontsize=12, edgecolor='white', framealpha=0)
 plt.xticks(fontsize=13)
 plt.yticks(fontsize=13)
 # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
