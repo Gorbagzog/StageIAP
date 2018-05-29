@@ -348,6 +348,18 @@ def save_results(directory, chainfile, idx_z, iterations, burn):
     del chain
 
 
+def getParam(directory, chainfile, idx_z, iterations, burn):
+    """Get paramInfo objects giving results of the MCMC"""
+    chain = np.load(chainfile)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    samples = MCSamples(samples = samples, names = names)
+    marge = samples.getMargeStats()
+    marge.parWithName('$M_{1}$').mean
+    marge.parWithName('$M_{1}$').err
+    marge.parWithName('$M_{1}$').limits[0].lower # 1 sigma = 68% lower limit
+
+
 def MhPeak(chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
@@ -807,7 +819,7 @@ def plotAllSHMRvsSM(directory):
     plt.tight_layout()
 
 
-def plotSHMR_delta(directory, iterations, burn):
+def plotSHMR_delta(directory, iterations, burn, load=True):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
     load_smf('cosmos')
     load_hmf('hmf_module')
@@ -823,38 +835,45 @@ def plotSHMR_delta(directory, iterations, burn):
     med_logMh = np.empty([numzbin, numpoints])
     conf_min_logMh = np.empty([numzbin, numpoints])
     conf_max_logMh = np.empty([numzbin, numpoints])
-
-    for idx_z in range(numzbin):
-        logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
-        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        chain = np.load(chainfile)
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        #print(len(samples))
-        samples = samples[np.random.randint(len(samples), size=nselect)]
-        del chain
-        print('Chain loaded for idx_z = '+str(idx_z))
-        nsimu = samples.shape[0]
-        print(nsimu)
-        logmhalo = np.zeros([nsimu, numpoints])
-        for idx_simu in range(nsimu):
-            # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
-            logmhalo[idx_simu, :] = logMh(logMs[idx_z], *samples[idx_simu][:-1])
-            if idx_simu % (nsimu/10) == 0:
-                print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
-        print('    All logmhalo computed')
-        av_logMh[idx_z] = np.average(logmhalo, axis=0)
-        med_logMh[idx_z] = np.median(logmhalo, axis=0)
-        conf_min_logMh[idx_z] = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
-        conf_max_logMh[idx_z] = np.percentile(logmhalo, 84, axis=0)
-    np.save(directory + '/av_logMh.npy', av_logMh)
-    np.save(directory + '/med_logMh.npy', med_logMh)
-    np.save(directory + '/conf_min_logMh.npy', conf_min_logMh)
-    np.save(directory + '/conf_max_logMh.npy', conf_max_logMh)
-    print('Arrays saved')
-    # av_logMh = np.load(directory + '/av_logMh.npy')
-    # med_logMh = np.load(directory + '/med_logMh.npy')
-    # conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
-    # conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
+    if load is False :
+        print('Computing arrays')
+        for idx_z in range(numzbin):
+            logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
+            chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+            chain = np.load(chainfile)
+            samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+            #print(len(samples))
+            samples = samples[np.random.randint(len(samples), size=nselect)]
+            del chain
+            print('Chain loaded for idx_z = '+str(idx_z))
+            nsimu = samples.shape[0]
+            print(nsimu)
+            logmhalo = np.zeros([nsimu, numpoints])
+            for idx_simu in range(nsimu):
+                # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
+                logmhalo[idx_simu, :] = logMh(logMs[idx_z], *samples[idx_simu][:-1])
+                if idx_simu % (nsimu/10) == 0:
+                    print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
+            print('    All logmhalo computed')
+            av_logMh[idx_z] = np.average(logmhalo, axis=0)
+            med_logMh[idx_z] = np.median(logmhalo, axis=0)
+            conf_min_logMh[idx_z] = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+            conf_max_logMh[idx_z] = np.percentile(logmhalo, 84, axis=0)
+        np.save(directory + '/logMs.npy', logMs)
+        np.save(directory + '/av_logMh.npy', av_logMh)
+        np.save(directory + '/med_logMh.npy', med_logMh)
+        np.save(directory + '/conf_min_logMh.npy', conf_min_logMh)
+        np.save(directory + '/conf_max_logMh.npy', conf_max_logMh)
+        print('Arrays saved')
+    else :  
+        print('Load arrays')  
+        logMs = np.load(directory + '/logMs.npy')
+        av_logMh = np.load(directory + '/av_logMh.npy')
+        med_logMh = np.load(directory + '/med_logMh.npy')
+        conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
+        conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
+    
+    
     plt.figure()
     M1, Ms0, beta, delta, gamma = 12.51, 10.82, 0.484, 0.47, 1.02
     
