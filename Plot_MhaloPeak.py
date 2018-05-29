@@ -25,7 +25,10 @@ redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
 
-# TODO : check that they are all in the same cosmo (h=0.7)
+# Warning : All masses are in the same cosmo H0 = 70
+
+# Use a small redshift offset for Leauthaud and Cowley
+offset = 0.05
 
 # Harikane et al+17 -> only the minimal position of the peak, not the complete shape of SHMR
 redshiftHarikane = np.array([3.8, 4.9, 5.9])
@@ -34,7 +37,7 @@ MhaloSigmaHarikane = np.array([0.1, 0.1, 0.3])
 
 
 # Leauthaud+17 use a different cosmology with H0=72
-redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2]) - 0.1 # shift redshift to see the points
+redshiftLeauthaud = np.array([(0.22 + 0.48) / 2, (0.48 + 0.74) / 2, (0.74 + 1) / 2]) - offset # shift redshift to see the points
 MhaloPeakLeauthaud = np.log10(np.array([9.5 * 10**11, 1.45 * 10**12, 1.4 * 10**12])) + np.log10(72/70)
 MhaloSigmaLeauthaud = np.log10(np.array(
     [1.05 * 10**12, 1.55 * 10**12, 1.5 * 10**12])) - MhaloPeakLeauthaud
@@ -81,7 +84,7 @@ MhaloPeakIshikawa17 = np.array([12.10, 11.99, 11.77]) - np.log10(0.7)
 MhaloSigmaIshikawa17 = np.array([0.053, 0.057, 0.097])
 
 # MhaloPeak from Cowley+2017
-redshiftCowley17 = np.array([1.75, 2.5]) - 0.1 # shift redshift to see the points
+redshiftCowley17 = np.array([1.75, 2.5]) - offset # shift redshift to see the points
 MhaloPeakCowley17 = np.array([12.33, 12.5])
 MhaloSigmaCowley17 = np.array([[0.06, 0.08], [0.07, 0.10]])
 
