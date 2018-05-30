@@ -411,13 +411,13 @@ def test_convergence(directory, iterations, burn):
         print("============================================")
         ndim = 6
         print("{0:3d}\t{1: 5.4f}\t\t{2:5.4f}\t\t{3:3.2f}".format(
-                    ndim, 
+                    ndim,
                     chain.reshape(-1, chain.shape[-1]).mean(axis=0)[0],
                     chain.reshape(-1, chain.shape[-1]).std(axis=0)[0],
                     gelman_rubin(chain)[0]))
         # names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
         # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        # samples = MCSamples(samples = samples, names = names)   
+        # samples = MCSamples(samples = samples, names = names)
         # R = gelman_rubin(chain)
         # print(R)
 
@@ -838,6 +838,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     if load is False :
         print('Computing arrays')
         for idx_z in range(numzbin):
+        #for idx_z in [6,7,8,9]:
             logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
             chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
             chain = np.load(chainfile)
@@ -865,23 +866,23 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
         np.save(directory + '/conf_min_logMh.npy', conf_min_logMh)
         np.save(directory + '/conf_max_logMh.npy', conf_max_logMh)
         print('Arrays saved')
-    else :  
-        print('Load arrays')  
+    else :
+        print('Load arrays')
         logMs = np.load(directory + '/logMs.npy')
         av_logMh = np.load(directory + '/av_logMh.npy')
         med_logMh = np.load(directory + '/med_logMh.npy')
         conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
         conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
-    
-    
+
+
     plt.figure()
     M1, Ms0, beta, delta, gamma = 12.51, 10.82, 0.484, 0.47, 1.02
-    
-    for idx_z in range(numzbin):
-        plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], alpha=0.3)
-        plt.plot(logMs[idx_z], av_logMh[idx_z], label='av '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-        plt.plot(logMs[idx_z], med_logMh[idx_z], label='med '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-    plt.plot(logMs[idx_z], logMh(logMs[idx_z], M1, Ms0, beta, delta, gamma), label='best fit z0')
+    # for idx_z in range(numzbin):
+    for idx_z in [6,7,8,9]:
+        plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
+        plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]), color="C{}".format(idx_z))
+        # plt.plot(logMs[idx_z], med_logMh[idx_z], label='med '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    # plt.plot(logMs[idx_z], logMh(logMs[idx_z], M1, Ms0, beta, delta, gamma), label='best fit z0')
 
     """PLot the Behroozi SHMR"""
     # log_ms_boo, log_mh_boo = np.load('SHMR_Behroozi_z0.npy')
@@ -894,16 +895,17 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     plt.show()
 
     plt.figure()
-    for idx_z in range(numzbin):
-        """Plot teh average"""
-        x = av_logMh[idx_z]
-        y = logMs[idx_z] - av_logMh[idx_z]
-        xerr = [x - conf_min_logMh[idx_z], conf_max_logMh[idx_z] - x]
-        # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
-        yerr = [xerr[1], xerr[0]]
-        # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
-        plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
-        plt.plot(x, y, label='av '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    # for idx_z in range(numzbin):
+    for idx_z in [6,7,8,9]:
+        """Plot the average"""
+        # x = av_logMh[idx_z]
+        # y = logMs[idx_z] - av_logMh[idx_z]
+        # xerr = [x - conf_min_logMh[idx_z], conf_max_logMh[idx_z] - x]
+        # # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
+        # yerr = [xerr[1], xerr[0]]
+        # # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
+        # plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
+        # plt.plot(x, y, label='av '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
         """Plot the median"""
         x = med_logMh[idx_z]
         y = logMs[idx_z] - med_logMh[idx_z]
@@ -911,8 +913,8 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
         # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
         yerr = [xerr[1], xerr[0]]
         # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
-        plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
-        plt.plot(x, y, label='med '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
+        plt.plot(x, y, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]), color="C{}".format(idx_z))
     logspace = np.linspace(11, 16)
     plt.plot(logspace, 11.8 -logspace, c='black', linestyle='--', label='$M_{*}= 10^{11.8} M_{\odot}$')
     plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
