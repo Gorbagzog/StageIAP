@@ -33,7 +33,7 @@ def load_smf(smf_name):
     global numzbin
     global smf
     global redshiftsbin
-    if smf_name == 'cosmos':
+    if smf_name == 'cosmos' or smf_name == 'cosmos_schechter':
         print('Use the COSMOS SMF')
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
@@ -43,16 +43,23 @@ def load_smf(smf_name):
         print('numzbin: '+str(numzbin))
 
         smf = []
-        for i in range(10):
-            smf.append(np.loadtxt(
-                # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
-                # '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
-                # + str(i) + '.dat')
-                '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
-                + str(i) + '.dat') # Use the 1/Vmax points directly and not the schechter fit on them
-                # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
-                # + str(i) + '.dat')
-            )
+        for i in range(numzbin):
+            if smf_name == 'cosmos':
+                smf.append(np.loadtxt(
+                    # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
+                    '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
+                    + str(i) + '.dat')  # Use the 1/Vmax points directly and not the schechter fit on them
+                    # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
+                    # + str(i) + '.dat')
+                )
+            elif smf_name == 'cosmos_schechter':
+                smf.append(np.loadtxt(
+                    '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
+                    + str(i) + '.dat')
+                )
+                # Take the error bar values as in Vmax data file, and not the boundaries.
+                smf[i][:, 2] = smf[i][:, 1] - smf[i][:, 2]
+                smf[i][:, 3] = smf[i][:, 3] - smf[i][:, 1]
         """Adapt SMF to match the Bolshoi-Planck Cosmology"""
         # Bolshoi-Planck cosmo : (flat LCMD)
         # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
@@ -70,6 +77,7 @@ def load_smf(smf_name):
             # Correction of the measured stellar mass
             # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
             smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
+
     if smf_name == 'candels':
         print('Use the COSMOS SMF')
         """Load the SMF from Candels Grazian"""
