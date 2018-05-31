@@ -57,6 +57,11 @@ def load_smf(smf_name):
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
                     + str(i) + '.dat')
                 )
+                # Remove the data points with outlier values (<-1000)
+                tmp = smf[i][np.where(smf[i][:,1] > -1000)[0], :]
+                tmp = tmp[np.where(tmp[:,2] > -1000)[0], :]
+                tmp = tmp[np.where(tmp[:,3] > -1000)[0], :]
+                smf[i] = tmp     
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 smf[i][:, 2] = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 3] = smf[i][:, 3] - smf[i][:, 1]
