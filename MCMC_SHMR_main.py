@@ -354,7 +354,6 @@ def save_results(directory, chainfile, idx_z, iterations, burn):
         names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
     else:
         names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
     res = samples.getTable()
