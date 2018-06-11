@@ -61,7 +61,7 @@ def load_smf(smf_name):
                 tmp = smf[i][np.where(smf[i][:,1] > -1000)[0], :]
                 tmp = tmp[np.where(tmp[:,2] > -1000)[0], :]
                 tmp = tmp[np.where(tmp[:,3] > -1000)[0], :]
-                smf[i] = tmp     
+                smf[i] = tmp
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 smf[i][:, 2] = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 3] = smf[i][:, 3] - smf[i][:, 1]
@@ -871,8 +871,8 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     conf_max_logMh = np.empty([numzbin, numpoints])
     if load is False :
         print('Computing arrays')
-        for idx_z in range(numzbin):
-        #for idx_z in [6,7,8,9]:
+        # for idx_z in range(numzbin):
+        for idx_z in [6,7,8,9]:
             logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
             chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
             chain = np.load(chainfile)
@@ -927,12 +927,12 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     plt.legend(prop={'size': 12})
     plt.tight_layout()
     #plt.show()
-    plt.savefig(directory + '/Plots/SHMR_Allz_niter=' +
+    plt.savefig(directory + '/Plots/SHMR_Allz0_niter=' +
         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
     plt.figure()
-    # for idx_z in range(numzbin):
-    for idx_z in [6,7,8,9]:
+    for idx_z in range(numzbin):
+    # for idx_z in [6,7,8,9]:
         """Plot the average"""
         # x = av_logMh[idx_z]
         # y = logMs[idx_z] - av_logMh[idx_z]
@@ -961,7 +961,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     plt.legend(ncol=2, loc=3)
     plt.tight_layout()
     # plt.show()
-    plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
+    plt.savefig(directory + '/Plots/DeltaSHMR_Allz0_niter=' +
         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 def plotMsMh_fixedMh(directory):
