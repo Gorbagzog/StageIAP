@@ -266,6 +266,8 @@ def runMCMC_allZ(paramfile):
     maxbound = np.loadtxt(maxboundfile, delimiter=',')
     starting_point_file = config.getstr('Values.starting_point')
     starting_point = np.loadtxt(starting_point_file, delimiter=',')
+    global noksi
+    noksi = config.getbool('MCMC_run_parameters.noksi')
     # np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
     std = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
     nthreads = config.getint('MCMC_run_parameters.nthreads')
@@ -299,10 +301,9 @@ def runMCMC_allZ(paramfile):
         print('Starting MCMC run for idx_z =' + str(idx_z) )
         print('Min bound: ' + str(minbound[idx_z]))
         print('Max bound: ' + str(maxbound[idx_z]))
-        runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers)
+        runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi)
 
-
-def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers):
+def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi):
     # load_smf()
     # load_hmf()
     # nwalker = 20
@@ -348,6 +349,11 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
 
 def save_results(directory, chainfile, idx_z, iterations, burn):
     chain = np.load(chainfile)
+    if noksi:
+        chain =chain[:,:,:5]
+        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
+    else:
+        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
@@ -505,6 +511,8 @@ def plotSMHM(directory, idx_z, iterations, burn):
 def plotchain(directory, chainfile, idx_z, iterations, burn):
     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     chain = np.load(chainfile)
+    if noksi:
+        chain = chain[:,:,:5]
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
     fig = corner.corner(
@@ -512,6 +520,16 @@ def plotchain(directory, chainfile, idx_z, iterations, burn):
     fig.savefig(figname + ".pdf")
     plt.close('all')
 
+def plotchain_noksi(directory, chainfile, idx_z, iterations, burn):
+    figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+    chain = np.load(chainfile)
+    chain = chain[:,:,:5]
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chain.close()
+    fig = corner.corner(
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$'])
+    fig.savefig(figname + ".pdf")
+    plt.close('all')
 
 def plotdist(directory, chainfile, idx_z, iterations, burn):
     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
