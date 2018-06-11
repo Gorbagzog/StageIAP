@@ -900,7 +900,9 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     plt.tick_params(axis='both', which='major', labelsize=13)
     plt.legend(prop={'size': 12})
     plt.tight_layout()
-    plt.show()
+    #plt.show()
+    plt.savefig(directory + '/Plots/SHMR_Allz_niter=' +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
 
     plt.figure()
     # for idx_z in range(numzbin):
@@ -932,9 +934,9 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     plt.ylim(-2.85, -0.9)
     plt.legend(ncol=2, loc=3)
     plt.tight_layout()
-    plt.show()
-    # plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
-    #     str(iterations) + "_burn=" + str(burn) + '.pdf')
+    # plt.show()
+    plt.savefig(directory + '/Plots/DeltaSHMR_Allz_niter=' +
+        str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 def plotMsMh_fixedMh(directory):
     load_smf('cosmos')
