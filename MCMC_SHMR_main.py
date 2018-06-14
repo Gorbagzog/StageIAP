@@ -43,6 +43,7 @@ def load_smf(smf_name):
         print('numzbin: '+str(numzbin))
 
         smf = []
+        tmp = []
         for i in range(numzbin):
             if smf_name == 'cosmos':
                 smf.append(np.loadtxt(
@@ -53,10 +54,22 @@ def load_smf(smf_name):
                     # + str(i) + '.dat')
                 )
             elif smf_name == 'cosmos_schechter':
-                smf.append(np.loadtxt(
+                tmp.append(np.loadtxt(
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
                     + str(i) + '.dat')
                 )
+                # Do not take points that are below -1000
+                smf.append(
+                    tmp[i][np.where(
+                        # np.logical_and(
+                            np.logical_and(
+                                np.logical_and(
+                                    tmp[i][:, 1] > -1000,
+                                    tmp[i][:, 2] > -1000),
+                                tmp[i][:, 2] > -1000),
+                        #     tmp[i][:, 0] < 11.8
+                        # )
+                ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 smf[i][:, 2] = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 3] = smf[i][:, 3] - smf[i][:, 1]
@@ -114,6 +127,7 @@ def load_smf(smf_name):
             """/!\ problem with error bars in candels SMF !!"""
             # plt.errorbar(smf[idx_z][:, 0], smf[idx_z][:, 1],
             #   yerr=[smf[idx_z][:,1]-smf[idx_z][:, 2], smf[idx_z][:, 3]- smf[idx_z][:,1]])
+
 
 def load_hmf(hmf_name):
     """Load the HMF"""
@@ -176,6 +190,7 @@ def load_hmf(hmf_name):
         print('Use Tinker+08 HMF in PLanck cosmo from hmf module')
         h = hmf_calc.MassFunction()
         h.update(Mmin=8)
+        h.update(Mmax=16)
         print(h.parameter_values)
         redshift_haloes = redshiftsbin
         for i in range(numzbin):
