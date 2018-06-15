@@ -183,11 +183,24 @@ def load_hmf(hmf_name):
             hmf[i][:, 0] = np.log10(hmf[i][:, 0] / 0.6774)
             hmf[i][:, 1] = np.log10(hmf[i][:, 1] * (0.6774)**3)
 
-    if hmf_name == 'hmf_module':
+    if hmf_name == 'hmf_module_tinker':
         """Use the python module hmf from HFMCalc of Murray+13
         parameters : Planck+15 cosmology by default, with  'delta_h': 200.0, 'delta_wrt': 'mean'"""
         # print hmf parameters with h.param_values
         print('Use Tinker+08 HMF in PLanck cosmo from hmf module')
+        h = hmf_calc.MassFunction()
+        h.update(Mmin=8)
+        h.update(Mmax=16)
+        print(h.parameter_values)
+        redshift_haloes = redshiftsbin
+        for i in range(numzbin):
+            h.update(z=redshiftsbin[i])
+            hmf.append(np.transpose(np.array([np.log10(h.m / h.cosmo_model.h),
+                       np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
+
+    if hmf_name == 'hmf_module_behroozi':
+        """Use the python module for Despali HMF"""
+        print('Use Behroozi HMF in Planck cosmo from hmf module')
         h = hmf_calc.MassFunction()
         h.update(Mmin=8)
         h.update(Mmax=16)
