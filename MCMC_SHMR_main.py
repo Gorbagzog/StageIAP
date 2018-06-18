@@ -25,6 +25,8 @@ import datetime
 import getconf
 from shutil import copyfile
 import hmf as hmf_calc
+from colossus.cosmology import cosmology
+from colossus.lss import mass_function
 
 
 def load_smf(smf_name):
@@ -199,7 +201,7 @@ def load_hmf(hmf_name):
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
     if hmf_name == 'hmf_module_behroozi':
-        """Use the python module for Despali HMF"""
+        """Use the python module for Behrrozi HMF"""
         print('Use Behroozi HMF in Planck cosmo from hmf module')
         h = hmf_calc.MassFunction()
         h.update(Mmin=8)
@@ -211,6 +213,27 @@ def load_hmf(hmf_name):
             hmf.append(np.transpose(np.array([np.log10(h.m / h.cosmo_model.h),
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
+    if hmf_name == 'colossus_depsali':
+        """Use the Colossus module for Despali HMF"""
+        print('Use Depsali+16 HMF in Planck15 cosmo from Colossus module')
+        mdef = '200m'
+        print('Use '+mdef+' for the SO defintion.')
+        cosmo = cosmology.setCosmology('planck15')
+        redshift_haloes = redshiftsbin
+        M = 10**np.arange(8.0, 15.5, 0.01) # Mass in Msun / h
+        for i in range(numzbin):
+            hmf.append(
+                np.transpose(
+                    np.array(
+                        [np.log10(M / cosmo.h), 
+                         np.log10(mass_function.massFunction(
+                                M, redshift_haloes[i], mdef = mdef, model ='despali16', q_out = 'dndlnM'
+                            ) * np.log(10) * cosmo.h**3  
+                            ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
+                            )]
+                        )
+                    )
+                )
 
 """Function definitions for computation of the theoretical SMF phi_true"""
 
@@ -225,7 +248,7 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     epsilon = 0.0001
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
-    # Select the index of the HMF corresponing to the halo masses
+    # Select the index of the HMF corresponding to the halo masses
     index_Mh = np.argmin(
         np.abs(
             np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)) -
