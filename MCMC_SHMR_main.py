@@ -220,7 +220,7 @@ def load_hmf(hmf_name):
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = redshiftsbin
-        M = 10**np.arange(8.0, 15.5, 0.01) # Mass in Msun / h
+        M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
         for i in range(numzbin):
             hmf.append(
                 np.transpose(
@@ -273,7 +273,7 @@ def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """"return the chi**2 between the observed and the expected SMF"""
-    select = np.where(smf[idx_z][:, 1] > -7)[0]  # select points where the smf is defined
+    select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf[idx_z][select[:], 0]
     pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
@@ -486,7 +486,7 @@ def test_convergence(directory, iterations, burn):
         # print(R)
 
 
-def delecte_non_converged_chains(directory, iterations, burn, idx_z, selec_chain):
+def delete_non_converged_chains(directory, iterations, burn, idx_z, selec_chain):
     load_smf('cosmos')
     load_hmf('hmf_module')
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -522,7 +522,7 @@ def plotSMF(directory, idx_z, iterations, burn):
     logMs = smf[idx_z][select, 0]
     plt.errorbar(logMs, smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
-    plt.ylim(-7.5, -1)
+    plt.ylim(-50, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
@@ -537,7 +537,7 @@ def plotSMHM(directory, idx_z, iterations, burn):
     chain =  np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
-    logMs = np.linspace(9, 11.5, num=200)
+    logMs = np.linspace(9, 13, num=200)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
