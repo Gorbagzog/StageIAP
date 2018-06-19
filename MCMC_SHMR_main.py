@@ -36,7 +36,7 @@ def load_smf(smf_name):
     global smf
     global redshiftsbin
     if smf_name == 'cosmos' or smf_name == 'cosmos_schechter':
-        print('Use the COSMOS SMF')
+        
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
         redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
@@ -48,6 +48,7 @@ def load_smf(smf_name):
         tmp = []
         for i in range(numzbin):
             if smf_name == 'cosmos':
+                print('Use the COSMOS 1/Vmax SMF')
                 smf.append(np.loadtxt(
                     # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
@@ -56,6 +57,7 @@ def load_smf(smf_name):
                     # + str(i) + '.dat')
                 )
             elif smf_name == 'cosmos_schechter':
+                print('Use the COSMOS Schechter fit SMF')
                 tmp.append(np.loadtxt(
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
                     + str(i) + '.dat')
@@ -73,8 +75,8 @@ def load_smf(smf_name):
                         # )
                 ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
-                smf[i][:, 2] = smf[i][:, 1] - smf[i][:, 2]
-                smf[i][:, 3] = smf[i][:, 3] - smf[i][:, 1]
+                # smf[i][:, 2] = smf[i][:, 1] - smf[i][:, 2]
+                # smf[i][:, 3] = smf[i][:, 3] - smf[i][:, 1]
         """Adapt SMF to match the Bolshoi-Planck Cosmology"""
         # Bolshoi-Planck cosmo : (flat LCMD)
         # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
@@ -94,7 +96,7 @@ def load_smf(smf_name):
             smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
 
     if smf_name == 'candels':
-        print('Use the COSMOS SMF')
+        print('Use the Candels SMF')
         """Load the SMF from Candels Grazian"""
         # Code is copied from IaryDavidzonSMF.py as of 12 june
         # redshifts of the Candels+15 data
@@ -213,7 +215,7 @@ def load_hmf(hmf_name):
             hmf.append(np.transpose(np.array([np.log10(h.m / h.cosmo_model.h),
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
-    if hmf_name == 'colossus_depsali':
+    if hmf_name == 'colossus_despali':
         """Use the Colossus module for Despali HMF"""
         print('Use Depsali+16 HMF in Planck15 cosmo from Colossus module')
         mdef = '200m'
@@ -277,13 +279,29 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf[idx_z][select[:], 0]
     pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-    chi2 = np.sum(
-            # When using the Vmax directly (give the error bars directly, in a linear scale)
-            # Need to use a linear scale to compute the chi2 with the right uncertainty
-            ((pred - 10**smf[idx_z][select, 1]) / (
-                10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
+    if smf_name == 'cosmos':
+        chi2 = np.sum(
+                # When using the Vmax directly (give the error bars directly, in a linear scale)
+                # Need to use a linear scale to compute the chi2 with the right uncertainty
+                ((pred - 10**smf[idx_z][select, 1]) / (
+                    10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
+            )
+    elif smf_name == 'cosmos_schechter':
+        """In the case of the Schechter fit, error bars are non symmetric so we need to estimate the likelihood.
+        I do this with a gaussian that has a varying standrad deviation as in Barlow 2004. 
+        The std is defined such that it goes through the -1/2 points of the loglikelihood for sigma- and sigma+.""" 
+        chi2 = np.sum(
+                ((pred - 10**smf[idx_z][select, 1]) / (
+                    10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
         )
     return chi2
+
+
+def var_std(x_est , x_true, sigm, sigp):
+    """Compute a varying standard deviation to have a varying gaussian for the likelihood with non symmetric errors"""
+    sig0 = 2 * sigm * sigp / (sigm + sigp)
+    sig1 = (sigp -  sigm) / (sigp + sigm)
+    return sig0 + sig1 * (x_true - x_est)
 
 
 def loglike(theta, idx_z, minbound, maxbound):
@@ -307,6 +325,7 @@ def runMCMC_allZ(paramfile):
     # Load parameters and config
     config = getconf.ConfigGetter('getconf', [paramfile])
     save_path = config.getstr('Path.save_path')
+    global smf_name
     smf_name = config.getstr('Mass_functions.SMF')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
