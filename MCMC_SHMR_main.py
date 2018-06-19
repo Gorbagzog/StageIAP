@@ -300,7 +300,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
 def var_std(x_est , x_true, sigm, sigp):
     """Compute a varying standard deviation to have a varying gaussian for the likelihood with non symmetric errors"""
     sig0 = 2 * sigm * sigp / (sigm + sigp)
-    sig1 = (sigp -  sigm) / (sigp + sigm)
+    sig1 = (sigm -  sigp) / (sigp + sigm)
     return sig0 + sig1 * (x_true - x_est)
 
 
