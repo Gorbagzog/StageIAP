@@ -75,8 +75,12 @@ def load_smf(smf_name):
                         # )
                 ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
-                # smf[i][:, 2] = smf[i][:, 1] - smf[i][:, 2]
-                # smf[i][:, 3] = smf[i][:, 3] - smf[i][:, 1]
+                # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3],
+                #  It is the inverse for the Schechter fit
+                # I use the Vmax convention to keep the same structure. 
+                temp = smf[i][:, 1] - smf[i][:, 2]
+                smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
+                smf[i][:, 3] = temp
         """Adapt SMF to match the Bolshoi-Planck Cosmology"""
         # Bolshoi-Planck cosmo : (flat LCMD)
         # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
@@ -292,7 +296,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
         The std is defined such that it goes through the -1/2 points of the loglikelihood for sigma- and sigma+.""" 
         chi2 = np.sum(
                 ((pred - 10**smf[idx_z][select, 1]) / (
-                    10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
+                    10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 2])))**2
         )
     return chi2
 
