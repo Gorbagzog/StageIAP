@@ -3,6 +3,7 @@
 
 import sys
 sys.path.append("..")
+sys.stdout.flush()
 
 import matplotlib
 matplotlib.use('Agg')

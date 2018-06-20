@@ -98,6 +98,11 @@ def load_smf(smf_name):
             # Correction of the measured stellar mass
             # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
             smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
+        
+        """Test to do subsampling of the HMF"""
+        # for i in range(numzbin):
+        #     smf[i] = np.array(np.transpose([smf[i][::4, 0], smf[i][::4, 1], smf[i][::4, 2], smf[i][::4, 3]]))
+
 
     if smf_name == 'candels':
         print('Use the Candels SMF')
@@ -250,22 +255,27 @@ def logMh(logMs, M1, Ms0, beta, delta, gamma):
 
 
 def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
+    # print(delta)
     """"SMF obtained from the SM-HM relation and the HMF"""
     epsilon = 0.0001
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
-    log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
-    # Select the index of the HMF corresponding to the halo masses
-    index_Mh = np.argmin(
-        np.abs(
-            np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)) -
-            np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1)))
-        ), axis=1)
-    log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma) 
+    if np.any(log_Mh1 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
+        return log_Mh1 * 0. + 1
+    else :
+        # Select the index of the HMF corresponding to the halo masses
+        index_Mh = np.argmin(
+            np.abs(
+                np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)) -
+                np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1)))
+            ), axis=1)
+        log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+        return log_phidirect
 
-    log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = -1000 # Do not use points with halo masses not defined in the HMF
-    log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = -1000
+    # log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = 10**6 # Do not use points with halo masses not defined in the HMF
+    # log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = 10**6
 
-    return log_phidirect
+
 
 
 def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
@@ -296,9 +306,24 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
         The std is defined such that it goes through the -1/2 points of the loglikelihood for sigma- and sigma+.""" 
         chi2 = np.sum(
                 ((pred - 10**smf[idx_z][select, 1]) / (
-                    10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 2])))**2
+                    10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
         )
     return chi2
+
+
+def chi2_minimize(p0, ksi, idx_z):
+    """"return the chi**2 between the observed and the expected SMF"""
+    M1, Ms0, beta, delta, gamma = p0
+    select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
+    # We choose to limit the fit only for abundances higher than 10**-7
+    logMs = smf[idx_z][select[:], 0]
+    pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+    chi2 = np.sum(
+            ((pred - 10**smf[idx_z][select, 1]) / (
+                10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
+    )
+    return chi2
+
 
 
 def var_std(x_est , x_true, sigm, sigp):
@@ -415,6 +440,8 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
     plotSMF(directory, idx_z, iterations, burn)
     plt.close('all')
     plotSMHM(directory, idx_z, iterations, burn)
+    plt.close('all')
+    plotSHMR(directory, idx_z, iterations, burn)
     plt.close('all')
     plot_Mhpeak(directory, chainfile, idx_z, iterations, burn)
     plt.close('all')
@@ -541,7 +568,7 @@ def plotSMF(directory, idx_z, iterations, burn):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
-    select = np.where(smf[idx_z][:, 1] > -1000)[0]
+    select = np.where(smf[idx_z][:, 1] > -40)[0]
     logMs = smf[idx_z][select, 0]
     plt.errorbar(logMs, smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
@@ -550,6 +577,8 @@ def plotSMF(directory, idx_z, iterations, burn):
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     # plt.show()
+    plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
+    plt.ylabel('$\mathrm{log}_{10}(\phi)$')
     plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
@@ -560,13 +589,35 @@ def plotSMHM(directory, idx_z, iterations, burn):
     chain =  np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
-    logMs = np.linspace(9, 13, num=200)
+    #logMs = np.linspace(9, 13, num=200)
+    select = np.where(smf[idx_z][:, 1] > -40)[0]
+    logMs = smf[idx_z][select, 0]
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        # logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+    plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{\odot})$')
+    plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{*})$')
     plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
+
+def plotSHMR(directory, idx_z, iterations, burn):
+    # load_smf()
+    # load_hmf()
+    chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chain =  np.load(chainfile)
+    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chain.close()
+    #logMs = np.linspace(9, 13, num=200)
+    select = np.where(smf[idx_z][:, 1] > -40)[0]
+    logMs = smf[idx_z][select, 0]
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
+        # logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        plt.plot(logMs, logmhalo, color="k", alpha=0.1)
+    plt.xlabel('$\mathrm{log}_{10}(M_{*} / M_{\odot})$')
+    plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{\odot})$')
+    plt.savefig(directory+'/Plots/SHMR'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 # def plotHMvsSM_noksi(idx_z, iterations, burn):
 #     load_smf()

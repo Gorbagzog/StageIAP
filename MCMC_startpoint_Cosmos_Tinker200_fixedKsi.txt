@@ -1,6 +1,6 @@
 # MCMC Starting Point for each redshift bin for Cosmos+Tinker Abundance Matching
 # M1, Ms0, beta, delta, gamma, ksi
-12.45, 10.8, 0.49, 0.47, 1, 0
+12.5, 10.2, 0.8, 0.3, 2.4, 0
 12.61, 10.98, 0.47, 0.59, 0.72, 0
 12.57, 11, 0.45, 0.73, 0.63, 0
 12.62, 10.95, 0.42, 0.7, 0.8, 0
