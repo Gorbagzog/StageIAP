@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 # import sys
 import emcee
-from astropy.cosmology import LambdaCDM
+from astropy.cosmology import LambdaCDM, Planck15
 # import scipy.optimize as op
 # from scipy import signal
 import corner
@@ -40,7 +40,9 @@ def load_smf(smf_name):
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
         redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-        redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
+        #redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
+        print('Use the average redshift of the bin from the Iary SMF fit')
+        redshiftsbin = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
         numzbin = np.size(redshifts) - 1
         print('numzbin: '+str(numzbin))
 
@@ -83,24 +85,25 @@ def load_smf(smf_name):
                 temp = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
-        """Adapt SMF to match the Bolshoi-Planck Cosmology"""
-        # Bolshoi-Planck cosmo : (flat LCMD)
-        # Om = 0.3089, Ol = 0.6911, Ob = 0.0486, h = 0.6774, s8 = 0.8159, ns = 0.9667
-        BP_Cosmo = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.6911)
+        """Adapt SMF to match the Planck Cosmology"""
         # Davidzon+17 SMF cosmo : (flat LCDM)
         # Om = 0.3, Ol = 0.7, h=0.7
         D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
+        print('Rescale the SMF to Planck15 cosmology')
         for i in range(numzbin):
             # Correction of the comoving Volume :
             VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
-            VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+            VmaxP15 = Planck15.comoving_volume(redshifts[i+1]) - Planck15.comoving_volume(redshifts[i])
             """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and
             are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
-            smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxBP)
+            smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxP15)
             # Correction of the measured stellar mass
-            # Equivalent to multiply by (BP_Cosmo.H0/D17_Cosmo.H0)**-2
-            smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(BP_Cosmo.H0/D17_Cosmo.H0)
-        
+            # Equivalent to multiply by (Planck15.H0/D17_Cosmo.H0)**-2
+            smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(Planck15.H0/D17_Cosmo.H0)
+            # Correct for the dependance on the luminosity distance
+            DL_D17 = D17_Cosmo.luminosity_distance(redshiftsbin[i])
+            DL_Planck = Planck15.luminosity_distance(redshiftsbin[i])
+            smf[i][:, 0] = smf[i][:, 0] + 2*np.log10(DL_Planck/DL_D17)
         """Test to do subsampling of the HMF"""
         # for i in range(numzbin):
         #     smf[i] = np.array(np.transpose([smf[i][::4, 0], smf[i][::4, 1], smf[i][::4, 2], smf[i][::4, 3]]))
@@ -977,7 +980,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
     load_smf('cosmos')
     load_hmf('hmf_module')
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7), np.full(numzbin, 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
     Ms_max = 11.8
@@ -1086,7 +1089,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
 
 def plotMsMh_fixedMh(directory):
     load_smf('cosmos')
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7), np.full(numzbin, 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
     Ms_max = 11.8
