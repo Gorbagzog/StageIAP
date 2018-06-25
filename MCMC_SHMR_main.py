@@ -75,16 +75,19 @@ def load_smf(smf_name):
                                     tmp[i][:, 1] > -1000,
                                     tmp[i][:, 2] > -1000),
                                 tmp[i][:, 2] > -1000),
-                            tmp[i][:, 0] < SM_cut
+                            tmp[i][:, 0] < SM_cut  # Keep only stellar masses below the stellar mass cut
                         )
                 ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
-                # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3],
-                #  It is the inverse for the Schechter fit
+                # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3] the lower bound.
+                # It is the inverse for the Schechter fit
                 # I use the Vmax convention to keep the same structure. 
                 temp = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
+
+                # Keep only one point over 4 to reduce the covariance between bins
+                smf[i] = smf[i][::5, :]
         """Adapt SMF to match the Planck Cosmology"""
         # Davidzon+17 SMF cosmo : (flat LCDM)
         # Om = 0.3, Ol = 0.7, h=0.7
@@ -311,13 +314,14 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
         The std is defined such that it goes through the -1/2 points of the loglikelihood for sigma- and sigma+.""" 
         chi2 = np.sum(
                 ((pred - 10**smf[idx_z][select, 1]) / (
-                    10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
+                    10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
+                    #10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
         )
     return chi2
 
 
 def chi2_minimize(p0, ksi, idx_z):
-    """"return the chi**2 between the observed and the expected SMF"""
+    """"test to use this definition of chi to do a scipy.minimize"""
     M1, Ms0, beta, delta, gamma = p0
     select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
@@ -408,6 +412,8 @@ def runMCMC_allZ(paramfile):
         print('Min bound: ' + str(minbound[idx_z]))
         print('Max bound: ' + str(maxbound[idx_z]))
         runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi)
+    # Plot all SHMR on one graph
+    plotSHMR_delta(directory, iterations, burn, load=False, selected_redshifts = selected_redshifts)
 
 def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi):
     # load_smf()
@@ -976,7 +982,7 @@ def plotAllSHMRvsSM(directory):
     plt.tight_layout()
 
 
-def plotSHMR_delta(directory, iterations, burn, load=True):
+def plotSHMR_delta(directory, iterations, burn, load=True, selected_redshifts=np.arange(10)):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
     load_smf('cosmos')
     load_hmf('hmf_module')
@@ -994,7 +1000,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
     conf_max_logMh = np.empty([numzbin, numpoints])
     if load is False :
         print('Computing arrays')
-        for idx_z in range(numzbin):
+        for idx_z in selected_redshifts:
         #for idx_z in [6,7,8,9]:
             logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
             chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -1034,7 +1040,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
 
     plt.figure()
     M1, Ms0, beta, delta, gamma = 12.51, 10.82, 0.484, 0.47, 1.02
-    for idx_z in range(numzbin):
+    for idx_z in selected_redshifts:
     # for idx_z in [6,7,8,9]:
         plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
         plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]), color="C{}".format(idx_z))
@@ -1054,7 +1060,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True):
         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
     plt.figure()
-    for idx_z in range(numzbin):
+    for idx_z in selected_redshifts:
     # for idx_z in [6,7,8,9]:
         """Plot the average"""
         # x = av_logMh[idx_z]
