@@ -46,9 +46,9 @@ def load_smf(smf_name):
 
         smf = []
         tmp = []
-        for i in range(numzbin):
-            if smf_name == 'cosmos':
-                print('Use the COSMOS 1/Vmax SMF')
+        if smf_name == 'cosmos':
+            print('Use the COSMOS 1/Vmax SMF')
+            for i in range(numzbin):
                 smf.append(np.loadtxt(
                     # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
@@ -56,8 +56,10 @@ def load_smf(smf_name):
                     # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
                     # + str(i) + '.dat')
                 )
-            elif smf_name == 'cosmos_schechter':
-                print('Use the COSMOS Schechter fit SMF')
+        elif smf_name == 'cosmos_schechter':
+            print('Use the COSMOS Schechter fit SMF')
+            print('Use a cut for high stellar mass at '+str(SM_cut)+' $M_{\odot}$')
+            for i in range(numzbin):
                 tmp.append(np.loadtxt(
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
                     + str(i) + '.dat')
@@ -65,14 +67,14 @@ def load_smf(smf_name):
                 # Do not take points that are below -1000
                 smf.append(
                     tmp[i][np.where(
-                        # np.logical_and(
+                        np.logical_and(
                             np.logical_and(
                                 np.logical_and(
                                     tmp[i][:, 1] > -1000,
                                     tmp[i][:, 2] > -1000),
                                 tmp[i][:, 2] > -1000),
-                        #     tmp[i][:, 0] < 11.8
-                        # )
+                            tmp[i][:, 0] < SM_cut
+                        )
                 ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3],
@@ -226,7 +228,7 @@ def load_hmf(hmf_name):
 
     if hmf_name == 'colossus_despali':
         """Use the Colossus module for Despali HMF"""
-        print('Use Depsali+16 HMF in Planck15 cosmo from Colossus module')
+        print('Use Despali+16 HMF in Planck15 cosmo from Colossus module')
         mdef = '200m'
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
@@ -356,6 +358,8 @@ def runMCMC_allZ(paramfile):
     save_path = config.getstr('Path.save_path')
     global smf_name
     smf_name = config.getstr('Mass_functions.SMF')
+    global SM_cut
+    SM_cut = config.getfloat('Mass_functions.SM_cut')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
     burn = config.getint('MCMC_run_parameters.burn')
@@ -572,7 +576,7 @@ def plotSMF(directory, idx_z, iterations, burn):
     logMs = smf[idx_z][select, 0]
     plt.errorbar(logMs, smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
-    plt.ylim(-50, -1)
+    #plt.ylim(-50, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
