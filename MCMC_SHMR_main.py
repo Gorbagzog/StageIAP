@@ -68,14 +68,11 @@ def load_smf(smf_name):
                 # Do not take points that are below -1000
                 smf.append(
                     tmp[i][np.where(
-                        # np.logical_and(
+                        np.logical_and(
                             np.logical_and(
-                                np.logical_and(
-                                    tmp[i][:, 1] > -1000,
-                                    tmp[i][:, 2] > -1000),
+                                tmp[i][:, 1] > -1000,
                                 tmp[i][:, 2] > -1000),
-                            # tmp[i][:, 0] < SM_cut_max  # Keep only stellar masses below the stellar mass cut
-                        # )
+                            tmp[i][:, 2] > -1000),
                 ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3] the lower bound.
@@ -97,7 +94,7 @@ def load_smf(smf_name):
                     smf[i] = smf[i][np.where(
                         np.logical_and(
                             smf[i][:,0] > SM_cut_min[i],
-                            smf[i][:,0] < SM_cut_max
+                            smf[i][:,0] < SM_cut_max[i]
                         )
                     ), :][0]
 
@@ -253,7 +250,7 @@ def load_hmf(hmf_name):
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = redshiftsbin
-        M = 10**np.arange(8.0, 3.59e+20, 0.01) # Mass in Msun / h
+        M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
         for i in range(numzbin):
             hmf.append(
                 np.transpose(
@@ -282,7 +279,8 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     epsilon = 0.0001
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma) 
-    if np.any(log_Mh1 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
+    if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
+        # print('above hmf')
         return log_Mh1 * 0. + 1
     else :
         # Select the index of the HMF corresponding to the halo masses
@@ -291,8 +289,12 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
                 np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)) -
                 np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1)))
             ), axis=1)
-        log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
-        return log_phidirect
+        if np.any(hmf[idx_z][index_Mh, 1] < -100):
+            # print('HMF not defined')
+            return log_Mh1 * 0. + 1
+        else:
+            log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+            return log_phidirect
 
     # log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = 10**6 # Do not use points with halo masses not defined in the HMF
     # log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = 10**6
@@ -382,7 +384,7 @@ def runMCMC_allZ(paramfile):
     global do_sm_cut
     global SM_cut_max
     do_sm_cut = config.getbool('Mass_functions.do_sm_cut') 
-    SM_cut_max = config.getfloat('Mass_functions.SM_cut')
+    SM_cut_max = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
     burn = config.getint('MCMC_run_parameters.burn')

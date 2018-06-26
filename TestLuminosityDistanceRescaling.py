@@ -34,14 +34,13 @@ for i in range(numzbin):
     dl_d17 = D17_Cosmo.luminosity_distance(selec[i]['ZPHOT'])
     corrTrue.append(2 * np.log10(dl_planck / dl_d17))
 
-    corrDirect[i] = 2 * np.log10(av_dl_planck / av_dl_d17)
-
     plt.figure()
     plt.hist(corrTrue[i], bins=10)
-
     av_dl_planck = Planck15.luminosity_distance(redshiftsbin[i])
     av_dl_d17= D17_Cosmo.luminosity_distance(redshiftsbin[i])
+    corrDirect[i] = 2 * np.log10(av_dl_planck / av_dl_d17)
     plt.axvline(corrDirect, c='orange')
+    plt.savefig('../TestDLRescaling/zbin'+str(i)+'.pdf')
 
 plt.show()
 
