@@ -60,7 +60,6 @@ def load_smf(smf_name):
                 )
         elif smf_name == 'cosmos_schechter':
             print('Use the COSMOS Schechter fit SMF')
-            print('Use a cut for high stellar mass at '+str(SM_cut)+' $M_{\odot}$')
             for i in range(numzbin):
                 tmp.append(np.loadtxt(
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
@@ -69,14 +68,14 @@ def load_smf(smf_name):
                 # Do not take points that are below -1000
                 smf.append(
                     tmp[i][np.where(
-                        np.logical_and(
+                        # np.logical_and(
                             np.logical_and(
                                 np.logical_and(
                                     tmp[i][:, 1] > -1000,
                                     tmp[i][:, 2] > -1000),
                                 tmp[i][:, 2] > -1000),
-                            tmp[i][:, 0] < SM_cut  # Keep only stellar masses below the stellar mass cut
-                        )
+                            # tmp[i][:, 0] < SM_cut_max  # Keep only stellar masses below the stellar mass cut
+                        # )
                 ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3] the lower bound.
@@ -85,9 +84,24 @@ def load_smf(smf_name):
                 temp = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
-
+                
                 # Keep only one point over 4 to reduce the covariance between bins
-                smf[i] = smf[i][::5, :]
+                # smf[i] = smf[i][::5, :]
+            
+            if do_sm_cut:
+                print('Do a cut for minimal and maximal stellar masses')
+                print('Use a cut for high stellar mass at '+str(SM_cut_max)+' $M_{\odot}$')
+                SM_cut_min = np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7)
+                print('Use D17 relation for minimal stellar mass: Ms_min='+str(SM_cut_min))
+                for i in range(numzbin):
+                    smf[i] = smf[i][np.where(
+                        np.logical_and(
+                            smf[i][:,0] > SM_cut_min[i],
+                            smf[i][:,0] < SM_cut_max
+                        )
+                    ), :][0]
+
+
         """Adapt SMF to match the Planck Cosmology"""
         # Davidzon+17 SMF cosmo : (flat LCDM)
         # Om = 0.3, Ol = 0.7, h=0.7
@@ -239,7 +253,7 @@ def load_hmf(hmf_name):
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = redshiftsbin
-        M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
+        M = 10**np.arange(8.0, 3.59e+20, 0.01) # Mass in Msun / h
         for i in range(numzbin):
             hmf.append(
                 np.transpose(
@@ -365,8 +379,10 @@ def runMCMC_allZ(paramfile):
     save_path = config.getstr('Path.save_path')
     global smf_name
     smf_name = config.getstr('Mass_functions.SMF')
-    global SM_cut
-    SM_cut = config.getfloat('Mass_functions.SM_cut')
+    global do_sm_cut
+    global SM_cut_max
+    do_sm_cut = config.getbool('Mass_functions.do_sm_cut') 
+    SM_cut_max = config.getfloat('Mass_functions.SM_cut')
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
     burn = config.getint('MCMC_run_parameters.burn')
@@ -880,7 +896,7 @@ def plotAllSHMRvsSM(directory, iterations, burn):
     plt.figure()
     numpoints = 100
     # Use the interploation formula of Mlim(z) in Davidzon et al. 2017
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + (redshifts[1:] + redshifts[:-1]) / 2)**2.7), np.full(numzbin, 9))
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7), np.full(numzbin, 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
     Ms_max = 11.8
