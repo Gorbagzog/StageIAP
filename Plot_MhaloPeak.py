@@ -15,14 +15,15 @@ import matplotlib.pyplot as plt
 # MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
 # MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_CosmosTinker.txt")
 MhaloCosmosTinker = np.loadtxt("../MCMC_2018-4-25T18-31/MhaloPeak.txt")
-MhaloCosmosSchTinker = np.loadtxt("../MCMC_save_Schechter_6-8_1828_X_6-11_1454/MhaloPeak.txt")
+#MhaloCosmosSchTinker = np.loadtxt("../MCMC_save_Schechter_6-8_1828_X_6-11_1454/MhaloPeak.txt")
+MhaloCosmosSchTinker = np.loadtxt("../MCMC_2018-6-27T11-11/MhaloPeak.txt")
 # MhaloCosmosTinker[:,0] = MhaloCosmosTinker[:,0].astype('int')
 
 MhaloCosmosTinker[:,1] += np.log10(67.74/70)
 MhaloCosmosSchTinker[:,1] += np.log10(67.74/70)
 redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
 redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
-
+redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
 # MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
@@ -158,15 +159,15 @@ plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle
 #              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
 #              label='Case 3', markersize=7)
 plt.errorbar(redshiftsbin[MhaloCosmosTinker[:,0].astype('int')[:-3]], MhaloCosmosTinker[:-3, 1], yerr=MhaloCosmosTinker[:-3, 2],
-             fmt='o', color='red', capsize=3, label='This work, Vmax',
+             fmt='o', color='red', capsize=3, label='This work, SMF:Vmax; HMF:Tinker10',
              markersize=8)
 plt.errorbar(redshiftsbin[MhaloCosmosTinker[:,0].astype('int')[7:]], MhaloCosmosTinker[7:, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
              fmt='o', linestyle='none', color='red', capsize=3, markeredgewidth=2,  lolims=True,
              markersize=6)
-plt.errorbar(redshiftsbin[MhaloCosmosSchTinker[:,0].astype('int')[:-3]], MhaloCosmosSchTinker[:-3, 1], yerr=MhaloCosmosSchTinker[:-3, 2],
-             fmt='o', color='green', capsize=3, label='This work, Schechter fit',
+plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[:-1]], MhaloCosmosSchTinker[:-1, 1], yerr=MhaloCosmosSchTinker[:-1, 2],
+             fmt='o', color='green', capsize=3, label='This work, SMF:Schechter fit; HMF:Despali16',
              markersize=8)
-plt.errorbar(redshiftsbin[MhaloCosmosSchTinker[:,0].astype('int')[7:]], MhaloCosmosSchTinker[7:, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
+plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[9:]], MhaloCosmosSchTinker[9, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
              fmt='o', linestyle='none', color='green', capsize=3, markeredgewidth=2,  lolims=True,
              markersize=6)
 # plt.errorbar(MhaloCosmosMCMC[:-3, 0], MhaloCosmosMCMC[:-3, 1], yerr=MhaloCosmosMCMC[:-3, 2],

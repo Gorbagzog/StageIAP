@@ -118,9 +118,10 @@ def load_smf(smf_name):
             DL_D17 = D17_Cosmo.luminosity_distance(redshiftsbin[i])
             DL_Planck = Planck15.luminosity_distance(redshiftsbin[i])
             smf[i][:, 0] = smf[i][:, 0] + 2*np.log10(DL_Planck/DL_D17)
-        """Test to do subsampling of the HMF"""
+        """Test to do subsampling of the SMF"""
+        # step=4
         # for i in range(numzbin):
-        #     smf[i] = np.array(np.transpose([smf[i][::4, 0], smf[i][::4, 1], smf[i][::4, 2], smf[i][::4, 3]]))
+        #     smf[i] = np.array(np.transpose([smf[i][::step, 0], smf[i][::step, 1], smf[i][::step, 2], smf[i][::step, 3]]))
 
 
     if smf_name == 'candels':
@@ -281,7 +282,7 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma) 
     if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
         # print('above hmf')
-        return log_Mh1 * 0. + 1
+        return log_Mh1 * 0. + 10
     else :
         # Select the index of the HMF corresponding to the halo masses
         index_Mh = np.argmin(
@@ -300,11 +301,9 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = 10**6
 
 
-
-
 def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Use the approximation of the convolution defined in Behroozi et al 2010 equation (3)"""
-    epsilon = 0.01 * logMs
+    epsilon = 0.0001 * logMs
     logphi1 = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     logphi2 = log_phi_direct(logMs + epsilon, idx_z, M1, Ms0, beta, delta, gamma)
     logphitrue = logphi1 + ksi**2 / 2 * np.log(10) * ((logphi2 - logphi1)/epsilon)**2

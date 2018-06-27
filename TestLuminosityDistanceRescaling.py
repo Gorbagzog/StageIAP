@@ -39,19 +39,21 @@ for i in range(numzbin):
     av_dl_planck = Planck15.luminosity_distance(redshiftsbin[i])
     av_dl_d17= D17_Cosmo.luminosity_distance(redshiftsbin[i])
     corrDirect[i] = 2 * np.log10(av_dl_planck / av_dl_d17)
-    plt.axvline(corrDirect, c='orange')
+    plt.axvline(corrDirect[i], c='orange', label='Correction with average z of the bin')
+    plt.xlabel('$\mathrm{log}_{10}(M_*)$ correction')
+    plt.title(str(redshifts[i])+'<z<'+str(redshifts[i+1]))
     plt.savefig('../TestDLRescaling/zbin'+str(i)+'.pdf')
 
-plt.show()
+# plt.show()
 
 
-corrMax = np.empty(numzbin)
-corrMin = np.empty(numzbin)
-corrAve = np.empty(numzbin)
-corrMed = np.empty(numzbin)
+# corrMax = np.empty(numzbin)
+# corrMin = np.empty(numzbin)
+# corrAve = np.empty(numzbin)
+# corrMed = np.empty(numzbin)
 
-for i in range(numzbin):
-    corrMax[i] = np.max(corrTrue[i])
-    corrMin[i] = np.min(corrTrue[i])
-    corrAve[i] = np.average(corrTrue[i])
-    corrMed[i] = np.median(corrTrue[i])
+# for i in range(numzbin):
+#     corrMax[i] = np.max(corrTrue[i])
+#     corrMin[i] = np.min(corrTrue[i])
+#     corrAve[i] = np.average(corrTrue[i])
+#     corrMed[i] = np.median(corrTrue[i])
