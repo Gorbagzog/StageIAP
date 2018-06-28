@@ -31,13 +31,6 @@ MhaloCosmosTinker[:,1] += np.log10(67.74/70)
 redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
 redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
 
-redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
-# MhaloCosmosMCMC = np.loadtxt("../MCMC_select/MhPeak_CosmosBolshoiTot.txt")
-
-def loadMhPeak(directory):
-    MhaloCosmosSchTinker = np.loadtxt(directory + "/MhaloPeak.txt")
-    MhaloCosmosSchTinker[:,1] += np.log10(67.74/70)
-    return MhaloCosmosSchTinker
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
 
@@ -122,14 +115,7 @@ MhaloPeakYang12curve = tmp[1]
 
 """Plot"""
 
-def plotMhaloPeak(directory, smf_name, hmf_name):
-    print('Plot MhaloPeaks from '+directory)
-    MhaloCosmosSchTinker = loadMhPeak(directory)
-
-    if smf_name =='cosmos_schechter':
-        smf_short ='SchtFit'
-
-    plt.figure(figsize=(10, 5))
+def plotLiterrature():
     # ax = plt.subplot(111)
     # plt.figure()
     # plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
@@ -178,18 +164,34 @@ def plotMhaloPeak(directory, smf_name, hmf_name):
     # plt.errorbar(MhaloCandels[:, 0], MhaloCandels[:, 1], yerr=[MhaloCandels[:, 2],
     #              MhaloCandels[:, 3]], fmt='d', color='darkgreen', capsize=3,
     #              label='Case 3', markersize=7)
-    plt.errorbar(redshiftsbin[MhaloCosmosTinker[:,0].astype('int')[:-3]], MhaloCosmosTinker[:-3, 1], yerr=MhaloCosmosTinker[:-3, 2],
-                fmt='o', color='red', capsize=3, label='This work, SMF:Vmax; HMF:Tinker10',
-                markersize=8)
-    plt.errorbar(redshiftsbin[MhaloCosmosTinker[:,0].astype('int')[7:]], MhaloCosmosTinker[7:, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
-                fmt='o', linestyle='none', color='red', capsize=3, markeredgewidth=2,  lolims=True,
-                markersize=6)
-    plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[:-1]], MhaloCosmosSchTinker[:-1, 1], yerr=MhaloCosmosSchTinker[:-1, 2],
-                fmt='o', color='green', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
-                markersize=8)
-    plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[9:]], MhaloCosmosSchTinker[9, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
-                fmt='o', linestyle='none', color='green', capsize=3, markeredgewidth=2,  lolims=True,
-                markersize=6)
+    # plt.errorbar(redshiftsbin[MhaloCosmosTinker[:,0].astype('int')[:-3]], MhaloCosmosTinker[:-3, 1], yerr=MhaloCosmosTinker[:-3, 2],
+    #             fmt='o', color='red', capsize=3, label='This work, SMF:Vmax; HMF:Tinker10',
+    #             markersize=8)
+    # plt.errorbar(redshiftsbin[MhaloCosmosTinker[:,0].astype('int')[7:]], MhaloCosmosTinker[7:, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
+    #             fmt='o', linestyle='none', color='red', capsize=3, markeredgewidth=2,  lolims=True,
+    #             markersize=6)
+
+    # if args[1]=='combined':
+    #     numCombine = np.size(args[1:])%3
+    #     MhaloCombined = np.empty()
+    #     for i in range(numCombine):
+    #         MhaloCombined[i] = loadMhPeak(args[i*3 + 1])
+    #         plt.errorbar(redshiftsbinTrue[MhaloCombined[:,0].astype('int')[:-1]], MhaloCombined[:-1, 1], yerr=MhaloCombined[:-1, 2],
+    #             fmt='o', color='green', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
+    #             markersize=8)
+    # else:   
+
+
+
+    #     MhaloCosmosSchTinker = loadMhPeak(args[1])
+    #     plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[:-1]], MhaloCosmosSchTinker[:-1, 1], yerr=MhaloCosmosSchTinker[:-1, 2],
+    #             fmt='o', color='green', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
+    #             markersize=8)
+    #     plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[9:]], MhaloCosmosSchTinker[9, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
+    #             fmt='o', linestyle='none', color='green', capsize=3, markeredgewidth=2,  lolims=True,
+    #             markersize=6)
+
+
     # plt.errorbar(MhaloCosmosMCMC[:-3, 0], MhaloCosmosMCMC[:-3, 1], yerr=MhaloCosmosMCMC[:-3, 2],
     #              fmt='o', color='red', capsize=3, label='AM, COSMOS + Bolshoi', # label='AM, COSMOS + Bolshoi Tot'
     #              markersize=7)
@@ -212,16 +214,68 @@ def plotMhaloPeak(directory, smf_name, hmf_name):
     # Put a legend below current axis
     # ax.legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left", fontsize=12)
     # ax.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
-    plt.legend(loc=2, ncol=2, fontsize=12, edgecolor='white', framealpha=0)
     plt.xticks(fontsize=13)
     plt.yticks(fontsize=13)
     # plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     # plt.tight_layout(rect=[0,0,0.65,1])
+    # plt.tight_layout()
+    # plt.savefig(directory + '/Plots/MhaloPeak.pdf')
+    # plt.show()
+
+
+def loadMhPeak(directory):
+    Mhalopeak = np.loadtxt(directory + "/MhaloPeak.txt")
+    Mhalopeak[:,1] += np.log10(67.74/70)
+    return Mhalopeak
+
+
+def plotFit(directory, smf_name, hmf_name):
+    MhaloPeak =loadMhPeak(directory)
+    redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])     
+    if smf_name =='cosmos_schechter':
+        smf_short ='SchtFit'
+    elif smf_name=='cosmos':
+        smf_short='Vmax'
+    else:
+        smf_short = smf_name
+    plt.errorbar(redshiftsbinTrue[MhaloPeak[:,0].astype('int')[:]], MhaloPeak[:, 1], yerr=MhaloPeak[:, 2],
+    fmt='o', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
+    markersize=8)
+
+
+def showPlot():
+    plt.legend(loc=2, ncol=2, fontsize=12, edgecolor='white', framealpha=0)
     plt.tight_layout()
-    plt.savefig(directory + '/Plots/MhaloPeak.pdf')
     plt.show()
+
+
+def savePlot(directory):
+    plt.legend(loc=2, ncol=2, fontsize=12, edgecolor='white', framealpha=0)
+    plt.tight_layout()
+    plt.savefig(directory+'/Plots/MhaloPeak.pdf')
+    print('Saved MhaloPeak Plot')
+
 
 
 if __name__ ==  '__main__':
     """Plot the Mhalo Peak from the directory given in argument"""
-    plotMhaloPeak(sys.argv[1], sys.argv[2], sys.argv[3])
+    plt.figure(figsize=(10, 5))
+    plotLiterrature()
+
+    numCombined = np.size(sys.argv[1:]) // 3
+    for i in range(numCombined):
+        dateName = sys.argv[i*3 +1]
+        smf_name = sys.argv[i*3 +2]
+        hmf_name = sys.argv[i*3 +3]
+        directory = '../'+dateName
+        print('Plot MhaloPeaks from '+directory)
+        plotFit(directory, smf_name, hmf_name)
+
+    showPlot()
+
+
+"""" Exemple of multi plot """
+# python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-23 SchtFit Tinker08 MCMC_2018-6-28T12-33 SchtFit Despali16 MCMC_2018-6-28T15-19 SchtFit Bocquet16 MCMC_2018-6-28T15-37 SchtFit Bhattacharya11 MCMC_2018-6-28T12-10 SchtFit Watson13
+
+# python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-33 'Scht<12' Despali16 MCMC_2018-6-28T16-25 'Scht<12.5' Despali16
+

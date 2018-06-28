@@ -128,6 +128,7 @@ def load_smf(smf_name):
         # Code is copied from IaryDavidzonSMF.py as of 12 june
         # redshifts of the Candels+15 data
         redshifts = np.array([3.5, 4.5, 5.5, 6.5, 7.5])
+        redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
         numzbin = np.size(redshifts)-1
         print('numzbin: '+str(numzbin))
         smf = []
@@ -243,10 +244,11 @@ def load_hmf(hmf_name):
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
 
-    if hmf_name == 'despali16' or 'tinker08' or 'watson13':
+    if hmf_name == ('despali16' or 'tinker08' or 'watson13' or 'bocquet16' or 'bhattacharya11'):
         """Use the Colossus module for the HMF"""
-        print('Use('+hmf_name+' HMF in Planck15 cosmo from Colossus module')
-        if hmf_name == 'watson13':
+        print('Use '+hmf_name+' HMF in Planck15 cosmo from Colossus module')
+        if hmf_name == ('watson13' or 'bhattacharya11'):
+            print(hmf_name)
             mdef='fof'
         else:
             mdef = '200m'
@@ -361,7 +363,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf[idx_z][select[:], 0]
     pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-    if smf_name == 'cosmos':
+    if smf_name == 'cosmos' or 'candels':
         chi2 = np.sum(
                 # When using the Vmax directly (give the error bars directly, in a linear scale)
                 # Need to use a linear scale to compute the chi2 with the right uncertainty
@@ -478,9 +480,13 @@ def runMCMC_allZ(paramfile):
         runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi)
     # Plot all SHMR on one graph
     plotSHMR_delta(directory, iterations, burn, load=False, selected_redshifts = selected_redshifts)
-    # Plot the MhaloPeak graph if we fitted all z bins
-    if np.size(selected_redshifts)==10:
-        Plot_MhaloPeak.plotMhaloPeak(directory, smf_name, hmf_name)
+    # Plot the MhaloPeak graph
+    plt.clf()
+    plt.figure(figsize=(10, 5))
+    Plot_MhaloPeak.plotLiterrature()
+    Plot_MhaloPeak.plotFit(directory, smf_name, hmf_name)
+    Plot_MhaloPeak.savePlot(directory)
+    plt.clf()
 
 def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi):
     # load_smf()
