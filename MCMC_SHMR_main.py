@@ -242,10 +242,14 @@ def load_hmf(hmf_name):
             hmf.append(np.transpose(np.array([np.log10(h.m / h.cosmo_model.h),
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
-    if hmf_name == 'colossus_despali':
-        """Use the Colossus module for Despali HMF"""
-        print('Use Despali+16 HMF in Planck15 cosmo from Colossus module')
-        mdef = '200m'
+
+    if hmf_name == 'despali16' or 'tinker08' or 'watson13':
+        """Use the Colossus module for the HMF"""
+        print('Use('+hmf_name+' HMF in Planck15 cosmo from Colossus module')
+        if hmf_name == 'watson13':
+            mdef='fof'
+        else:
+            mdef = '200m'
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = redshiftsbin
@@ -256,7 +260,7 @@ def load_hmf(hmf_name):
                     np.array(
                         [np.log10(M / cosmo.h), 
                          np.log10(mass_function.massFunction(
-                                M, redshift_haloes[i], mdef = mdef, model ='despali16', q_out = 'dndlnM'
+                                M, redshift_haloes[i], mdef = mdef, model =hmf_name, q_out = 'dndlnM'
                             ) * np.log(10) * cosmo.h**3  
                             ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
                             )]
@@ -264,29 +268,49 @@ def load_hmf(hmf_name):
                     )
                 )
 
-    if hmf_name == 'colossus_tinker08':
-        """Use the Colossus module for Tinker 2008 HMF"""
-        print('Use Tinker+08 HMF in Planck15 cosmo from Colossus module')
-        mdef = '200m'
-        print('Use '+mdef+' for the SO defintion.')
-        cosmo = cosmology.setCosmology('planck15')
-        redshift_haloes = redshiftsbin
-        M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
-        for i in range(numzbin):
-            hmf.append(
-                np.transpose(
-                    np.array(
-                        [np.log10(M / cosmo.h), 
-                         np.log10(mass_function.massFunction(
-                                M, redshift_haloes[i], mdef = mdef, model ='tinker08', q_out = 'dndlnM'
-                            ) * np.log(10) * cosmo.h**3  
-                            ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
-                            )]
-                        )
-                    )
-                )
+    # if hmf_name == 'colossus_tinker08':
+    #     """Use the Colossus module for Tinker 2008 HMF"""
+    #     print('Use Tinker+08 HMF in Planck15 cosmo from Colossus module')
+    #     mdef = '200m'
+    #     print('Use '+mdef+' for the SO defintion.')
+    #     cosmo = cosmology.setCosmology('planck15')
+    #     redshift_haloes = redshiftsbin
+    #     M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
+    #     for i in range(numzbin):
+    #         hmf.append(
+    #             np.transpose(
+    #                 np.array(
+    #                     [np.log10(M / cosmo.h), 
+    #                      np.log10(mass_function.massFunction(
+    #                             M, redshift_haloes[i], mdef = mdef, model ='tinker08', q_out = 'dndlnM'
+    #                         ) * np.log(10) * cosmo.h**3  
+    #                         ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
+    #                         )]
+    #                     )
+    #                 )
+    #             )
 
-
+    # if hmf_name == 'colossus_watson13':
+    #     """Use the Colossus module for Tinker 2008 HMF"""
+    #     print('Use Watson+13 HMF in Planck15 cosmo from Colossus module')
+    #     mdef = 'fof'
+    #     print('Use '+mdef+' for the SO defintion.')
+    #     cosmo = cosmology.setCosmology('planck15')
+    #     redshift_haloes = redshiftsbin
+    #     M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
+    #     for i in range(numzbin):
+    #         hmf.append(
+    #             np.transpose(
+    #                 np.array(
+    #                     [np.log10(M / cosmo.h), 
+    #                      np.log10(mass_function.massFunction(
+    #                             M, redshift_haloes[i], mdef = mdef, model ='watson13', q_out = 'dndlnM'
+    #                         ) * np.log(10) * cosmo.h**3  
+    #                         ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
+    #                         )]
+    #                     )
+    #                 )
+    #             )
 """Function definitions for computation of the theoretical SMF phi_true"""
 
 
@@ -405,6 +429,7 @@ def runMCMC_allZ(paramfile):
     global SM_cut_max
     do_sm_cut = config.getbool('Mass_functions.do_sm_cut') 
     SM_cut_max = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
+    global hmf_name
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
     burn = config.getint('MCMC_run_parameters.burn')
@@ -455,7 +480,7 @@ def runMCMC_allZ(paramfile):
     plotSHMR_delta(directory, iterations, burn, load=False, selected_redshifts = selected_redshifts)
     # Plot the MhaloPeak graph if we fitted all z bins
     if np.size(selected_redshifts)==10:
-        Plot_MhaloPeak.plotMhaloPeak(directory)
+        Plot_MhaloPeak.plotMhaloPeak(directory, smf_name, hmf_name)
 
 def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi):
     # load_smf()
@@ -1026,8 +1051,8 @@ def plotAllSHMRvsSM(directory):
 
 def plotSHMR_delta(directory, iterations, burn, load=True, selected_redshifts=np.arange(10)):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
-    load_smf('cosmos')
-    load_hmf('hmf_module')
+    load_smf(smf_name)
+    load_hmf(hmf_name)
     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7), np.full(numzbin, 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17

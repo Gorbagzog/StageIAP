@@ -122,9 +122,12 @@ MhaloPeakYang12curve = tmp[1]
 
 """Plot"""
 
-def plotMhaloPeak(directory):
+def plotMhaloPeak(directory, smf_name, hmf_name):
     print('Plot MhaloPeaks from '+directory)
     MhaloCosmosSchTinker = loadMhPeak(directory)
+
+    if smf_name =='cosmos_schechter':
+        smf_short ='SchtFit'
 
     plt.figure(figsize=(10, 5))
     # ax = plt.subplot(111)
@@ -182,7 +185,7 @@ def plotMhaloPeak(directory):
                 fmt='o', linestyle='none', color='red', capsize=3, markeredgewidth=2,  lolims=True,
                 markersize=6)
     plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[:-1]], MhaloCosmosSchTinker[:-1, 1], yerr=MhaloCosmosSchTinker[:-1, 2],
-                fmt='o', color='green', capsize=3, label='This work, SMF:Schechter fit; HMF:Despali16',
+                fmt='o', color='green', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
                 markersize=8)
     plt.errorbar(redshiftsbinTrue[MhaloCosmosSchTinker[:,0].astype('int')[9:]], MhaloCosmosSchTinker[9, 1], yerr= 0.1, # yerr=MhaloCosmosTinker[7:, 2],
                 fmt='o', linestyle='none', color='green', capsize=3, markeredgewidth=2,  lolims=True,
@@ -221,4 +224,4 @@ def plotMhaloPeak(directory):
 
 if __name__ ==  '__main__':
     """Plot the Mhalo Peak from the directory given in argument"""
-    plotMhaloPeak(sys.argv[1])
+    plotMhaloPeak(sys.argv[1], sys.argv[2], sys.argv[3])
