@@ -27,6 +27,7 @@ from shutil import copyfile
 import hmf as hmf_calc
 from colossus.cosmology import cosmology
 from colossus.lss import mass_function
+import Plot_MhaloPeak
 
 
 def load_smf(smf_name):
@@ -81,10 +82,7 @@ def load_smf(smf_name):
                 temp = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
-                
-                # Keep only one point over 4 to reduce the covariance between bins
-                # smf[i] = smf[i][::5, :]
-            
+
             if do_sm_cut:
                 print('Do a cut for minimal and maximal stellar masses')
                 print('Use a cut for high stellar mass at '+str(SM_cut_max)+' $M_{\odot}$')
@@ -266,6 +264,29 @@ def load_hmf(hmf_name):
                     )
                 )
 
+    if hmf_name == 'colossus_tinker08':
+        """Use the Colossus module for Tinker 2008 HMF"""
+        print('Use Tinker+08 HMF in Planck15 cosmo from Colossus module')
+        mdef = '200m'
+        print('Use '+mdef+' for the SO defintion.')
+        cosmo = cosmology.setCosmology('planck15')
+        redshift_haloes = redshiftsbin
+        M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
+        for i in range(numzbin):
+            hmf.append(
+                np.transpose(
+                    np.array(
+                        [np.log10(M / cosmo.h), 
+                         np.log10(mass_function.massFunction(
+                                M, redshift_haloes[i], mdef = mdef, model ='tinker08', q_out = 'dndlnM'
+                            ) * np.log(10) * cosmo.h**3  
+                            ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
+                            )]
+                        )
+                    )
+                )
+
+
 """Function definitions for computation of the theoretical SMF phi_true"""
 
 
@@ -406,7 +427,8 @@ def runMCMC_allZ(paramfile):
 
     # Create save direcory
     now = datetime.datetime.now()
-    directory = save_path + "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
+    dateName = "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
+    directory = save_path + dateName
     print('Save direcory : ' + directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -431,6 +453,9 @@ def runMCMC_allZ(paramfile):
         runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi)
     # Plot all SHMR on one graph
     plotSHMR_delta(directory, iterations, burn, load=False, selected_redshifts = selected_redshifts)
+    # Plot the MhaloPeak graph if we fitted all z bins
+    if np.size(selected_redshifts)==10:
+        Plot_MhaloPeak.plotMhaloPeak(directory)
 
 def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi):
     # load_smf()
