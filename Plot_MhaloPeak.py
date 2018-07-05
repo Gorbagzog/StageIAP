@@ -179,7 +179,7 @@ def plotLiterrature():
     #         plt.errorbar(redshiftsbinTrue[MhaloCombined[:,0].astype('int')[:-1]], MhaloCombined[:-1, 1], yerr=MhaloCombined[:-1, 2],
     #             fmt='o', color='green', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
     #             markersize=8)
-    # else:   
+    # else:
 
 
 
@@ -231,7 +231,7 @@ def loadMhPeak(directory):
 
 def plotFit(directory, smf_name, hmf_name):
     MhaloPeak =loadMhPeak(directory)
-    redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])     
+    redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
     if smf_name =='cosmos_schechter':
         smf_short ='SchtFit'
     elif smf_name=='cosmos':
