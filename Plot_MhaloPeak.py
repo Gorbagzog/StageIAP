@@ -204,7 +204,7 @@ def plotLiterrature():
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', size=17)
     # plt.ylim(11.7, 13)
     plt.ylim(11.7, 13.8)
-    plt.xlim(0, 5.5)
+    plt.xlim(0, 4.5)
     # plt.xlim(0.2, 8)
     # plt.xscale('log')
     # box = ax.get_position()
@@ -238,7 +238,7 @@ def plotFit(directory, smf_name, hmf_name):
         smf_short='Vmax'
     else:
         smf_short = smf_name
-    plt.errorbar(redshiftsbinTrue[MhaloPeak[:,0].astype('int')[:]], MhaloPeak[:, 1], yerr=MhaloPeak[:, 2],
+    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-1,0].astype('int')[:]], MhaloPeak[:-1, 1], yerr=MhaloPeak[:-1, 2],
     fmt='o', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
     markersize=8)
 
@@ -276,6 +276,8 @@ if __name__ ==  '__main__':
 
 """" Exemple of multi plot """
 # python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-23 SchtFit Tinker08 MCMC_2018-6-28T12-33 SchtFit Despali16 MCMC_2018-6-28T15-19 SchtFit Bocquet16 MCMC_2018-6-28T15-37 SchtFit Bhattacharya11 MCMC_2018-6-28T12-10 SchtFit Watson13
+
+# python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-33 SchtFit Despali16
 
 # python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-33 'Scht<12' Despali16 MCMC_2018-6-28T16-25 'Scht<12.5' Despali16
 
