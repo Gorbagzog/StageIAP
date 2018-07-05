@@ -112,6 +112,13 @@ tmp = np.loadtxt('MhaloPeakYang.txt')
 redshiftYang12curve = tmp[0]
 MhaloPeakYang12curve = tmp[1]
 
+# Load the MhaloPeak(z) from Behroozi et al 2018
+tmp = np.loadtxt('MhaloPeakB18.txt')
+redshiftBehroozi18 = tmp[0]
+MhaloPeakBehroozi18 = tmp[1]
+
+
+
 
 """Plot"""
 
@@ -149,6 +156,8 @@ def plotLiterrature():
                 markersize=3)
     plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
             label='Behroozi et al. 2013')
+    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--',
+            label='Behroozi et al. 2018')
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
             label='Moster et al. 2013')
     plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
@@ -238,7 +247,8 @@ def plotFit(directory, smf_name, hmf_name):
         smf_short='Vmax'
     else:
         smf_short = smf_name
-    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-1,0].astype('int')[:]], MhaloPeak[:-1, 1], yerr=MhaloPeak[:-1, 2],
+    
+    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-1,0].astype('int')[:]], MhaloPeak[:-1, 1], yerr=MhaloPeak[:-1, 2], c='red',
     fmt='o', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
     markersize=8)
 

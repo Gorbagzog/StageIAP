@@ -28,11 +28,12 @@ for i in range(numzbin):
 
 """Plot SMHM for Obs case"""
 plt.figure()
-for i in range(numzbin)[::3]:
+# for i in range(numzbin)[::3]:
+for i in [0]:
     select = np.where(smhm[i][:, 1] < 0)[0]
     plt.errorbar(
         smhm[i][select, 0], smhm[i][select, 1],
-        yerr=[smhm[i][select,2], smhm[i][select,3]], label='z='+str(z[i]),
+        yerr=[smhm[i][select,2], smhm[i][select,3]], #label='z='+str(z[i]),
         )
 
 plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_\odot)$', size=12)
@@ -42,7 +43,8 @@ plt.legend()
 
 """Plot SMHM for True case"""
 plt.figure()
-for i in range(numzbin)[::3]:
+# for i in range(numzbin)[::3]:
+for i in [0]:
     select = np.where(smhm[i][:, 1] < 0)[0]
     plt.errorbar(
         smhm[i][select, 0], smhm[i][select, 22],
