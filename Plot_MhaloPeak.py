@@ -107,6 +107,23 @@ tmp = np.loadtxt('MhaloPeakMoster.txt')
 redshiftMoster13 = tmp[0]
 MhaloPeakMoster13 = tmp[1]
 
+
+# Load M1 from Moster et al. 2013 
+# File provided by Iary by graphic reading of the Figure 4
+# Use it as a proxy of the error on Mpeak as it is proportional to M1.
+# Dont go to z>4
+tmp = np.transpose(np.loadtxt('Fits_from_Iary/moster13_M1fit.txt'))
+redshiftM1Moster13 = tmp[0, :-1]
+M1Moster13 = tmp[1:, :-1]
+
+# Select the positions of the MhaloPeakMoster corresponding to the redshifts of Iary
+index_M13z = np.argmin(
+    np.abs(
+        np.tile(redshiftMoster13, (len(redshiftM1Moster13), 1)) -
+        np.transpose(np.tile(redshiftM1Moster13, (len(redshiftMoster13), 1)))
+    ), axis=1)
+
+
 # Load the MhaloPeak(z) from Yang et al 2012
 tmp = np.loadtxt('MhaloPeakYang.txt')
 redshiftYang12curve = tmp[0]
@@ -117,7 +134,10 @@ tmp = np.loadtxt('MhaloPeakB18.txt')
 redshiftBehroozi18 = tmp[0]
 MhaloPeakBehroozi18 = tmp[1]
 
-
+# Load the MhaloPeak(z) from Moster et al 2018
+tmp = np.loadtxt('MhaloPeakM18.txt')
+redshiftMoster18 = tmp[0]
+MhaloPeakMoster18 = tmp[1]
 
 
 """Plot"""
@@ -128,6 +148,13 @@ def plotLiterrature():
     # plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
     #              yerr=MhaloSigmaCoupon17,
     #              fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
+    
+    plt.fill_between(redshiftM1Moster13, 
+            MhaloPeakMoster13[index_M13z] + M1Moster13[1], MhaloPeakMoster13[index_M13z] + M1Moster13[2],
+            color='royalblue', alpha=0.1,linewidth=0.0,
+            label='Moster et al. 2013')
+
+
 
     plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud,
                 yerr=MhaloSigmaLeauthaud, markersize=5, elinewidth=1,
@@ -154,14 +181,17 @@ def plotLiterrature():
                 c='brown', label='Harikane et al. 2018, low lim',
                 fmt='o', linestyle='none', capsize=3, lolims=True,
                 markersize=3)
+    # plt.scatter(redshiftMoster18, MhaloPeakMoster18,
+    #         label='Moster et al. 2018')
     plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
             label='Behroozi et al. 2013')
     plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--',
             label='Behroozi et al. 2018')
-    plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
-            label='Moster et al. 2013')
     plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
             label='Yang et al. 2012')
+    plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
+        label='Moster et al. 2013')
+
     # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
     #              fmt='d', markerfacecolor='none', capsize=5, label='"Revised" McCracken15')
     # plt.errorbar(MhaloCosmos[:-2, 0], MhaloCosmos[:-2, 1], yerr=[MhaloCosmos[:-2, 2],

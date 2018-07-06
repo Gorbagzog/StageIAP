@@ -11,7 +11,7 @@ import re
 rawDataDir = '../Data/umachine-edr/data/smhm/median_raw/'
 
 """List and sort files by decreasing a (increasing z)"""
-fileList = sort(glob.glob(rawDataDir + 'smhm_a*.dat'))[::-1]
+fileList = sorted(glob.glob(rawDataDir + 'smhm_a*.dat'))[::-1]
 numzbin = size(fileList)
 
 
