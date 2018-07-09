@@ -139,6 +139,14 @@ tmp = np.loadtxt('MhaloPeakM18.txt')
 redshiftMoster18 = tmp[0]
 MhaloPeakMoster18 = tmp[1]
 
+# Ms/Mh graphic reading on the Fig4. of Behroozi and Silk 2015.
+# Files were sent by Iary Davidzon by mail.
+# I took the max of the fit by eye. 
+redshiftBS15 = np.array([4, 5])
+MhaloPeakBS15_oldfit = np.log10(np.array([1.3*10**12, 7.65*10**11]))
+MhaloPeakBS15_newfit = np.log10(np.array([1.78*10**12, 10*10**11]))
+
+
 
 """Plot"""
 
@@ -181,6 +189,9 @@ def plotLiterrature():
                 c='brown', label='Harikane et al. 2018, low lim',
                 fmt='o', linestyle='none', capsize=3, lolims=True,
                 markersize=3)
+    # plt.scatter(redshiftBS15, MhaloPeakBS15_oldfit, label='BS15 oldfit')
+    plt.plot(redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=7,
+            markerfacecolor='white', label='Behroozi and Silk 2015')
     # plt.scatter(redshiftMoster18, MhaloPeakMoster18,
     #         label='Moster et al. 2018')
     plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
@@ -191,7 +202,6 @@ def plotLiterrature():
             label='Yang et al. 2012')
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
         label='Moster et al. 2013')
-
     # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
     #              fmt='d', markerfacecolor='none', capsize=5, label='"Revised" McCracken15')
     # plt.errorbar(MhaloCosmos[:-2, 0], MhaloCosmos[:-2, 1], yerr=[MhaloCosmos[:-2, 2],
