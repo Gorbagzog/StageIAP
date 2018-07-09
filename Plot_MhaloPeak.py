@@ -15,7 +15,7 @@ import sys
 
 # MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_save_3-5/MhPeak_CosmosTinker.txt")
 # MhaloCosmosTinker = np.loadtxt("../MCMC_Tinker_2202/MhPeak_CosmosTinker.txt")
-MhaloCosmosTinker = np.loadtxt("../MCMC_2018-4-25T18-31/MhaloPeak.txt")
+# MhaloCosmosTinker = np.loadtxt("../MCMC_2018-4-25T18-31/MhaloPeak.txt")
 #MhaloCosmosSchTinker = np.loadtxt("../MCMC_save_Schechter_6-8_1828_X_6-11_1454/MhaloPeak.txt")
 # MhaloCosmosSchTinker = np.loadtxt("../MCMC_2018-6-28T10-26/MhaloPeak.txt")
 
@@ -27,9 +27,9 @@ MhaloCosmosTinker = np.loadtxt("../MCMC_2018-4-25T18-31/MhaloPeak.txt")
 
 # MhaloCosmosTinker[:,0] = MhaloCosmosTinker[:,0].astype('int')
 
-MhaloCosmosTinker[:,1] += np.log10(67.74/70)
-redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
+# MhaloCosmosTinker[:,1] += np.log10(67.74/70)
+# redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+# redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
 
 
 """Definition of the evolution of Mpeak for Leauthaud et al, Behroozi et al et Moster et al"""
