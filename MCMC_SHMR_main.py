@@ -72,8 +72,8 @@ def load_smf(smf_name):
                         np.logical_and(
                             np.logical_and(
                                 tmp[i][:, 1] > -1000,
-                                tmp[i][:, 2] > -1000),
-                            tmp[i][:, 2] > -1000),
+                                tmp[i][:, 2] > -1500),
+                            tmp[i][:, 3] > -1000),
                 ), :][0])
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3] the lower bound.
@@ -116,10 +116,13 @@ def load_smf(smf_name):
             DL_D17 = D17_Cosmo.luminosity_distance(redshiftsbin[i])
             DL_Planck = Planck15.luminosity_distance(redshiftsbin[i])
             smf[i][:, 0] = smf[i][:, 0] + 2*np.log10(DL_Planck/DL_D17)
+
         """Test to do subsampling of the SMF"""
-        # step=4
-        # for i in range(numzbin):
-        #     smf[i] = np.array(np.transpose([smf[i][::step, 0], smf[i][::step, 1], smf[i][::step, 2], smf[i][::step, 3]]))
+        print(SMF_subsampling)
+        if SMF_subsampling:
+            print('Do a subsampling of the SMF with a step of '+str(subsampling_step))
+            for i in range(numzbin):
+                smf[i] = np.array(np.transpose([smf[i][::subsampling_step, 0], smf[i][::subsampling_step, 1], smf[i][::subsampling_step, 2], smf[i][::subsampling_step, 3]]))
 
 
     if smf_name == 'candels':
@@ -363,7 +366,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf[idx_z][select[:], 0]
     pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-    if smf_name == 'cosmos' or 'candels':
+    if smf_name == ('cosmos' or 'candels'):
         chi2 = np.sum(
                 # When using the Vmax directly (give the error bars directly, in a linear scale)
                 # Need to use a linear scale to compute the chi2 with the right uncertainty
@@ -371,9 +374,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
                     10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
             )
     elif smf_name == 'cosmos_schechter':
-        """In the case of the Schechter fit, error bars are non symmetric so we need to estimate the likelihood.
-        I do this with a gaussian that has a varying standrad deviation as in Barlow 2004. 
-        The std is defined such that it goes through the -1/2 points of the loglikelihood for sigma- and sigma+.""" 
+        """In the case of the Schechter fit, error bars are non symmetric.""" 
         chi2 = np.sum(
                 ((pred - 10**smf[idx_z][select, 1]) / (
                     10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
@@ -431,6 +432,10 @@ def runMCMC_allZ(paramfile):
     global SM_cut_max
     do_sm_cut = config.getbool('Mass_functions.do_sm_cut') 
     SM_cut_max = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
+    global SMF_subsampling
+    global subsampling_step
+    SMF_subsampling = config.getbool('Mass_functions.SMF_subsampling') 
+    subsampling_step = config.getint('Mass_functions.subsampling_step')
     global hmf_name
     hmf_name = config.getstr('Mass_functions.HMF')
     iterations = config.getint('MCMC_run_parameters.iterations')
@@ -655,8 +660,8 @@ def plotSMF(directory, idx_z, iterations, burn):
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
     select = np.where(smf[idx_z][:, 1] > -40)[0]
-    logMs = smf[idx_z][select, 0]
-    plt.errorbar(logMs, smf[idx_z][select, 1],
+    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
+    plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     #plt.ylim(-50, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
@@ -677,7 +682,7 @@ def plotSMHM(directory, idx_z, iterations, burn):
     # chain.close()
     #logMs = np.linspace(9, 13, num=200)
     select = np.where(smf[idx_z][:, 1] > -40)[0]
-    logMs = smf[idx_z][select, 0]
+    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
         # logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
@@ -696,7 +701,7 @@ def plotSHMR(directory, idx_z, iterations, burn):
     # chain.close()
     #logMs = np.linspace(9, 13, num=200)
     select = np.where(smf[idx_z][:, 1] > -40)[0]
-    logMs = smf[idx_z][select, 0]
+    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
         # logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
