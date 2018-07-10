@@ -332,7 +332,7 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma) 
     if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
         # print('above hmf')
-        return log_Mh1 * 0. + 10
+        return log_Mh1 * 0. + 1
     else :
         # Select the index of the HMF corresponding to the halo masses
         index_Mh = np.argmin(
@@ -351,13 +351,19 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = 10**6
 
 
+def gauss(y, ksi):
+    return 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (y / ksi)**2)
+
 def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
-    """Use the approximation of the convolution defined in Behroozi et al 2010 equation (3)"""
-    epsilon = 0.0001 * logMs
-    logphi1 = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-    logphi2 = log_phi_direct(logMs + epsilon, idx_z, M1, Ms0, beta, delta, gamma)
-    logphitrue = logphi1 + ksi**2 / 2 * np.log(10) * ((logphi2 - logphi1)/epsilon)**2
-    return logphitrue
+    """Use convolution defined in Behroozi et al 2010"""
+    log_phi_dir = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+    phitrue = log_phi_dir * 0.
+
+    for i in range(phitrue.size):
+        for j in range(phitrue.size -1):
+            phitrue[i] = phitrue[i] + 10**log_phi_dir[j] * gauss(logMs[j] - logMs[i], ksi) * (logMs[j+1] - logMs[j])
+    # print(phitrue)
+    return np.log10(phitrue)
 
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
