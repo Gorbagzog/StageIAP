@@ -1,8 +1,8 @@
 # -*-coding:Utf-8 -*
 
 """Some code to compute the MhaloPeak as a function of redshift from the Behroozi+2018 paper
-The fit to the SHMR is in Appendix J. 
-Values of the parameter are taken from the Universe Machine Early Data release, found on 
+The fit to the SHMR is in Appendix J.
+Values of the parameter are taken from the Universe Machine Early Data release, found on
 www.peterbehroozi.com/data"""
 
 import sys
