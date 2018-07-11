@@ -288,7 +288,7 @@ def plotFit(directory, smf_name, hmf_name):
     else:
         smf_short = smf_name
     
-    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-1,0].astype('int')[:]], MhaloPeak[:-1, 1], yerr=MhaloPeak[:-1, 2], c='red',
+    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-1,0].astype('int')[:]], MhaloPeak[:-0, 1], yerr=MhaloPeak[:-0, 2], c='red',
     fmt='o', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
     markersize=8)
 

@@ -16,11 +16,13 @@ import matplotlib.pyplot as plt
 import emcee
 from astropy.cosmology import LambdaCDM, Planck15
 # import scipy.optimize as op
-# from scipy import signal
+from scipy import signal
 import corner
 from getdist import plots, MCSamples
 import time
 import os
+import platform
+import sys
 import datetime
 import getconf
 from shutil import copyfile
@@ -28,7 +30,6 @@ import hmf as hmf_calc
 from colossus.cosmology import cosmology
 from colossus.lss import mass_function
 import Plot_MhaloPeak
-
 
 def load_smf(params):
     """Load the SMF"""
@@ -80,18 +81,22 @@ def load_smf(params):
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
 
+           
             if params['do_sm_cut']:
-                print('Do a cut for minimal and maximal stellar masses')
-                print('Use a cut for high stellar mass at '+str(params['SM_cut_max'])+' $M_{\odot}$')
                 params['SM_cut_min'] = np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7)
                 print('Use D17 relation for minimal stellar mass: Ms_min='+str(params['SM_cut_min']))
-                for i in range(params['numzbin']):
-                    smf[i] = smf[i][np.where(
-                        np.logical_and(
-                            smf[i][:,0] > params['SM_cut_min'][i],
-                            smf[i][:,0] < params['SM_cut_max'][i]
-                        )
-                    ), :][0]
+                """ The stellar mass cut is reported further, after the computation of the convolution to avoid border effects"""
+            #     print('Do a cut for minimal and maximal stellar masses')
+            #     print('Use a cut for high stellar mass at '+str(params['SM_cut_max'])+' $M_{\odot}$')
+            #     params['SM_cut_min'] = np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7)
+            #     print('Use D17 relation for minimal stellar mass: Ms_min='+str(params['SM_cut_min']))
+            #     for i in range(params['numzbin']):
+            #         smf[i] = smf[i][np.where(
+            #             np.logical_and(
+            #                 smf[i][:,0] > params['SM_cut_min'][i],
+            #                 smf[i][:,0] < params['SM_cut_max'][i]
+            #             )
+            #         ), :][0]
 
 
         """Adapt SMF to match the Planck Cosmology"""
@@ -258,7 +263,7 @@ def load_hmf(params):
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = params['redshiftsbin']
-        M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
+        M = 10**np.arange(8.0, 20, 0.01) # Mass in Msun / h
         for i in range(params['numzbin']):
             hmf.append(
                 np.transpose(
@@ -343,29 +348,34 @@ def log_phi_direct(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma):
                 np.tile(hmf[idx_z][:, 0], (len(log_Mh1), 1)) -
                 np.transpose(np.tile(log_Mh1, (len(hmf[idx_z][:, 0]), 1)))
             ), axis=1)
-        if np.any(hmf[idx_z][index_Mh, 1] < -100):
-            # print('HMF not defined')
-            return log_Mh1 * 0. + 1
-        else:
-            log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
-            return log_phidirect
+        # if np.any(hmf[idx_z][index_Mh, 1] < -100):
+        #     print('HMF not defined')
+        #     return log_Mh1 * 0. + 1
+        # else:
+        log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+        return log_phidirect
 
     # log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = 10**6 # Do not use points with halo masses not defined in the HMF
     # log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = 10**6
 
 
-def gauss(y, ksi):
-    return 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (y / ksi)**2)
+# def gauss(y, ksi):
+#     return 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (y / ksi)**2)
 
-def log_phi_true(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma, ksi):
+def log_phi_true(logMs, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi):
     """Use convolution defined in Behroozi et al 2010"""
     log_phi_dir = log_phi_direct(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma)
     phitrue = log_phi_dir * 0.
 
     # dx = logMs[1] - logMs[0]
-    # x = np.arange(-3*ksi/dx, 3*ksi/dx, dx)
-    # gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2)
-    # return np.log10(np.convolve(10**log_phi_dir, gaussian, mode='full'))
+    if params['smf_name'] == 'cosmos_schechter':
+        dx = 0.1
+    else:
+        print('Warning, the step between two mass bins in not defined in this case.')
+    x = np.arange(-10*ksi/dx, 10*ksi/dx, dx)
+    gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
+    # return np.log10(np.convolve(10**log_phi_dir, gaussian, mode='same'))
+    return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
 
     # for i in range(phitrue.size):
     #     for j in range(phitrue.size -1):
@@ -373,26 +383,35 @@ def log_phi_true(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # print(phitrue)
     # return np.log10(phitrue)
     
-    return log_phi_dir
+    # return log_phi_dir
 
 def chi2(smf, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi):
     """"return the chi**2 between the observed and the expected SMF"""
     select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf[idx_z][select[:], 0]
-    pred = 10**log_phi_true(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+    pred = 10**log_phi_true(logMs, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi)
     if params['smf_name'] == ('cosmos' or 'candels'):
-        chi2 = np.sum(
-                # When using the Vmax directly (give the error bars directly, in a linear scale)
-                # Need to use a linear scale to compute the chi2 with the right uncertainty
-                ((pred - 10**smf[idx_z][select, 1]) / (
-                    10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
-            )
+        print('Check that there may be an issue with the SMF cut')
+        # chi2 = np.sum(
+        #         # When using the Vmax directly (give the error bars directly, in a linear scale)
+        #         # Need to use a linear scale to compute the chi2 with the right uncertainty
+        #         ((pred - 10**smf[idx_z][select, 1]) / (
+        #             10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
+        #     )
     elif params['smf_name'] == 'cosmos_schechter':
+        if params['do_sm_cut']:
+            sm_select = np.where(np.logical_and(
+                        logMs > params['SM_cut_min'][idx_z],
+                        logMs < params['SM_cut_max'][idx_z]
+                    )
+                )
+        else:
+            sm_select = True
         """In the case of the Schechter fit, error bars are non symmetric.""" 
         chi2 = np.sum(
-                ((pred - 10**smf[idx_z][select, 1]) / (
-                    10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
+                ((pred[sm_select] - 10**smf[idx_z][select, 1][sm_select]) / (
+                    10**(smf[idx_z][select, 2][sm_select] + smf[idx_z][select, 1][sm_select]) - 10**smf[idx_z][select, 1][sm_select]))**2
                     #10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
         )
     return chi2
@@ -434,13 +453,23 @@ def loglike(theta, smf, hmf, idx_z, params, minbound, maxbound):
 
 """ Run MCMC """
 
+def get_platform():
+    if platform.uname()[1] == 'imac-de-louis':
+        # Run locally
+        return '../'
+    elif platform.uname()[1] == 'glx-calcul3':
+        # Run on the glx-calcul3 machine
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/'
+    else:
+        print('Unknown machine, please update the save path')
+        sys.exit("Unknown machine, please update the save path")
 
 def runMCMC_allZ(paramfile):
     """Main function to run all MCMC on all zbins based on the param file"""
     # Load parameters and config
     config = getconf.ConfigGetter('getconf', [paramfile])
     params = {}
-    params['save_path'] = config.getstr('Path.save_path')
+    params['save_path'] = get_platform()
     params['smf_name'] = config.getstr('Mass_functions.SMF')
     params['do_sm_cut'] = config.getbool('Mass_functions.do_sm_cut') 
     params['SM_cut_max'] = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
@@ -536,7 +565,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plt.close('all')
     # plotdist(directory, chainfile, idx_z, iterations, burn)
     # plt.close('all')
-    plotSMF(directory, smf, hmf, idx_z, iterations, burn)
+    plotSMF(directory, smf, hmf, idx_z, params, iterations, burn)
     plt.close('all')
     plotSMHM(directory, smf, idx_z, iterations, burn)
     plt.close('all')
@@ -660,20 +689,30 @@ def test_convergence(directory, iterations, burn):
 """Plots"""
 
 
-def plotSMF(directory, smf, hmf, idx_z, iterations, burn):
+def plotSMF(directory, smf, hmf, idx_z, params, iterations, burn):
     # load_smf()
     # load_hmf()
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
-    select = np.where(smf[idx_z][:, 1] > -40)[0]
+    # select = np.where(smf[idx_z][:, 1] > -40)[0]
+    if params['do_sm_cut']:
+        select = np.where(np.logical_and(
+                np.logical_and(
+                    smf[idx_z][:, 0] > params['SM_cut_min'][idx_z],
+                    smf[idx_z][:, 0] < params['SM_cut_max'][idx_z]
+                ),
+                smf[idx_z][:, 1] > -40)
+            )[0]
+    else:
+        select = True
     logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     #plt.ylim(-50, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        logphi = log_phi_true(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        logphi = log_phi_true(logMs, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     # plt.show()
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
