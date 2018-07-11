@@ -30,28 +30,25 @@ from colossus.lss import mass_function
 import Plot_MhaloPeak
 
 
-def load_smf(smf_name):
+def load_smf(params):
     """Load the SMF"""
-    global redshifts
-    global numzbin
-    global smf
-    global redshiftsbin
+    smf_name = params['smf_name']
     if smf_name == 'cosmos' or smf_name == 'cosmos_schechter':
         
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
-        redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-        #redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
+        params['redshifts'] = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+        #params['redshiftsbin'] = (redshifts[1:]+redshifts[:-1])/2
         print('Use the average redshift of the bin from the Iary SMF fit')
-        redshiftsbin = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
-        numzbin = np.size(redshifts) - 1
-        print('numzbin: '+str(numzbin))
+        params['redshiftsbin'] = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
+        params['numzbin'] = np.size(params['redshifts']) - 1
+        print('numzbin: '+str( params['numzbin']))
 
         smf = []
         tmp = []
         if smf_name == 'cosmos':
             print('Use the COSMOS 1/Vmax SMF')
-            for i in range(numzbin):
+            for i in range(params['numzbin']):
                 smf.append(np.loadtxt(
                     # Select the SMFs to use : tot, pas or act; D17 or SchechterFixedMs
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_Vmax'
@@ -61,7 +58,7 @@ def load_smf(smf_name):
                 )
         elif smf_name == 'cosmos_schechter':
             print('Use the COSMOS Schechter fit SMF')
-            for i in range(numzbin):
+            for i in range(params['numzbin']):
                 tmp.append(np.loadtxt(
                     '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
                     + str(i) + '.dat')
@@ -83,16 +80,16 @@ def load_smf(smf_name):
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
 
-            if do_sm_cut:
+            if params['do_sm_cut']:
                 print('Do a cut for minimal and maximal stellar masses')
-                print('Use a cut for high stellar mass at '+str(SM_cut_max)+' $M_{\odot}$')
-                SM_cut_min = np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7)
-                print('Use D17 relation for minimal stellar mass: Ms_min='+str(SM_cut_min))
-                for i in range(numzbin):
+                print('Use a cut for high stellar mass at '+str(params['SM_cut_max'])+' $M_{\odot}$')
+                params['SM_cut_min'] = np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7)
+                print('Use D17 relation for minimal stellar mass: Ms_min='+str(params['SM_cut_min']))
+                for i in range(params['numzbin']):
                     smf[i] = smf[i][np.where(
                         np.logical_and(
-                            smf[i][:,0] > SM_cut_min[i],
-                            smf[i][:,0] < SM_cut_max[i]
+                            smf[i][:,0] > params['SM_cut_min'][i],
+                            smf[i][:,0] < params['SM_cut_max'][i]
                         )
                     ), :][0]
 
@@ -102,10 +99,10 @@ def load_smf(smf_name):
         # Om = 0.3, Ol = 0.7, h=0.7
         D17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
         print('Rescale the SMF to Planck15 cosmology')
-        for i in range(numzbin):
+        for i in range(params['numzbin']):
             # Correction of the comoving Volume :
-            VmaxD17 = D17_Cosmo.comoving_volume(redshifts[i+1]) - D17_Cosmo.comoving_volume(redshifts[i])
-            VmaxP15 = Planck15.comoving_volume(redshifts[i+1]) - Planck15.comoving_volume(redshifts[i])
+            VmaxD17 = D17_Cosmo.comoving_volume(params['redshifts'][i+1]) - D17_Cosmo.comoving_volume(params['redshifts'][i])
+            VmaxP15 = Planck15.comoving_volume(params['redshifts'][i+1]) - Planck15.comoving_volume(params['redshifts'][i])
             """In the case where we use the Vmax points and not the VmaxFit, the errors bars are relative and
             are not the absolute uncertainty as in the Vmax Fit, so we don't rescale the error bars"""
             smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxP15)
@@ -113,29 +110,31 @@ def load_smf(smf_name):
             # Equivalent to multiply by (Planck15.H0/D17_Cosmo.H0)**-2
             smf[i][:, 0] = smf[i][:, 0] - 2 * np.log10(Planck15.H0/D17_Cosmo.H0)
             # Correct for the dependance on the luminosity distance
-            DL_D17 = D17_Cosmo.luminosity_distance(redshiftsbin[i])
-            DL_Planck = Planck15.luminosity_distance(redshiftsbin[i])
+            DL_D17 = D17_Cosmo.luminosity_distance(params['redshiftsbin'][i])
+            DL_Planck = Planck15.luminosity_distance(params['redshiftsbin'][i])
             smf[i][:, 0] = smf[i][:, 0] + 2*np.log10(DL_Planck/DL_D17)
 
         """Test to do subsampling of the SMF"""
-        print(SMF_subsampling)
-        if SMF_subsampling:
+        # print(params['SMF_subsampling'])
+        if params['SMF_subsampling']:
+            subsampling_step = params['subsampling_step']
             print('Do a subsampling of the SMF with a step of '+str(subsampling_step))
-            for i in range(numzbin):
+            for i in range(params['numzbin']):
                 smf[i] = np.array(np.transpose([smf[i][::subsampling_step, 0], smf[i][::subsampling_step, 1], smf[i][::subsampling_step, 2], smf[i][::subsampling_step, 3]]))
-
+        else:
+            print('No subsampling of the SMF')
 
     if smf_name == 'candels':
         print('Use the Candels SMF')
         """Load the SMF from Candels Grazian"""
         # Code is copied from IaryDavidzonSMF.py as of 12 june
         # redshifts of the Candels+15 data
-        redshifts = np.array([3.5, 4.5, 5.5, 6.5, 7.5])
-        redshiftsbin = (redshifts[1:]+redshifts[:-1])/2
-        numzbin = np.size(redshifts)-1
-        print('numzbin: '+str(numzbin))
+        params['redshifts'] = np.array([3.5, 4.5, 5.5, 6.5, 7.5])
+        params['redshiftsbin'] = (params['redshifts'][1:]+params['redshifts'][:-1])/2
+        params['numzbin'] = np.size(params['redshifts'])-1
+        print('numzbin: '+str(params['numzbin']))
         smf = []
-        for i in range(numzbin):
+        for i in range(params['numzbin']):
             smf.append(np.loadtxt(
                 # Select the SMFs to use : JEWELS or v2
                 # '../Data/Candels/grazian15_68CL_z' + str(i+4) + '_JEWELS.txt')
@@ -148,10 +147,10 @@ def load_smf(smf_name):
         # CANDELS+17 SMF cosmo : (flat LCDM) (same as Davidzon17_COSMO)
         # Om = 0.3, Ol = 0.7, h=0.7
         C17_Cosmo = LambdaCDM(H0=70, Om0=0.3, Ode0=0.7)
-        for i in range(numzbin):
+        for i in range(params['numzbin']):
             # Correction of the comoving Volume :
-            VmaxD17 = C17_Cosmo.comoving_volume(redshifts[i+1]) - C17_Cosmo.comoving_volume(redshifts[i])
-            VmaxBP = BP_Cosmo.comoving_volume(redshifts[i+1]) - BP_Cosmo.comoving_volume(redshifts[i])
+            VmaxD17 = C17_Cosmo.comoving_volume(params['redshifts'][i+1]) - C17_Cosmo.comoving_volume(params['redshifts'][i])
+            VmaxBP = BP_Cosmo.comoving_volume(params['redshifts'][i+1]) - BP_Cosmo.comoving_volume(params['redshifts'][i])
             # Add the log, equivalent to multiply by VmaxD17/VmaxBP
             smf[i][:, 1] = smf[i][:, 1] + np.log10(VmaxD17/VmaxBP)
             smf[i][:, 2] = smf[i][:, 2] + np.log10(VmaxD17/VmaxBP)
@@ -162,11 +161,11 @@ def load_smf(smf_name):
             """/!\ problem with error bars in candels SMF !!"""
             # plt.errorbar(smf[idx_z][:, 0], smf[idx_z][:, 1],
             #   yerr=[smf[idx_z][:,1]-smf[idx_z][:, 2], smf[idx_z][:, 3]- smf[idx_z][:,1]])
+    return smf
 
-
-def load_hmf(hmf_name):
+def load_hmf(params):
     """Load the HMF"""
-    global hmf
+    hmf_name = params['hmf_name']
     hmf = []
     if hmf_name in ['bolshoi_tot', 'bolshoi_cen']:
         """Load HMF from Bolshoi Planck simulation"""
@@ -187,13 +186,14 @@ def load_hmf(hmf_name):
                 np.loadtxt('../Data/HMFBolshoiPlanck/mf_planck/mf_planck_z' +
                         '{:4.3f}'.format(redshift_haloes[i]) + '_mvir.dat'))
         """Select the redhifts slices that matches the slices of Iary"""
-        global redshift_id_selec
-        redshift_id_selec = np.empty(numzbin)
-        for i in range(numzbin):
+        # global redshift_id_selec
+        redshift_id_selec = np.empty(params['numzbin'])
+        params['redshift_id_selec'] = redshift_id_selec
+        for i in range(params['numzbin']):
             redshift_id_selec[i] = np.argmin(
-                np.abs(redshift_haloes - (redshifts[i] + redshifts[i + 1]) / 2))
+                np.abs(redshift_haloes - (params['redshifts'][i] + params['redshifts'][i + 1]) / 2))
         redshift_id_selec = redshift_id_selec.astype(int)
-        print('Redshifts of Iari SMFs : ' + str((redshifts[:-1] + redshifts[1:]) / 2))
+        print('Redshifts of Iari SMFs : ' + str((params['redshifts'][:-1] + params['redshifts'][1:]) / 2))
         print('Closest redshifts for Bolshoi HMFs : '
             + str(redshift_haloes[redshift_id_selec]))
         for i in redshift_id_selec:
@@ -201,7 +201,7 @@ def load_hmf(hmf_name):
         if hmf_name == 'bolshoi_tot':
             # In the bolshoi tot case, change to the correct bolshoi HMF
             print('Use Bolshoi total HMF')
-            for i in range(numzbin):
+            for i in range(params['numzbin']):
                 hmf[i][:, 1] = hmf[i][:, 2]
 
     if hmf_name == 'tinker200':
@@ -227,9 +227,9 @@ def load_hmf(hmf_name):
         h.update(Mmin=8)
         h.update(Mmax=16)
         print(h.parameter_values)
-        redshift_haloes = redshiftsbin
-        for i in range(numzbin):
-            h.update(z=redshiftsbin[i])
+        redshift_haloes = params['redshiftsbin']
+        for i in range(params['numzbin']):
+            h.update(z=params['redshiftsbin'][i])
             hmf.append(np.transpose(np.array([np.log10(h.m / h.cosmo_model.h),
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
@@ -240,9 +240,9 @@ def load_hmf(hmf_name):
         h.update(Mmin=8)
         h.update(Mmax=16)
         print(h.parameter_values)
-        redshift_haloes = redshiftsbin
-        for i in range(numzbin):
-            h.update(z=redshiftsbin[i])
+        redshift_haloes = params['redshiftsbin']
+        for i in range(params['numzbin']):
+            h.update(z=params['redshiftsbin'][i])
             hmf.append(np.transpose(np.array([np.log10(h.m / h.cosmo_model.h),
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
@@ -257,9 +257,9 @@ def load_hmf(hmf_name):
             mdef = '200m'
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
-        redshift_haloes = redshiftsbin
+        redshift_haloes = params['redshiftsbin']
         M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
-        for i in range(numzbin):
+        for i in range(params['numzbin']):
             hmf.append(
                 np.transpose(
                     np.array(
@@ -272,6 +272,7 @@ def load_hmf(hmf_name):
                         )
                     )
                 )
+    return hmf
 
     # if hmf_name == 'colossus_tinker08':
     #     """Use the Colossus module for Tinker 2008 HMF"""
@@ -279,9 +280,9 @@ def load_hmf(hmf_name):
     #     mdef = '200m'
     #     print('Use '+mdef+' for the SO defintion.')
     #     cosmo = cosmology.setCosmology('planck15')
-    #     redshift_haloes = redshiftsbin
+    #     redshift_haloes = params['redshiftsbin']
     #     M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
-    #     for i in range(numzbin):
+    #     for i in range(params['numzbin']):
     #         hmf.append(
     #             np.transpose(
     #                 np.array(
@@ -301,9 +302,9 @@ def load_hmf(hmf_name):
     #     mdef = 'fof'
     #     print('Use '+mdef+' for the SO defintion.')
     #     cosmo = cosmology.setCosmology('planck15')
-    #     redshift_haloes = redshiftsbin
+    #     redshift_haloes = params['redshiftsbin']
     #     M = 10**np.arange(8.0, 17, 0.01) # Mass in Msun / h
-    #     for i in range(numzbin):
+    #     for i in range(params['numzbin']):
     #         hmf.append(
     #             np.transpose(
     #                 np.array(
@@ -316,6 +317,8 @@ def load_hmf(hmf_name):
     #                     )
     #                 )
     #             )
+
+
 """Function definitions for computation of the theoretical SMF phi_true"""
 
 
@@ -324,7 +327,7 @@ def logMh(logMs, M1, Ms0, beta, delta, gamma):
     return M1 + beta*(logMs - Ms0) + (10 ** (delta * (logMs - Ms0))) / (1 + (10 ** (-gamma * (logMs - Ms0)))) - 0.5
 
 
-def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
+def log_phi_direct(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma):
     # print(delta)
     """"SMF obtained from the SM-HM relation and the HMF"""
     epsilon = 0.0001
@@ -354,32 +357,38 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
 def gauss(y, ksi):
     return 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (y / ksi)**2)
 
-def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
+def log_phi_true(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Use convolution defined in Behroozi et al 2010"""
-    log_phi_dir = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+    log_phi_dir = log_phi_direct(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma)
     phitrue = log_phi_dir * 0.
 
-    for i in range(phitrue.size):
-        for j in range(phitrue.size -1):
-            phitrue[i] = phitrue[i] + 10**log_phi_dir[j] * gauss(logMs[j] - logMs[i], ksi) * (logMs[j+1] - logMs[j])
+    # dx = logMs[1] - logMs[0]
+    # x = np.arange(-3*ksi/dx, 3*ksi/dx, dx)
+    # gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2)
+    # return np.log10(np.convolve(10**log_phi_dir, gaussian, mode='full'))
+
+    # for i in range(phitrue.size):
+    #     for j in range(phitrue.size -1):
+    #         phitrue[i] = phitrue[i] + 10**log_phi_dir[j] * gauss(logMs[j] - logMs[i], ksi) * (logMs[j+1] - logMs[j])
     # print(phitrue)
-    return np.log10(phitrue)
+    # return np.log10(phitrue)
+    
+    return log_phi_dir
 
-
-def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
+def chi2(smf, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi):
     """"return the chi**2 between the observed and the expected SMF"""
     select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf[idx_z][select[:], 0]
-    pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-    if smf_name == ('cosmos' or 'candels'):
+    pred = 10**log_phi_true(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+    if params['smf_name'] == ('cosmos' or 'candels'):
         chi2 = np.sum(
                 # When using the Vmax directly (give the error bars directly, in a linear scale)
                 # Need to use a linear scale to compute the chi2 with the right uncertainty
                 ((pred - 10**smf[idx_z][select, 1]) / (
                     10**(smf[idx_z][select, 2] + smf[idx_z][select, 1]) - 10**smf[idx_z][select, 1]))**2
             )
-    elif smf_name == 'cosmos_schechter':
+    elif params['smf_name'] == 'cosmos_schechter':
         """In the case of the Schechter fit, error bars are non symmetric.""" 
         chi2 = np.sum(
                 ((pred - 10**smf[idx_z][select, 1]) / (
@@ -389,39 +398,38 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     return chi2
 
 
-def chi2_minimize(p0, ksi, idx_z):
-    """"test to use this definition of chi to do a scipy.minimize"""
-    M1, Ms0, beta, delta, gamma = p0
-    select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
-    # We choose to limit the fit only for abundances higher than 10**-7
-    logMs = smf[idx_z][select[:], 0]
-    pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
-    chi2 = np.sum(
-            ((pred - 10**smf[idx_z][select, 1]) / (
-                10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
-    )
-    return chi2
+# def chi2_minimize(p0, ksi, idx_z):
+#     """"test to use this definition of chi to do a scipy.minimize"""
+#     M1, Ms0, beta, delta, gamma = p0
+#     select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
+#     # We choose to limit the fit only for abundances higher than 10**-7
+#     logMs = smf[idx_z][select[:], 0]
+#     pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+#     chi2 = np.sum(
+#             ((pred - 10**smf[idx_z][select, 1]) / (
+#                 10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
+#     )
+#     return chi2
 
 
+# def var_std(x_est , x_true, sigm, sigp):
+#     """Compute a varying standard deviation to have a varying gaussian for the likelihood with non symmetric errors"""
+#     sig0 = 2 * sigm * sigp / (sigm + sigp)
+#     sig1 = (sigm -  sigp) / (sigp + sigm)
+#     return sig0 + sig1 * (x_true - x_est)
 
-def var_std(x_est , x_true, sigm, sigp):
-    """Compute a varying standard deviation to have a varying gaussian for the likelihood with non symmetric errors"""
-    sig0 = 2 * sigm * sigp / (sigm + sigp)
-    sig1 = (sigm -  sigp) / (sigp + sigm)
-    return sig0 + sig1 * (x_true - x_est)
 
-
-def loglike(theta, idx_z, minbound, maxbound):
+def loglike(theta, smf, hmf, idx_z, params, minbound, maxbound):
     """return the loglikelihood"""
     if all(theta >= minbound[idx_z]) and all(theta <= maxbound[idx_z]):
         M1, Ms0, beta, delta, gamma, ksi = theta[:]
-        return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
+        return -chi2(smf, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi)/2
     else:
         return -np.inf
 
 
-def negloglike(theta, idx_z, minbound, maxbound):
-    return -loglike(theta, idx_z, minbound, maxbound)
+# def negloglike(theta, idx_z, minbound, maxbound):
+#     return -loglike(theta, idx_z, minbound, maxbound)
 
 
 """ Run MCMC """
@@ -431,42 +439,35 @@ def runMCMC_allZ(paramfile):
     """Main function to run all MCMC on all zbins based on the param file"""
     # Load parameters and config
     config = getconf.ConfigGetter('getconf', [paramfile])
-    save_path = config.getstr('Path.save_path')
-    global smf_name
-    smf_name = config.getstr('Mass_functions.SMF')
-    global do_sm_cut
-    global SM_cut_max
-    do_sm_cut = config.getbool('Mass_functions.do_sm_cut') 
-    SM_cut_max = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
-    global SMF_subsampling
-    global subsampling_step
-    SMF_subsampling = config.getbool('Mass_functions.SMF_subsampling') 
-    subsampling_step = config.getint('Mass_functions.subsampling_step')
-    global hmf_name
-    hmf_name = config.getstr('Mass_functions.HMF')
-    iterations = config.getint('MCMC_run_parameters.iterations')
-    burn = config.getint('MCMC_run_parameters.burn')
-    minboundfile = config.getstr('Values.minbound')
-    maxboundfile = config.getstr('Values.maxbound')
-    minbound = np.loadtxt(minboundfile, delimiter=',')
-    maxbound = np.loadtxt(maxboundfile, delimiter=',')
-    starting_point_file = config.getstr('Values.starting_point')
-    starting_point = np.loadtxt(starting_point_file, delimiter=',')
-    global noksi
-    noksi = config.getbool('MCMC_run_parameters.noksi')
+    params = {}
+    params['save_path'] = config.getstr('Path.save_path')
+    params['smf_name'] = config.getstr('Mass_functions.SMF')
+    params['do_sm_cut'] = config.getbool('Mass_functions.do_sm_cut') 
+    params['SM_cut_max'] = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
+    params['SMF_subsampling'] = config.getbool('Mass_functions.SMF_subsampling') 
+    params['subsampling_step'] = config.getint('Mass_functions.subsampling_step')
+    params['hmf_name'] = config.getstr('Mass_functions.HMF')
+    params['iterations'] = config.getint('MCMC_run_parameters.iterations')
+    params['burn'] = config.getint('MCMC_run_parameters.burn')
+    params['minboundfile'] = config.getstr('Values.minbound')
+    params['maxboundfile'] = config.getstr('Values.maxbound')
+    params['minbound'] = np.loadtxt(params['minboundfile'], delimiter=',')
+    params['maxbound'] = np.loadtxt(params['maxboundfile'], delimiter=',')
+    params['starting_point_file'] = config.getstr('Values.starting_point')
+    params['starting_point'] = np.loadtxt(params['starting_point_file'], delimiter=',')
+    params['noksi'] = config.getbool('MCMC_run_parameters.noksi')
     # np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
-    std = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
-    nthreads = config.getint('MCMC_run_parameters.nthreads')
-    nwalkers = config.getint('MCMC_run_parameters.nwalkers')
-    selected_redshifts = np.array(config.getlist('MCMC_run_parameters.redshifts')).astype('int')
-    # global numzbin
-    load_smf(smf_name)
-    load_hmf(hmf_name)
+    params['std'] = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
+    params['nthreads'] = config.getint('MCMC_run_parameters.nthreads')
+    params['nwalkers'] = config.getint('MCMC_run_parameters.nwalkers')
+    params['selected_redshifts'] = np.array(config.getlist('MCMC_run_parameters.redshifts')).astype('int')
+    smf = load_smf(params)
+    hmf = load_hmf(params)
 
     # Create save direcory
     now = datetime.datetime.now()
     dateName = "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
-    directory = save_path + dateName
+    directory = params['save_path'] + dateName
     print('Save direcory : ' + directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -476,40 +477,41 @@ def runMCMC_allZ(paramfile):
         os.makedirs(directory+'/Results')
         print('Created new directory')
     # Copy parameter files in the save directory
-    copyfile(starting_point_file, directory + '/' + starting_point_file)
+    copyfile(params['starting_point_file'], directory + '/' + params['starting_point_file'])
     copyfile(paramfile, directory + '/' + paramfile)
-    copyfile(minboundfile, directory + '/' + minboundfile)
-    copyfile(maxboundfile, directory + '/' + maxboundfile)
-    print(selected_redshifts)
+    copyfile(params['minboundfile'], directory + '/' + params['minboundfile'])
+    copyfile(params['minboundfile'], directory + '/' + params['minboundfile'])
+    print(params['selected_redshifts'])
     # run all MCMC for all zbins
-    # for idx_z in range(numzbin):
-    for idx_z in selected_redshifts:
+    # for idx_z in range(params['numzbin']):
+    for idx_z in params['selected_redshifts']:
         print(idx_z)
         print('Starting MCMC run for idx_z =' + str(idx_z) )
-        print('Min bound: ' + str(minbound[idx_z]))
-        print('Max bound: ' + str(maxbound[idx_z]))
-        runMCMC(directory, minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi)
+        print('Min bound: ' + str(params['minbound'][idx_z]))
+        print('Max bound: ' + str(params['maxbound'][idx_z]))
+        runMCMC(directory, smf, hmf, idx_z, params)
     # Plot all SHMR on one graph
-    plotSHMR_delta(directory, iterations, burn, load=False, selected_redshifts = selected_redshifts)
+    plotSHMR_delta(directory, params['iterations'], params['burn'], params, load=False, selected_redshifts = params['selected_redshifts'])
     # Plot the MhaloPeak graph
     plt.clf()
     plt.figure(figsize=(10, 5))
     Plot_MhaloPeak.plotLiterrature()
-    Plot_MhaloPeak.plotFit(directory, smf_name, hmf_name)
+    Plot_MhaloPeak.plotFit(directory, params['smf_name'], params['hmf_name'])
     Plot_MhaloPeak.savePlot(directory)
     plt.clf()
 
-def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iterations, burn, nthreads, nwalkers, noksi):
+def runMCMC(directory, smf, hmf, idx_z, params):
     # load_smf()
     # load_hmf()
     # nwalker = 20
     # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
     # starting_point =  np.array([12.5, 11, 0.5, 0.7, 0.5, 0.15])
+    minbound, maxbound, starting_point, std, iterations, burn, nthreads, nwalkers, noksi = params['minbound'], params['maxbound'], params['starting_point'], params['std'], params['iterations'], params['burn'], params['nthreads'], params['nwalkers'], params['noksi']
     start_time = time.time()
     p0 = emcee.utils.sample_ball(starting_point[idx_z], std, size=nwalkers)
     ndim = len(starting_point[idx_z])
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike, args=[idx_z, minbound, maxbound], threads=nthreads)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike, args=[smf, hmf, idx_z, params, minbound, maxbound], threads=nthreads)
     print("idx_z = " +str (idx_z))
     print("ndim = " + str(ndim))
     print("start = " + str(starting_point[idx_z]))
@@ -530,22 +532,22 @@ def runMCMC(directory,  minbound, maxbound, idx_z, starting_point, std, iteratio
     sampler.reset()
     # Plot all relevant figures
     plt.close('all')
-    plotchain(directory, chainfile, idx_z, iterations, burn)
+    plotchain(directory, chainfile, idx_z, params)
     plt.close('all')
     # plotdist(directory, chainfile, idx_z, iterations, burn)
     # plt.close('all')
-    plotSMF(directory, idx_z, iterations, burn)
+    plotSMF(directory, smf, hmf, idx_z, iterations, burn)
     plt.close('all')
-    plotSMHM(directory, idx_z, iterations, burn)
+    plotSMHM(directory, smf, idx_z, iterations, burn)
     plt.close('all')
-    plotSHMR(directory, idx_z, iterations, burn)
+    plotSHMR(directory, smf, idx_z, iterations, burn)
     plt.close('all')
-    plot_Mhpeak(directory, chainfile, idx_z, iterations, burn)
+    plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params)
     plt.close('all')
-    save_results(directory, chainfile, idx_z, iterations, burn)
+    save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'])
 
 
-def save_results(directory, chainfile, idx_z, iterations, burn):
+def save_results(directory, chainfile, idx_z, iterations, burn, noksi):
     chain = np.load(chainfile)
     if noksi:
         chain =chain[:,:,:5]
@@ -586,9 +588,9 @@ def MhPeak(chainfile, idx_z, iterations, burn):
 
 def allMhPeak(directory, iterations, burn):
     # numzbin = 10
-    mhpeakall = np.zeros(numzbin)
-    mhpeakallstd = np.zeros(numzbin)
-    for idx_z in range(numzbin):
+    mhpeakall = np.zeros(params['numzbin'])
+    mhpeakallstd = np.zeros(params['numzbin'])
+    for idx_z in range(params['numzbin']):
         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
         mhpeakall[idx_z] = np.median(mhpeak)
@@ -613,9 +615,9 @@ def gelman_rubin(chain):
 
 def test_convergence(directory, iterations, burn):
     """Test the convergence of the chains"""
-    numzbin = 10
+    params['numzbin'] = 10
     ndim_arr = [6]
-    for idx_z in range(numzbin):
+    for idx_z in range(params['numzbin']):
         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         print("ndim\tμ\t\tσ\tGelman-Rubin")
@@ -633,32 +635,32 @@ def test_convergence(directory, iterations, burn):
         # print(R)
 
 
-def delete_non_converged_chains(directory, iterations, burn, idx_z, selec_chain):
-    load_smf('cosmos')
-    load_hmf('hmf_module')
-    chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    chain = np.load(chainfile)
-    chain = chain[selec_chain, :, :]
-    np.save(chainfile, chain)
-    # Plot all relevant figures
-    plt.close('all')
-    plotchain(directory, chainfile, idx_z, iterations, burn)
-    plt.close('all')
-    # plotdist(directory, chainfile, idx_z, iterations, burn)
-    # plt.close('all')
-    plotSMF(directory, idx_z, iterations, burn)
-    plt.close('all')
-    plotSMHM(directory, idx_z, iterations, burn)
-    plt.close('all')
-    plot_Mhpeak(directory, chainfile, idx_z, iterations, burn)
-    plt.close('all')
-    save_results(directory, chainfile, idx_z, iterations, burn)
+# def delete_non_converged_chains(directory, iterations, burn, idx_z, selec_chain):
+#     load_smf('cosmos')
+#     load_hmf('hmf_module')
+#     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     chain = np.load(chainfile)
+#     chain = chain[selec_chain, :, :]
+#     np.save(chainfile, chain)
+#     # Plot all relevant figures
+#     plt.close('all')
+#     plotchain(directory, chainfile, idx_z, iterations, burn)
+#     plt.close('all')
+#     # plotdist(directory, chainfile, idx_z, iterations, burn)
+#     # plt.close('all')
+#     plotSMF(directory, idx_z, iterations, burn)
+#     plt.close('all')
+#     plotSMHM(directory, idx_z, iterations, burn)
+#     plt.close('all')
+#     plot_Mhpeak(directory, chainfile, idx_z, iterations, burn)
+#     plt.close('all')
+#     save_results(directory, chainfile, idx_z, iterations, burn)
 
 
 """Plots"""
 
 
-def plotSMF(directory, idx_z, iterations, burn):
+def plotSMF(directory, smf, hmf, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -671,7 +673,7 @@ def plotSMF(directory, idx_z, iterations, burn):
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     #plt.ylim(-50, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        logphi = log_phi_true(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     # plt.show()
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
@@ -679,7 +681,7 @@ def plotSMF(directory, idx_z, iterations, burn):
     plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSMHM(directory, idx_z, iterations, burn):
+def plotSMHM(directory, smf, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
     chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -698,7 +700,7 @@ def plotSMHM(directory, idx_z, iterations, burn):
     plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSHMR(directory, idx_z, iterations, burn):
+def plotSHMR(directory, smf, idx_z, iterations, burn):
     # load_smf()
     # load_hmf()
     chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -729,7 +731,8 @@ def plotSHMR(directory, idx_z, iterations, burn):
 #     plt.savefig('../MCMC/Plots/HMvsSM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotchain(directory, chainfile, idx_z, iterations, burn):
+def plotchain(directory, chainfile, idx_z, params):
+    iterations, burn, noksi = params['iterations'], params['burn'],  params['noksi']
     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     chain = np.load(chainfile)
     if noksi:
@@ -771,7 +774,7 @@ def plotLnprob(idx_z, iterations, nwalker=20):
         plt.plot(lnprob[k, :])
 
 
-def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn):
+def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params):
     mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
     # avg_mhpeak = np.mean(mhpeak)
     med_mhpeak = np.median(mhpeak)
@@ -781,7 +784,7 @@ def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn):
     plt.figure()
     plt.hist(mhpeak, bins=100)
     plt.axvline(med_mhpeak, color='orange')
-    plt.title(str(redshifts[idx_z]) +'<z<' + str(redshifts[idx_z+1]) + ', MhPeak = ' + str(med_mhpeak) + '+/-' + str(std_mhpeak))
+    plt.title(str(params['redshifts'][idx_z]) +'<z<' + str(params['redshifts'][idx_z+1]) + ', MhPeak = ' + str(med_mhpeak) + '+/-' + str(std_mhpeak))
     plt.savefig(directory+'/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
 
 
@@ -819,12 +822,12 @@ def plotSigmaHMvsSM(directory, idx_z, iterations, burn):
 def plotAllSigmaHMvsSM(directory, iterations, burn):
     # load_smf()
     # load_hmf()
-    numzbin =10
+    params['numzbin'] =10
     plt.close('all')
     plt.figure()
     numpoints = 100
     logMs = np.linspace(9, 12, num=numpoints)
-    for idx_z in range(numzbin):
+    for idx_z in range(params['numzbin']):
         chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
@@ -839,7 +842,7 @@ def plotAllSigmaHMvsSM(directory, iterations, burn):
         # for i in range(numpoints):
         #     av_logMh[i] = np.average(logmhalo[:, i])
         plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
-        plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.plot(logMs, av_logMh, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
     plt.legend()
@@ -853,7 +856,7 @@ def temp():
     numpoints = 100
     logMs = np.linspace(9, 12, num=numpoints)
     for idx_z in range(10):
-        plt.plot(tot[idx_z][0], logMs-tot[idx_z][0], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.plot(tot[idx_z][0], logMs-tot[idx_z][0], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
         plt.fill_between(tot[idx_z][0], logMs - tot[idx_z][1], logMs-tot[idx_z][2], alpha=0.3)
     plt.legend()
     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
@@ -881,7 +884,7 @@ def plotSigmaSHMR(idx_z, iterations, burn):
     plt.close('all')
     plt.figure()
     plt.fill_between(logMs, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
-    plt.plot(logMs, av_SHMR, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+    plt.plot(logMs, av_SHMR, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
@@ -898,7 +901,7 @@ def plotAllSigmaSHMRvsSM(iterations, burn):
     logMs = np.linspace(9, 12, num=numpoints)
     plt.close('all')
     plt.figure()
-    for idx_z in range(numzbin):
+    for idx_z in range(params['numzbin']):
         chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
@@ -914,7 +917,7 @@ def plotAllSigmaSHMRvsSM(iterations, burn):
     # for i in range(numpoints):
     #     av_logMh[i] = np.average(logmhalo[:, i])
         plt.fill_between(av_logMh, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
-        plt.plot(av_logMh, av_SHMR, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.plot(av_logMh, av_SHMR, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
     plt.legend()
@@ -930,7 +933,7 @@ def plotFakeAllSigmaSHMRvsMH(iterations, burn):
     plt.figure()
     numpoints = 100
     logMs = np.linspace(9, 12, num=numpoints)
-    for idx_z in range(numzbin):
+    for idx_z in range(params['numzbin']):
         chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
         chain = np.load(chainfile)
         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
@@ -945,7 +948,7 @@ def plotFakeAllSigmaSHMRvsMH(iterations, burn):
         # for i in range(numpoints):
         #     av_logMh[i] = np.average(logmhalo[:, i])
         plt.fill_between(av_logMh, logMs - conf_min_logMh, logMs - conf_max_logMh, alpha=0.3)
-        plt.plot(av_logMh, logMs - av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.plot(av_logMh, logMs - av_logMh, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
     # plt.plot([10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
     #     [-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010], label='Harikane z=4')
     # plt.plot([10.975, 11.292, 12.041]+np.log10(67/70) , [-2.36, -2.206, -2.132], label='Hariakne z=6')
@@ -964,13 +967,13 @@ def plotAllSHMRvsSM(directory, iterations, burn):
     plt.figure()
     numpoints = 100
     # Use the interploation formula of Mlim(z) in Davidzon et al. 2017
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7), np.full(numzbin, 9))
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
     Ms_max = 11.8
     nselect = 100000  # Number of samples o randomly select in the chains
     logMhbins = np.linspace(11.5, 14, num=numpoints)
-    for idx_z in range(numzbin):
+    for idx_z in range(params['numzbin']):
         # idx_z += 9
         logMs = np.linspace(9, 11.8, num=numpoints)
         avg_MSonMH = np.zeros(numpoints-1)
@@ -1014,7 +1017,7 @@ def plotAllSHMRvsSM(directory, iterations, burn):
         np.save(directory + '/Plots/idx_mhplotmax' + str(idx_z) + '.npy', idx_mhplotmax)
         print(idx_mhplotmax)
         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
-            label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+            label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
         plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
             confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
@@ -1037,21 +1040,21 @@ def plotAllSHMRvsSM(directory, iterations, burn):
 
 def plotAllSHMRvsSM(directory):
     """Load previously computed SHMR(HM) and plot them in one figure"""
-    numzbin = 10
+    params['numzbin'] = 10
     numpoints = 100
     avg_MSonMH = np.zeros(numpoints-1)
     confminus_MSonMH = np.zeros(numpoints-1)
     confplus_MSonMH = np.zeros(numpoints-1)
     logMhbins = np.linspace(11.5, 14, num=numpoints)
     plt.figure()
-    redshifts = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-    for idx_z in range(numzbin):
+    params['redshifts'] = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+    for idx_z in range(params['numzbin']):
         avg_MSonMH = np.load(directory + '/avg_MSonMH' + str(idx_z) + '.npy')
         confminus_MSonMH = np.load(directory + '/confminus_MSonMH' + str(idx_z) + '.npy')
         confplus_MSonMH = np.load(directory + '/confplus_MSonMH' + str(idx_z) + '.npy')
         idx_mhplotmax = np.load(directory + '/idx_mhplotmax' + str(idx_z) + '.npy')
         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
-            label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+            label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
         plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
             confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
     # plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
@@ -1066,22 +1069,22 @@ def plotAllSHMRvsSM(directory):
     plt.tight_layout()
 
 
-def plotSHMR_delta(directory, iterations, burn, load=True, selected_redshifts=np.arange(10)):
+def plotSHMR_delta(directory, iterations, burn, params, load=True, selected_redshifts=np.arange(10)):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
-    load_smf(smf_name)
-    load_hmf(hmf_name)
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7), np.full(numzbin, 9))
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
     Ms_max = 11.8
     numpoints = 100
-    logMs = np.empty([numzbin, numpoints])
+    logMs = np.empty([params['numzbin'], numpoints])
     nselect = 100000  # Number of samples o randomly select in the chains
     logMhbins = np.linspace(11.5, 14, num=numpoints)
-    av_logMh = np.empty([numzbin, numpoints])
-    med_logMh = np.empty([numzbin, numpoints])
-    conf_min_logMh = np.empty([numzbin, numpoints])
-    conf_max_logMh = np.empty([numzbin, numpoints])
+    av_logMh = np.empty([params['numzbin'], numpoints])
+    med_logMh = np.empty([params['numzbin'], numpoints])
+    conf_min_logMh = np.empty([params['numzbin'], numpoints])
+    conf_max_logMh = np.empty([params['numzbin'], numpoints])
     if load is False :
         print('Computing arrays')
         for idx_z in selected_redshifts:
@@ -1127,8 +1130,8 @@ def plotSHMR_delta(directory, iterations, burn, load=True, selected_redshifts=np
     for idx_z in selected_redshifts:
     # for idx_z in [6,7,8,9]:
         plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
-        plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]), color="C{}".format(idx_z))
-        # plt.plot(logMs[idx_z], med_logMh[idx_z], label='med '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        # plt.plot(logMs[idx_z], med_logMh[idx_z], label='med '+str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
     # plt.plot(logMs[idx_z], logMh(logMs[idx_z], M1, Ms0, beta, delta, gamma), label='best fit z0')
 
     """PLot the Behroozi SHMR"""
@@ -1154,7 +1157,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True, selected_redshifts=np
         # yerr = [xerr[1], xerr[0]]
         # # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
         # plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3)
-        # plt.plot(x, y, label='av '+str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+        # plt.plot(x, y, label='av '+str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
         """Plot the median"""
         x = med_logMh[idx_z]
         y = logMs[idx_z] - med_logMh[idx_z]
@@ -1163,7 +1166,7 @@ def plotSHMR_delta(directory, iterations, burn, load=True, selected_redshifts=np
         yerr = [xerr[1], xerr[0]]
         # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
         plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
-        plt.plot(x, y, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]), color="C{}".format(idx_z))
+        plt.plot(x, y, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
     logspace = np.linspace(11, 16)
     plt.plot(logspace, 11.8 -logspace, c='black', linestyle='--', label='$M_{*}= 10^{11.8} M_{\odot}$')
     plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
@@ -1179,24 +1182,24 @@ def plotSHMR_delta(directory, iterations, burn, load=True, selected_redshifts=np
 
 def plotMsMh_fixedMh(directory):
     load_smf('cosmos')
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + redshiftsbin)**2.7), np.full(numzbin, 9))
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
     Ms_max = 11.8
     numpoints = 100
-    logMs = np.empty([numzbin, numpoints])
-    for idx_z in range(numzbin):
+    logMs = np.empty([params['numzbin'], numpoints])
+    for idx_z in range(params['numzbin']):
         logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
     av_logMh = np.load(directory + '/av_logMh.npy')
     conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
     conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
-    idx_12 = np.zeros(numzbin).astype('int')
-    idx_13 = np.zeros(numzbin).astype('int')
-    smhm_12 = np.zeros(numzbin)
-    conf_smhm_12 = np.zeros([2, numzbin])
-    smhm_13 = np.zeros(numzbin)
-    conf_smhm_13 = np.zeros([2, numzbin])
-    for idx_z in range(numzbin-2):
+    idx_12 = np.zeros(params['numzbin']).astype('int')
+    idx_13 = np.zeros(params['numzbin']).astype('int')
+    smhm_12 = np.zeros(params['numzbin'])
+    conf_smhm_12 = np.zeros([2, params['numzbin']])
+    smhm_13 = np.zeros(params['numzbin'])
+    conf_smhm_13 = np.zeros([2, params['numzbin']])
+    for idx_z in range(params['numzbin']-2):
         idx_12[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 12))
         idx_13[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 13))
         smhm_12[idx_z] = logMs[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
@@ -1207,8 +1210,8 @@ def plotMsMh_fixedMh(directory):
         conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]],
             conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
     plt.figure()
-    plt.errorbar(redshiftsbin[:-2], smhm_12[:-2], yerr=conf_smhm_12[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{12} M_{\odot}$')
-    plt.errorbar(redshiftsbin[:-2], smhm_13[:-2], yerr=conf_smhm_13[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{13} M_{\odot}$')
+    plt.errorbar(params['redshiftsbin'][:-2], smhm_12[:-2], yerr=conf_smhm_12[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{12} M_{\odot}$')
+    plt.errorbar(params['redshiftsbin'][:-2], smhm_13[:-2], yerr=conf_smhm_13[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{13} M_{\odot}$')
     plt.xlabel('Redshift', size=17)
     plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\mathrm{h}})$', size=17)
     plt.tick_params(axis='both', which='major', labelsize=13)
