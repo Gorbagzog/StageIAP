@@ -287,8 +287,8 @@ def plotFit(directory, smf_name, hmf_name):
         smf_short='Vmax'
     else:
         smf_short = smf_name
-    
-    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-1,0].astype('int')[:]], MhaloPeak[:-0, 1], yerr=MhaloPeak[:-0, 2], c='red',
+    cut_point = -10 # -10 to cut no points, 1 to cut last point
+    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-cut_point,0].astype('int')[:]], MhaloPeak[:-cut_point, 1], yerr=MhaloPeak[:-cut_point, 2], c='red',
     fmt='o', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
     markersize=8)
 

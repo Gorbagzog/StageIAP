@@ -340,7 +340,7 @@ def log_phi_direct(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma):
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma) 
     if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
         # print('above hmf')
-        return log_Mh1 * 0. + 1
+        return log_Mh1 * 0. + 10
     else :
         # Select the index of the HMF corresponding to the halo masses
         index_Mh = np.argmin(
@@ -454,12 +454,17 @@ def loglike(theta, smf, hmf, idx_z, params, minbound, maxbound):
 """ Run MCMC """
 
 def get_platform():
+    """Returns the save path and the number of threads (=cors for parallelization) 
+    depending on the machin teh script is ran."""
     if platform.uname()[1] == 'imac-de-louis':
-        # Run locally
-        return '../'
+        print('Run locally')
+        return '../', 1
     elif platform.uname()[1] == 'glx-calcul3':
-        # Run on the glx-calcul3 machine
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/'
+        print('Run on the glx-calcul3 machine')
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 20
+    elif platform.uname()[1] == 'glx-calcul1':
+        print('Run on the glx-calcul1 machine')
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 20
     else:
         print('Unknown machine, please update the save path')
         sys.exit("Unknown machine, please update the save path")
@@ -469,7 +474,7 @@ def runMCMC_allZ(paramfile):
     # Load parameters and config
     config = getconf.ConfigGetter('getconf', [paramfile])
     params = {}
-    params['save_path'] = get_platform()
+    params['save_path'], params['nthreads'] = get_platform()
     params['smf_name'] = config.getstr('Mass_functions.SMF')
     params['do_sm_cut'] = config.getbool('Mass_functions.do_sm_cut') 
     params['SM_cut_max'] = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
@@ -487,7 +492,7 @@ def runMCMC_allZ(paramfile):
     params['noksi'] = config.getbool('MCMC_run_parameters.noksi')
     # np.array(config.getlist('MCMC_run_parameters.starting_point')).astype('float')
     params['std'] = np.array(config.getlist('MCMC_run_parameters.std')).astype('float')
-    params['nthreads'] = config.getint('MCMC_run_parameters.nthreads')
+    # params['nthreads'] = config.getint('MCMC_run_parameters.nthreads')
     params['nwalkers'] = config.getint('MCMC_run_parameters.nwalkers')
     params['selected_redshifts'] = np.array(config.getlist('MCMC_run_parameters.redshifts')).astype('int')
     smf = load_smf(params)
@@ -502,7 +507,7 @@ def runMCMC_allZ(paramfile):
         os.makedirs(directory)
         os.makedirs(directory+'/Chain')
         os.makedirs(directory+'/Plots')
-        os.makedirs(directory+'/Plots/MhaloPeak')
+        # os.makedirs(directory+'/Plots/MhaloPeak')
         os.makedirs(directory+'/Results')
         print('Created new directory')
     # Copy parameter files in the save directory
@@ -706,7 +711,7 @@ def plotSMF(directory, smf, hmf, idx_z, params, iterations, burn):
                 smf[idx_z][:, 1] > -40)
             )[0]
     else:
-        select = True
+        select = np.where(smf[idx_z][:, 1] > -40)[0]
     logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
@@ -824,7 +829,7 @@ def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params):
     plt.hist(mhpeak, bins=100)
     plt.axvline(med_mhpeak, color='orange')
     plt.title(str(params['redshifts'][idx_z]) +'<z<' + str(params['redshifts'][idx_z+1]) + ', MhPeak = ' + str(med_mhpeak) + '+/-' + str(std_mhpeak))
-    plt.savefig(directory+'/Plots/MhaloPeak/MhPeak_z' + str(idx_z) + '.pdf')
+    plt.savefig(directory+'/Plots/MhPeak_z' + str(idx_z) + '.pdf')
 
 
 def plotSigmaHMvsSM(directory, idx_z, iterations, burn):
