@@ -214,23 +214,27 @@ def log_phi13_true(log_Mh, idx_z, z):
 
 # for idx_z in range(redshiftsbin.size):
 for idx_z in range(1):
+    plt.figure()
     z = redshiftsbin[idx_z]
     log_phi_true = log_phi13_true(log_Mh, idx_z, z)
     log_phi_dir = log_phi13(log_Mh, idx_z, z)
     # print(log_phi)
     # print(smf[idx_z])
 
-    plt.plot(log_Ms13(log_Mh, z), log_phi_dir, label='direct phi')
-    plt.plot(log_Ms13(log_Mh, z), log_phi_true, label='convolution')
-    plt.plot(log_Ms_B13, log_phi_B13, '--', label='B13 reading')
+    plt.plot(log_Ms_B13, log_phi_B13, color='black', linestyle='--', label='B13 z=0.2 (plot digitizer)')
 
-    plt.errorbar(smf[idx_z][:, 0], smf[idx_z][:,1], yerr=[smf[idx_z][:, 3], smf[idx_z][:, 2]], label='cosmos')
+    plt.plot(log_Ms13(log_Mh, z), log_phi_dir, label='B13 best fit params, no convolution')
+    plt.plot(log_Ms13(log_Mh, z), log_phi_true, label='B13 best fit params, with convolution', color='green')
 
+    plt.plot(smf[idx_z][:, 0], smf[idx_z][:,1], label='cosmos Schechter Fit '+ str(redshifts[idx_z])+'<z<'+ str(redshifts[idx_z+1]), color="C{}".format(1),)
+    plt.fill_between(smf[idx_z][:, 0], smf[idx_z][:, 1] - smf[idx_z][:, 3], smf[idx_z][:, 1] + smf[idx_z][:, 2], alpha=0.2, color="C{}".format(1),)
     # plt.plot(log_Mh, log_Ms13(log_Mh, z) - log_Mh)
 
-plt.legend()
-plt.ylim(-7, -1)
-plt.show()
+    plt.legend()
+    plt.xlabel('$M_*$', size=12)
+    plt.ylabel('$\phi$', size=12)
+    plt.ylim(-7, -1)
+    plt.show()
 
 
 # log_phi13_true(log_Mh, 0, redshiftsbin[0])
