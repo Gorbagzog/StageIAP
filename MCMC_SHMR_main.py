@@ -338,10 +338,11 @@ def log_phi_direct(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma):
     epsilon = 0.0001
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma) 
-    if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
-        # print('above hmf')
-        return log_Mh1 * 0. + 10
-    else :
+    # if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
+    #     # print('above hmf')
+    #     return log_Mh1 * 0. + 10
+    # else :
+    if True:
         # Select the index of the HMF corresponding to the halo masses
         index_Mh = np.argmin(
             np.abs(
@@ -469,9 +470,9 @@ def get_platform():
         print('Unknown machine, please update the save path')
         sys.exit("Unknown machine, please update the save path")
 
-def runMCMC_allZ(paramfile):
-    """Main function to run all MCMC on all zbins based on the param file"""
-    # Load parameters and config
+
+def load_params(paramfile):
+    """Load parameters and config"""
     config = getconf.ConfigGetter('getconf', [paramfile])
     params = {}
     params['save_path'], params['nthreads'] = get_platform()
@@ -495,6 +496,12 @@ def runMCMC_allZ(paramfile):
     # params['nthreads'] = config.getint('MCMC_run_parameters.nthreads')
     params['nwalkers'] = config.getint('MCMC_run_parameters.nwalkers')
     params['selected_redshifts'] = np.array(config.getlist('MCMC_run_parameters.redshifts')).astype('int')
+    return params
+
+
+def runMCMC_allZ(paramfile):
+    """Main function to run all MCMC on all zbins based on the param file"""
+    params = load_params(paramfile)
     smf = load_smf(params)
     hmf = load_hmf(params)
 
@@ -563,7 +570,12 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(chainfile, sampler.chain)
     np.save(savenameln, sampler.lnprobability)
+    print(sampler.get_autocorr_time(c=5))
+
     sampler.reset()
+
+    # test convergence
+    # test_convergence(directory, idx_z, iterations, burn)
     # Plot all relevant figures
     plt.close('all')
     plotchain(directory, chainfile, idx_z, params)
@@ -647,26 +659,24 @@ def gelman_rubin(chain):
     return R
 
 
-def test_convergence(directory, iterations, burn):
+def test_convergence(directory, idx_z, iterations, burn):
     """Test the convergence of the chains"""
-    params['numzbin'] = 10
-    ndim_arr = [6]
-    for idx_z in range(params['numzbin']):
-        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        chain = np.load(chainfile)
-        print("ndim\tμ\t\tσ\tGelman-Rubin")
-        print("============================================")
-        ndim = 6
-        print("{0:3d}\t{1: 5.4f}\t\t{2:5.4f}\t\t{3:3.2f}".format(
-                    ndim,
-                    chain.reshape(-1, chain.shape[-1]).mean(axis=0)[0],
-                    chain.reshape(-1, chain.shape[-1]).std(axis=0)[0],
-                    gelman_rubin(chain)[0]))
-        # names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
-        # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        # samples = MCSamples(samples = samples, names = names)
-        # R = gelman_rubin(chain)
-        # print(R)
+    # ndim_arr = [6]
+    chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    chain = np.load(chainfile)
+    print("ndim\tμ\t\tσ\tGelman-Rubin")
+    print("============================================")
+    ndim = 6
+    print("{0:3d}\t{1: 5.4f}\t\t{2:5.4f}\t\t{3:3.2f}".format(
+                ndim,
+                chain.reshape(-1, chain.shape[-1]).mean(axis=0)[0],
+                chain.reshape(-1, chain.shape[-1]).std(axis=0)[0],
+                gelman_rubin(chain)[0]))
+    # names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # samples = MCSamples(samples = samples, names = names)
+    # R = gelman_rubin(chain)
+    # print(R)
 
 
 # def delete_non_converged_chains(directory, iterations, burn, idx_z, selec_chain):
