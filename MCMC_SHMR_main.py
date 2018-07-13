@@ -35,7 +35,7 @@ def load_smf(params):
     """Load the SMF"""
     smf_name = params['smf_name']
     if smf_name == 'cosmos' or smf_name == 'cosmos_schechter':
-        
+
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
         params['redshifts'] = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
@@ -76,12 +76,12 @@ def load_smf(params):
                 # Take the error bar values as in Vmax data file, and not the boundaries.
                 # /!\ Warning, in the Vmax file, smf[:][:,2] gives the higher bound and smf[:][:,3] the lower bound.
                 # It is the inverse for the Schechter fit
-                # I use the Vmax convention to keep the same structure. 
+                # I use the Vmax convention to keep the same structure.
                 temp = smf[i][:, 1] - smf[i][:, 2]
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
 
-           
+
             if params['do_sm_cut']:
                 params['SM_cut_min'] = np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7)
                 print('Use D17 relation for minimal stellar mass: Ms_min='+str(params['SM_cut_min']))
@@ -268,10 +268,10 @@ def load_hmf(params):
             hmf.append(
                 np.transpose(
                     np.array(
-                        [np.log10(M / cosmo.h), 
+                        [np.log10(M / cosmo.h),
                          np.log10(mass_function.massFunction(
                                 M, redshift_haloes[i], mdef = mdef, model =hmf_name, q_out = 'dndlnM'
-                            ) * np.log(10) * cosmo.h**3  
+                            ) * np.log(10) * cosmo.h**3
                             ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
                             )]
                         )
@@ -291,10 +291,10 @@ def load_hmf(params):
     #         hmf.append(
     #             np.transpose(
     #                 np.array(
-    #                     [np.log10(M / cosmo.h), 
+    #                     [np.log10(M / cosmo.h),
     #                      np.log10(mass_function.massFunction(
     #                             M, redshift_haloes[i], mdef = mdef, model ='tinker08', q_out = 'dndlnM'
-    #                         ) * np.log(10) * cosmo.h**3  
+    #                         ) * np.log(10) * cosmo.h**3
     #                         ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
     #                         )]
     #                     )
@@ -313,10 +313,10 @@ def load_hmf(params):
     #         hmf.append(
     #             np.transpose(
     #                 np.array(
-    #                     [np.log10(M / cosmo.h), 
+    #                     [np.log10(M / cosmo.h),
     #                      np.log10(mass_function.massFunction(
     #                             M, redshift_haloes[i], mdef = mdef, model ='watson13', q_out = 'dndlnM'
-    #                         ) * np.log(10) * cosmo.h**3  
+    #                         ) * np.log(10) * cosmo.h**3
     #                         ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
     #                         )]
     #                     )
@@ -337,7 +337,7 @@ def log_phi_direct(logMs, hmf, idx_z, M1, Ms0, beta, delta, gamma):
     """"SMF obtained from the SM-HM relation and the HMF"""
     epsilon = 0.0001
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
-    log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma) 
+    log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
     # if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
     #     # print('above hmf')
     #     return log_Mh1 * 0. + 10
@@ -383,7 +383,7 @@ def log_phi_true(logMs, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi):
     #         phitrue[i] = phitrue[i] + 10**log_phi_dir[j] * gauss(logMs[j] - logMs[i], ksi) * (logMs[j+1] - logMs[j])
     # print(phitrue)
     # return np.log10(phitrue)
-    
+
     # return log_phi_dir
 
 def chi2(smf, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi):
@@ -409,7 +409,7 @@ def chi2(smf, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi):
                 )
         else:
             sm_select = True
-        """In the case of the Schechter fit, error bars are non symmetric.""" 
+        """In the case of the Schechter fit, error bars are non symmetric."""
         chi2 = np.sum(
                 ((pred[sm_select] - 10**smf[idx_z][select, 1][sm_select]) / (
                     10**(smf[idx_z][select, 2][sm_select] + smf[idx_z][select, 1][sm_select]) - 10**smf[idx_z][select, 1][sm_select]))**2
@@ -455,7 +455,7 @@ def loglike(theta, smf, hmf, idx_z, params, minbound, maxbound):
 """ Run MCMC """
 
 def get_platform():
-    """Returns the save path and the number of threads (=cors for parallelization) 
+    """Returns the save path and the number of threads (=cors for parallelization)
     depending on the machin teh script is ran."""
     if platform.uname()[1] == 'imac-de-louis':
         print('Run locally')
@@ -466,6 +466,9 @@ def get_platform():
     elif platform.uname()[1] == 'glx-calcul1':
         print('Run on the glx-calcul1 machine')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', 20
+    elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
+        print('Run on local on my MBP')
+        return '../', 1
     else:
         print('Unknown machine, please update the save path')
         sys.exit("Unknown machine, please update the save path")
@@ -477,9 +480,9 @@ def load_params(paramfile):
     params = {}
     params['save_path'], params['nthreads'] = get_platform()
     params['smf_name'] = config.getstr('Mass_functions.SMF')
-    params['do_sm_cut'] = config.getbool('Mass_functions.do_sm_cut') 
+    params['do_sm_cut'] = config.getbool('Mass_functions.do_sm_cut')
     params['SM_cut_max'] = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
-    params['SMF_subsampling'] = config.getbool('Mass_functions.SMF_subsampling') 
+    params['SMF_subsampling'] = config.getbool('Mass_functions.SMF_subsampling')
     params['subsampling_step'] = config.getint('Mass_functions.subsampling_step')
     params['hmf_name'] = config.getstr('Mass_functions.HMF')
     params['iterations'] = config.getint('MCMC_run_parameters.iterations')
@@ -559,14 +562,13 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     print("std = " + str(std))
     print("iterations = " + str(iterations))
     print("burn = " + str(burn))
-    start_time = time.time()
+    # start_time = time.time()
     # sampler.run_mcmc(p0, iterations)
     # elapsed_time = time.time() - start_time
     # print('Time elapsed: ' + str(elapsed_time))
     # print('Acceptance fraction:')
     # print(sampler.acceptance_fraction)
-    # print('Autocorrelation time:')
-    # print(sampler.get_autocorr_time())
+
 
     # We'll track how the average autocorrelation time estimate changes
     index = 0
@@ -590,15 +592,11 @@ def runMCMC(directory, smf, hmf, idx_z, params):
         if converged:
             break
         old_tau = tau
-    n = 100*np.arange(1, index+1)
-    y = autocorr[:index]
-    plt.plot(n, n / 100.0, "--k")
-    plt.plot(n, y)
-    plt.xlim(0, n.max())
-    plt.ylim(0, y.max() + 0.1*(y.max() - y.min()))
-    plt.xlabel("number of steps")
-    plt.ylabel(r"mean $\hat{\tau}$");
-    plt.savefig(directory+'/Plots/TestConvergence_'+str(idx_z)+'.pdf')
+    print('Autocorrelation time:')
+    print(sampler.get_autocorr_time(tol=0, discard=burn))
+
+    plt.close('all')
+    plotAutocorr(directory, idx_z, autocorr, index)
 
     # Save chains and loglike of chains
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -611,8 +609,8 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plt.close('all')
     plotchain(directory, chainfile, idx_z, params)
     plt.close('all')
-    # plotdist(directory, chainfile, idx_z, iterations, burn)
-    # plt.close('all')
+    plotdist(directory, chainfile, idx_z, iterations, burn, params)
+    plt.close('all')
     plotSMF(directory, smf, hmf, idx_z, params, iterations, burn)
     plt.close('all')
     plotSMHM(directory, smf, idx_z, iterations, burn)
@@ -621,24 +619,36 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plt.close('all')
     plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params)
     plt.close('all')
-    save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'])
-     
+    save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'], params)
+
     # Reset before new MCMC
     sampler.reset()
 
 
+def plotAutocorr(directory, idx_z, autocorr, index):
+    n = 100*np.arange(1, index+1)
+    y = autocorr[:index]
+    plt.plot(n, n / 50.0, "--k")
+    plt.plot(n, y)
+    plt.xlim(0, n.max())
+    plt.ylim(0, y.max() + 0.1*(y.max() - y.min()))
+    plt.xlabel("number of steps")
+    plt.ylabel(r"mean $\hat{\tau}$");
+    plt.savefig(directory+'/Plots/TestConvergence_'+str(idx_z)+'.pdf')
 
 
-
-def save_results(directory, chainfile, idx_z, iterations, burn, noksi):
+def save_results(directory, chainfile, idx_z, iterations, burn, noksi, params):
     chain = np.load(chainfile)
     if noksi:
+        print('This may not be supported form 13th of July 2018')
         chain =chain[:,:,:5]
         names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
+        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][0], params['maxbound'][0]]))))
     else:
         names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][0], params['maxbound'][0]]))))
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    samples = MCSamples(samples = samples, names = names)
+    samples = MCSamples(samples=samples, names=names, ranges=ranges)
     res = samples.getTable()
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
     del chain
@@ -846,12 +856,14 @@ def plotchain_noksi(directory, chainfile, idx_z, iterations, burn):
     fig.savefig(figname + ".pdf")
     plt.close('all')
 
-def plotdist(directory, chainfile, idx_z, iterations, burn):
+def plotdist(directory, chainfile, idx_z, iterations, burn, params):
     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    samples = MCSamples(samples = samples, names = names)
+    samples = MCSamples(samples=samples, names=names,
+        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][0],
+        params['maxbound'][0]])))))
     # chain.close()
     g = plots.getSubplotPlotter()
     g.triangle_plot(samples, filled=True)
