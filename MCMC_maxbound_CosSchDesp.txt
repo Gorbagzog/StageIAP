@@ -1,6 +1,6 @@
 # MCMC min boundaries for each redshift bin in COSMOS
 # M1, Ms0, beta, delta, gamma, ksi
-13, 11.2, 0.6, 0.75, 5, 0.35
+13, 11.2, 0.6, 1, 5, 0.35
 13, 11.5, 0.6, 0.6, 3, 1
 13, 11.12, 0.6, 0.7, 4, 1
 13, 11.2, 0.55, 0.7, 3, 1

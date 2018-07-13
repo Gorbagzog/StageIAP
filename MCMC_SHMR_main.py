@@ -560,20 +560,48 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     print("iterations = " + str(iterations))
     print("burn = " + str(burn))
     start_time = time.time()
-    sampler.run_mcmc(p0, iterations)
-    elapsed_time = time.time() - start_time
-    print('Time elapsed : ' + str(elapsed_time))
-    print('acceptance fraction :')
-    print(sampler.acceptance_fraction)
+    # sampler.run_mcmc(p0, iterations)
+    # elapsed_time = time.time() - start_time
+    # print('Time elapsed: ' + str(elapsed_time))
+    # print('Acceptance fraction:')
+    # print(sampler.acceptance_fraction)
+
+    # We'll track how the average autocorrelation time estimate changes
+    index = 0
+    autocorr = np.empty(iterations)
+    # This will be useful to testing convergence
+    old_tau = np.inf
+    # Now we'll sample for up to iterations steps
+    for sample in sampler.sample(p0, iterations=iterations, progress=True):
+        # Only check convergence every 100 steps
+        if sampler.iteration % 100:
+            continue
+        # Compute the autocorrelation time so far
+        # Using tol=0 means that we'll always get an estimate even
+        # if it isn't trustworthy
+        tau = sampler.get_autocorr_time(tol=0)
+        autocorr[index] = np.mean(tau)
+        index += 1
+        # Check convergence
+        converged = np.all(tau * 100 < sampler.iteration)
+        converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
+        if converged:
+            break
+        old_tau = tau
+    n = 100*np.arange(1, index+1)
+    y = autocorr[:index]
+    plt.plot(n, n / 100.0, "--k")
+    plt.plot(n, y)
+    plt.xlim(0, n.max())
+    plt.ylim(0, y.max() + 0.1*(y.max() - y.min()))
+    plt.xlabel("number of steps")
+    plt.ylabel(r"mean $\hat{\tau}$");
+    plt.savefig(directory+'/Plots/TestConvergence.pdf')
     # Save chains and loglike of chains
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     np.save(chainfile, sampler.chain)
     np.save(savenameln, sampler.lnprobability)
-    print(sampler.get_autocorr_time(c=5))
-
-    sampler.reset()
-
     # test convergence
     # test_convergence(directory, idx_z, iterations, burn)
     # Plot all relevant figures
@@ -591,6 +619,12 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params)
     plt.close('all')
     save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'])
+
+    print('Autocorrelation time:')
+    print(sampler.get_autocorr_time())
+
+    sampler.reset()
+
 
 
 def save_results(directory, chainfile, idx_z, iterations, burn, noksi):
