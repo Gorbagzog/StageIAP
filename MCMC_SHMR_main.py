@@ -555,7 +555,17 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     start_time = time.time()
     p0 = emcee.utils.sample_ball(starting_point[idx_z], std, size=nwalkers)
     ndim = len(starting_point[idx_z])
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike, args=[smf, hmf, idx_z, params, minbound, maxbound], threads=nthreads)
+
+    # Set up the backend
+    # Don't forget to clear it in case the file already exists
+    filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
+    backend = emcee.backends.HDFBackend(filename)
+    backend.reset(nwalkers, ndim)
+    print('Using backend to save the chain to '+filename)
+
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
+        args=[smf, hmf, idx_z, params, minbound, maxbound], threads=nthreads,
+        backend=backend)
     print("idx_z = " +str (idx_z))
     print("ndim = " + str(ndim))
     print("start = " + str(starting_point[idx_z]))
@@ -568,7 +578,6 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     # print('Time elapsed: ' + str(elapsed_time))
     # print('Acceptance fraction:')
     # print(sampler.acceptance_fraction)
-
 
     # We'll track how the average autocorrelation time estimate changes
     index = 0
