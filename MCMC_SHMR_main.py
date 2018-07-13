@@ -565,6 +565,8 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     # print('Time elapsed: ' + str(elapsed_time))
     # print('Acceptance fraction:')
     # print(sampler.acceptance_fraction)
+    # print('Autocorrelation time:')
+    # print(sampler.get_autocorr_time())
 
     # We'll track how the average autocorrelation time estimate changes
     index = 0
@@ -597,6 +599,8 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plt.xlabel("number of steps")
     plt.ylabel(r"mean $\hat{\tau}$");
     plt.savefig(directory+'/Plots/TestConvergence.pdf')
+
+    sampler.reset()
     # Save chains and loglike of chains
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -620,10 +624,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plt.close('all')
     save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'])
 
-    print('Autocorrelation time:')
-    print(sampler.get_autocorr_time())
 
-    sampler.reset()
 
 
 
