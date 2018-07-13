@@ -598,9 +598,8 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plt.ylim(0, y.max() + 0.1*(y.max() - y.min()))
     plt.xlabel("number of steps")
     plt.ylabel(r"mean $\hat{\tau}$");
-    plt.savefig(directory+'/Plots/TestConvergence.pdf')
+    plt.savefig(directory+'/Plots/TestConvergence_'+str(idx_z)+'.pdf')
 
-    sampler.reset()
     # Save chains and loglike of chains
     chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
     savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
@@ -623,6 +622,9 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params)
     plt.close('all')
     save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'])
+     
+    # Reset before new MCMC
+    sampler.reset()
 
 
 
