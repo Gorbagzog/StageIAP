@@ -30,6 +30,7 @@ import hmf as hmf_calc
 from colossus.cosmology import cosmology
 from colossus.lss import mass_function
 import Plot_MhaloPeak
+from multiprocessing import Pool
 
 def load_smf(params):
     """Load the SMF"""
@@ -567,75 +568,76 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
     print('Nthreads: '+str(nthreads))
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
-        args=[smf, hmf, idx_z, params, minbound, maxbound], threads=nthreads,
-        backend=backend)
-    print("idx_z = " +str (idx_z))
-    print("ndim = " + str(ndim))
-    print("start = " + str(starting_point[idx_z]))
-    print("std = " + str(std))
-    print("iterations = " + str(iterations))
-    print("burn = " + str(burn))
-    start_time = time.time()
-    sampler.run_mcmc(p0, iterations)
-    elapsed_time = time.time() - start_time
-    print('Time elapsed: ' + str(elapsed_time))
-    print('Acceptance fraction:')
-    print(sampler.acceptance_fraction)
+    with Pool() as pool:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
+            args=[smf, hmf, idx_z, params, minbound, maxbound], pool=pool,
+            backend=backend)
+        print("idx_z = " +str (idx_z))
+        print("ndim = " + str(ndim))
+        print("start = " + str(starting_point[idx_z]))
+        print("std = " + str(std))
+        print("iterations = " + str(iterations))
+        print("burn = " + str(burn))
+        start_time = time.time()
+        sampler.run_mcmc(p0, iterations)
+        elapsed_time = time.time() - start_time
+        print('Time elapsed: ' + str(elapsed_time))
+        print('Acceptance fraction:')
+        print(sampler.acceptance_fraction)
 
-    # We'll track how the average autocorrelation time estimate changes
-    # index = 0
-    # autocorr = np.empty(iterations)
-    # # This will be useful to testing convergence∏
-    # old_tau = np.inf
-    # # Now we'll sample for up to iterations steps
-    # for sample in sampler.sample(p0, iterations=iterations, progress=True):
-    #     # Only check convergence every 100 steps
-    #     if sampler.iteration % 100:
-    #         continue
-    #     # Compute the autocorrelation time so far
-    #     # Using tol=0 means that we'll always get an estimate even
-    #     # if it isn't trustworthy
-    #     tau = sampler.get_autocorr_time(tol=0)
-    #     autocorr[index] = np.mean(tau)
-    #     index += 1
-    #     # Check convergence
-    #     converged = np.all(tau * 100 < sampler.iteration)
-    #     converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
-    #     if converged:
-    #         break
-    #     old_tau = tau
-    # print('Autocorrelation time:')
-    # print(sampler.get_autocorr_time(tol=0, discard=burn))
+        # We'll track how the average autocorrelation time estimate changes
+        index = 0
+        autocorr = np.empty(iterations)
+        # This will be useful to testing convergence∏
+        old_tau = np.inf
+        # Now we'll sample for up to iterations steps
+        for sample in sampler.sample(p0, iterations=iterations, progress=True):
+            # Only check convergence every 100 steps
+            if sampler.iteration % 100:
+                continue
+            # Compute the autocorrelation time so far
+            # Using tol=0 means that we'll always get an estimate even
+            # if it isn't trustworthy
+            tau = sampler.get_autocorr_time(tol=0)
+            autocorr[index] = np.mean(tau)
+            index += 1
+            # Check convergence
+            converged = np.all(tau * 100 < sampler.iteration)
+            converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
+            if converged:
+                break
+            old_tau = tau
+        print('Autocorrelation time:')
+        print(sampler.get_autocorr_time(tol=0, discard=burn))
 
-    plt.close('all')
-    plotAutocorr(directory, idx_z, autocorr, index)
+        plt.close('all')
+        plotAutocorr(directory, idx_z, autocorr, index)
 
-    # Save chains and loglike of chains
-    chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    np.save(chainfile, sampler.chain)
-    np.save(savenameln, sampler.lnprobability)
-    # test convergence
-    # test_convergence(directory, idx_z, iterations, burn)
-    # Plot all relevant figures
-    plt.close('all')
-    plotchain(directory, chainfile, idx_z, params)
-    plt.close('all')
-    plotdist(directory, chainfile, idx_z, iterations, burn, params)
-    plt.close('all')
-    plotSMF(directory, smf, hmf, idx_z, params, iterations, burn)
-    plt.close('all')
-    plotSMHM(directory, smf, idx_z, iterations, burn)
-    plt.close('all')
-    plotSHMR(directory, smf, idx_z, iterations, burn)
-    plt.close('all')
-    plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params)
-    plt.close('all')
-    save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'], params)
+        # Save chains and loglike of chains
+        chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        np.save(chainfile, sampler.chain)
+        np.save(savenameln, sampler.lnprobability)
+        # test convergence
+        # test_convergence(directory, idx_z, iterations, burn)
+        # Plot all relevant figures
+        plt.close('all')
+        plotchain(directory, chainfile, idx_z, params)
+        plt.close('all')
+        plotdist(directory, chainfile, idx_z, iterations, burn, params)
+        plt.close('all')
+        plotSMF(directory, smf, hmf, idx_z, params, iterations, burn)
+        plt.close('all')
+        plotSMHM(directory, smf, idx_z, iterations, burn)
+        plt.close('all')
+        plotSHMR(directory, smf, idx_z, iterations, burn)
+        plt.close('all')
+        plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params)
+        plt.close('all')
+        save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'], params)
 
-    # Reset before new MCMC
-    sampler.reset()
+        # Reset before new MCMC
+        sampler.reset()
 
 
 def plotAutocorr(directory, idx_z, autocorr, index):
@@ -658,7 +660,7 @@ def save_results(directory, chainfile, idx_z, iterations, burn, noksi, params):
         names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
         ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
     else:
-        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$']
         ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples=samples, names=names, ranges=ranges)
@@ -670,7 +672,7 @@ def save_results(directory, chainfile, idx_z, iterations, burn, noksi, params):
 def getParam(directory, chainfile, idx_z, iterations, burn):
     """Get paramInfo objects giving results of the MCMC"""
     chain = np.load(chainfile)
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$']
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples = samples, names = names)
     marge = samples.getMargeStats()
@@ -854,7 +856,7 @@ def plotchain(directory, chainfile, idx_z, params):
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
     fig = corner.corner(
-        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi'])
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$'])
     fig.savefig(figname + ".pdf")
     plt.close('all')
 
@@ -871,7 +873,7 @@ def plotchain_noksi(directory, chainfile, idx_z, iterations, burn):
 
 def plotdist(directory, chainfile, idx_z, iterations, burn, params):
     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$']
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples=samples, names=names,
