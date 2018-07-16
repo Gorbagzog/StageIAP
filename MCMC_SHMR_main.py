@@ -576,37 +576,37 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     print("std = " + str(std))
     print("iterations = " + str(iterations))
     print("burn = " + str(burn))
-    # start_time = time.time()
-    # sampler.run_mcmc(p0, iterations)
-    # elapsed_time = time.time() - start_time
-    # print('Time elapsed: ' + str(elapsed_time))
-    # print('Acceptance fraction:')
-    # print(sampler.acceptance_fraction)
+    start_time = time.time()
+    sampler.run_mcmc(p0, iterations)
+    elapsed_time = time.time() - start_time
+    print('Time elapsed: ' + str(elapsed_time))
+    print('Acceptance fraction:')
+    print(sampler.acceptance_fraction)
 
     # We'll track how the average autocorrelation time estimate changes
-    index = 0
-    autocorr = np.empty(iterations)
-    # This will be useful to testing convergence∏
-    old_tau = np.inf
-    # Now we'll sample for up to iterations steps
-    for sample in sampler.sample(p0, iterations=iterations, progress=True):
-        # Only check convergence every 100 steps
-        if sampler.iteration % 100:
-            continue
-        # Compute the autocorrelation time so far
-        # Using tol=0 means that we'll always get an estimate even
-        # if it isn't trustworthy
-        tau = sampler.get_autocorr_time(tol=0)
-        autocorr[index] = np.mean(tau)
-        index += 1
-        # Check convergence
-        converged = np.all(tau * 100 < sampler.iteration)
-        converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
-        if converged:
-            break
-        old_tau = tau
-    print('Autocorrelation time:')
-    print(sampler.get_autocorr_time(tol=0, discard=burn))
+    # index = 0
+    # autocorr = np.empty(iterations)
+    # # This will be useful to testing convergence∏
+    # old_tau = np.inf
+    # # Now we'll sample for up to iterations steps
+    # for sample in sampler.sample(p0, iterations=iterations, progress=True):
+    #     # Only check convergence every 100 steps
+    #     if sampler.iteration % 100:
+    #         continue
+    #     # Compute the autocorrelation time so far
+    #     # Using tol=0 means that we'll always get an estimate even
+    #     # if it isn't trustworthy
+    #     tau = sampler.get_autocorr_time(tol=0)
+    #     autocorr[index] = np.mean(tau)
+    #     index += 1
+    #     # Check convergence
+    #     converged = np.all(tau * 100 < sampler.iteration)
+    #     converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
+    #     if converged:
+    #         break
+    #     old_tau = tau
+    # print('Autocorrelation time:')
+    # print(sampler.get_autocorr_time(tol=0, discard=burn))
 
     plt.close('all')
     plotAutocorr(directory, idx_z, autocorr, index)
