@@ -33,6 +33,7 @@ import Plot_MhaloPeak
 
 def load_smf(params):
     """Load the SMF"""
+    print(params)
     smf_name = params['smf_name']
     if smf_name == 'cosmos' or smf_name == 'cosmos_schechter':
 
@@ -455,7 +456,7 @@ def loglike(theta, smf, hmf, idx_z, params, minbound, maxbound):
 """ Run MCMC """
 
 def get_platform():
-    """Returns the save path and the number of threads (=cors for parallelization)
+    """Returns the save path and the number of threads (=cores for parallelization)
     depending on the machin teh script is ran."""
     if platform.uname()[1] == 'imac-de-louis':
         print('Run locally')
@@ -468,6 +469,9 @@ def get_platform():
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', 20
     elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
         print('Run on local on my MBP')
+        return '../', 1
+    elif platform.uname()[1] == 'mic-llegrand.ias.u-psud.fr':
+        print('Run on local on my MBP on IAS network')
         return '../', 1
     else:
         print('Unknown machine, please update the save path')
@@ -499,8 +503,8 @@ def load_params(paramfile):
     # params['nthreads'] = config.getint('MCMC_run_parameters.nthreads')
     params['nwalkers'] = config.getint('MCMC_run_parameters.nwalkers')
     params['selected_redshifts'] = np.array(config.getlist('MCMC_run_parameters.redshifts')).astype('int')
+    params['progress'] = config.getbool('MCMC_run_parameters.progress')
     return params
-
 
 def runMCMC_allZ(paramfile):
     """Main function to run all MCMC on all zbins based on the param file"""
@@ -562,7 +566,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     backend = emcee.backends.HDFBackend(filename)
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
-
+    print('Nthreads: '+str(nthreads))
     sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
         args=[smf, hmf, idx_z, params, minbound, maxbound], threads=nthreads,
         backend=backend)
@@ -582,7 +586,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     # We'll track how the average autocorrelation time estimate changes
     index = 0
     autocorr = np.empty(iterations)
-    # This will be useful to testing convergence
+    # This will be useful to testing convergence∏
     old_tau = np.inf
     # Now we'll sample for up to iterations steps
     for sample in sampler.sample(p0, iterations=iterations, progress=True):
