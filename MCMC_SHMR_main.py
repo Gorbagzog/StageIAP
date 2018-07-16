@@ -32,6 +32,9 @@ from colossus.lss import mass_function
 import Plot_MhaloPeak
 from multiprocessing import Pool
 
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+
 def load_smf(params):
     """Load the SMF"""
     print(params)
