@@ -610,9 +610,11 @@ def runMCMC(directory, smf, hmf, idx_z, params):
             autocorr[index] = np.mean(tau)
             index += 1
             # Check convergence
-            converged = np.all(tau * 100 < sampler.iteration)
+            converged = np.all(tau * 50 < sampler.iteration)
             converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
             if converged:
+                print('Breaking MCMC because chain converged () at step ' + str(index))
+                print('More than 50 worst autocorr time iterations, and autocorr time varied by less than 1\%')
                 break
             old_tau = tau
         print('Autocorrelation time:')
