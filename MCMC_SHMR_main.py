@@ -656,10 +656,10 @@ def save_results(directory, chainfile, idx_z, iterations, burn, noksi, params):
         print('This may not be supported form 13th of July 2018')
         chain =chain[:,:,:5]
         names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
-        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][0], params['maxbound'][0]]))))
+        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
     else:
         names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
-        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][0], params['maxbound'][0]]))))
+        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples=samples, names=names, ranges=ranges)
     res = samples.getTable()
@@ -875,8 +875,8 @@ def plotdist(directory, chainfile, idx_z, iterations, burn, params):
     chain = np.load(chainfile)
     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples=samples, names=names,
-        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][0],
-        params['maxbound'][0]])))))
+        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z],
+        params['maxbound'][idx_z]])))))
     # chain.close()
     g = plots.getSubplotPlotter()
     g.triangle_plot(samples, filled=True)
