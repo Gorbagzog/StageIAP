@@ -491,7 +491,7 @@ def load_params(paramfile):
     params['subsampling_step'] = config.getint('Mass_functions.subsampling_step')
     params['hmf_name'] = config.getstr('Mass_functions.HMF')
     params['iterations'] = config.getint('MCMC_run_parameters.iterations')
-    params['burn'] = config.getint('MCMC_run_parameters.burn')
+    # params['burn'] = config.getint('MCMC_run_parameters.burn')
     params['minboundfile'] = config.getstr('Values.minbound')
     params['maxboundfile'] = config.getstr('Values.maxbound')
     params['minbound'] = np.loadtxt(params['minboundfile'], delimiter=',')
@@ -559,7 +559,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     # starting_point =  np.array([12.5, 10.8, 0.5, 0.5, 0.5, 0.15])
     # std =np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.01])
     # starting_point =  np.array([12.5, 11, 0.5, 0.7, 0.5, 0.15])
-    minbound, maxbound, starting_point, std, iterations, burn, nthreads, nwalkers, noksi = params['minbound'], params['maxbound'], params['starting_point'], params['std'], params['iterations'], params['burn'], params['nthreads'], params['nwalkers'], params['noksi']
+    minbound, maxbound, starting_point, std, iterations, nthreads, nwalkers, noksi = params['minbound'], params['maxbound'], params['starting_point'], params['std'], params['iterations'], params['nthreads'], params['nwalkers'], params['noksi']
     start_time = time.time()
     p0 = emcee.utils.sample_ball(starting_point[idx_z], std, size=nwalkers)
     ndim = len(starting_point[idx_z])
@@ -581,7 +581,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
         print("start = " + str(starting_point[idx_z]))
         print("std = " + str(std))
         print("iterations = " + str(iterations))
-        print("burn = " + str(burn))
+        # print("burn = " + str(burn))
         print(sampler.backend)
 
         # Old style run
@@ -617,8 +617,8 @@ def runMCMC(directory, smf, hmf, idx_z, params):
                 print('More than 50 worst autocorr time iterations, and autocorr time varied by less than 1\%')
                 break
             old_tau = tau
-        print('Autocorrelation time:')
-        print(sampler.get_autocorr_time(tol=0, discard=burn))
+        # print('Autocorrelation time:')
+        # print(sampler.get_autocorr_time(tol=0, discard=burn))
 
         plt.close('all')
         plotAutocorr(directory, idx_z, autocorr, index)
