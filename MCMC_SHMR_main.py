@@ -531,6 +531,9 @@ def runMCMC_allZ(paramfile):
     copyfile(params['minboundfile'], directory + '/' + params['minboundfile'])
     copyfile(params['minboundfile'], directory + '/' + params['minboundfile'])
     print(params['selected_redshifts'])
+    # Make the file for autocorr, burn in length and thin length
+    with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
+        myfile.write("# Mean autocorrelation, Burn in length,  Thin length \n")
     # run all MCMC for all zbins
     # for idx_z in range(params['numzbin']):
     for idx_z in params['selected_redshifts']:
@@ -540,7 +543,7 @@ def runMCMC_allZ(paramfile):
         print('Max bound: ' + str(params['maxbound'][idx_z]))
         runMCMC(directory, smf, hmf, idx_z, params)
     # Plot all SHMR on one graph
-    plotSHMR_delta(directory, params['iterations'], params['burn'], params, load=False, selected_redshifts = params['selected_redshifts'])
+    plotSHMR_delta(directory, params['iterations'], params, load=False, selected_redshifts = params['selected_redshifts'])
     # Plot the MhaloPeak graph
     plt.clf()
     plt.figure(figsize=(10, 5))
@@ -564,10 +567,11 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     # Set up the backend
     # Don't forget to clear it in case the file already exists
     filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
+    # filename = "tutorial.h5"
     backend = emcee.backends.HDFBackend(filename)
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
-    print('Nthreads: '+str(nthreads))
+    # print('Nthreads: '+str(nthreads))
     with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
             args=[smf, hmf, idx_z, params, minbound, maxbound], pool=pool,
@@ -578,12 +582,16 @@ def runMCMC(directory, smf, hmf, idx_z, params):
         print("std = " + str(std))
         print("iterations = " + str(iterations))
         print("burn = " + str(burn))
-        start_time = time.time()
-        sampler.run_mcmc(p0, iterations)
-        elapsed_time = time.time() - start_time
-        print('Time elapsed: ' + str(elapsed_time))
-        print('Acceptance fraction:')
-        print(sampler.acceptance_fraction)
+        print(sampler.backend)
+
+        # Old style run
+        # start_time = time.time()
+        # sampler.run_mcmc(p0, iterations)
+        # elapsed_time = time.time() - start_time
+        # print('Time elapsed: ' + str(elapsed_time))
+        # print('Acceptance fraction:')
+        # print(sampler.acceptance_fraction)
+
 
         # We'll track how the average autocorrelation time estimate changes
         index = 0
@@ -613,31 +621,42 @@ def runMCMC(directory, smf, hmf, idx_z, params):
         plt.close('all')
         plotAutocorr(directory, idx_z, autocorr, index)
 
-        # Save chains and loglike of chains
-        chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        np.save(chainfile, sampler.chain)
-        np.save(savenameln, sampler.lnprobability)
-        # test convergence
-        # test_convergence(directory, idx_z, iterations, burn)
+        # # Save chains and loglike of chains ### Now already saved with the backend
+        # chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        # savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        # np.save(chainfile, sampler.chain)
+        # np.save(savenameln, sampler.lnprobability)
+        # # test convergence
+        # # test_convergence(directory, idx_z, iterations, burn)
+
+        # Clean samples
+        tau = sampler.get_autocorr_time(tol=0)
+        burnin = int(2*np.max(tau))
+        print("Burnin "+str(burnin))
+        thin = int(0.5*np.min(tau))
+        with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
+            myfile.write(str(np.mean(tau))+ "  " + str(burnin) + "  " + str(thin) + "\n")
+
+        samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
+
         # Plot all relevant figures
         plt.close('all')
-        plotchain(directory, chainfile, idx_z, params)
+        plotchain(directory, samples, idx_z, params)
         plt.close('all')
-        plotdist(directory, chainfile, idx_z, iterations, burn, params)
+        plotdist(directory, samples, idx_z, iterations, params)
         plt.close('all')
-        plotSMF(directory, smf, hmf, idx_z, params, iterations, burn)
+        plotSMF(directory, samples, smf, hmf, idx_z, params, iterations)
         plt.close('all')
-        plotSMHM(directory, smf, idx_z, iterations, burn)
+        plotSMHM(directory, samples, smf, idx_z, iterations)
         plt.close('all')
-        plotSHMR(directory, smf, idx_z, iterations, burn)
+        plotSHMR(directory, samples, smf, idx_z, iterations)
         plt.close('all')
-        plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params)
+        plot_Mhpeak(directory, samples, idx_z, iterations, params)
         plt.close('all')
-        save_results(directory, chainfile, idx_z, iterations, burn, params['noksi'], params)
+        save_results(directory, samples, idx_z, iterations, params['noksi'], params)
 
-        # Reset before new MCMC
-        sampler.reset()
+        # # Reset before new MCMC
+        # sampler.reset()
 
 
 def plotAutocorr(directory, idx_z, autocorr, index):
@@ -652,38 +671,37 @@ def plotAutocorr(directory, idx_z, autocorr, index):
     plt.savefig(directory+'/Plots/TestConvergence_'+str(idx_z)+'.pdf')
 
 
-def save_results(directory, chainfile, idx_z, iterations, burn, noksi, params):
-    chain = np.load(chainfile)
-    if noksi:
-        print('This may not be supported form 13th of July 2018')
-        chain =chain[:,:,:5]
-        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
-        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
-    else:
-        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$']
-        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+def save_results(directory, samples, idx_z, iterations, noksi, params):
+    # chain = np.load(chainfile)
+    # if noksi:
+    #     print('This may not be supported form 13th of July 2018')
+    #     chain =chain[:,:,:5]
+    #     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$']
+    #     ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
+    # else:
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
+    ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples=samples, names=names, ranges=ranges)
     res = samples.getTable()
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
-    del chain
 
 
-def getParam(directory, chainfile, idx_z, iterations, burn):
-    """Get paramInfo objects giving results of the MCMC"""
-    chain = np.load(chainfile)
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$']
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    samples = MCSamples(samples = samples, names = names)
-    marge = samples.getMargeStats()
-    marge.parWithName('$M_{1}$').mean
-    marge.parWithName('$M_{1}$').err
-    marge.parWithName('$M_{1}$').limits[0].lower # 1 sigma = 68% lower limit
+# def getParam(directory, chainfile, idx_z, iterations, burn):
+#     """Get paramInfo objects giving results of the MCMC"""
+#     chain = np.load(chainfile)
+#     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
+#     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#     samples = MCSamples(samples = samples, names = names)
+#     marge = samples.getMargeStats()
+#     marge.parWithName('$M_{1}$').mean
+#     marge.parWithName('$M_{1}$').err
+#     marge.parWithName('$M_{1}$').limits[0].lower # 1 sigma = 68% lower limit
 
 
-def MhPeak(chainfile, idx_z, iterations, burn):
-    chain = np.load(chainfile)
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+def MhPeak(samples, idx_z, iterations):
+    # chain = np.load(chainfile)
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     chainsize = np.shape(samples)[0]
     logMs = np.linspace(8, 12, num=300)
     Mhalopeak = np.zeros(chainsize)
@@ -694,51 +712,51 @@ def MhPeak(chainfile, idx_z, iterations, burn):
     return Mhalopeak
 
 
-def allMhPeak(directory, iterations, burn):
-    # numzbin = 10
-    mhpeakall = np.zeros(params['numzbin'])
-    mhpeakallstd = np.zeros(params['numzbin'])
-    for idx_z in range(params['numzbin']):
-        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
-        mhpeakall[idx_z] = np.median(mhpeak)
-        mhpeakallstd[idx_z] = np.std(mhpeak)
-    return mhpeakall, mhpeakallstd
+# def allMhPeak(directory, iterations, burn):
+#     # numzbin = 10
+#     mhpeakall = np.zeros(params['numzbin'])
+#     mhpeakallstd = np.zeros(params['numzbin'])
+#     for idx_z in range(params['numzbin']):
+#         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#         mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
+#         mhpeakall[idx_z] = np.median(mhpeak)
+#         mhpeakallstd[idx_z] = np.std(mhpeak)
+#     return mhpeakall, mhpeakallstd
 
 
-def gelman_rubin(chain):
-    # chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    # chain = np.load(chainfile)
-    ssq = np.var(chain, axis=1, ddof=1)
-    W = np.mean(ssq, axis=0)
-    θb = np.mean(chain, axis=1)
-    θbb = np.mean(θb, axis=0)
-    m = chain.shape[0]
-    n = chain.shape[1]
-    B = n / (m - 1) * np.sum((θbb - θb)**2, axis=0)
-    var_θ = (n - 1) / n * W + 1 / n * B
-    R = np.sqrt(var_θ / W)
-    return R
+# def gelman_rubin(chain):
+#     # chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     # chain = np.load(chainfile)
+#     ssq = np.var(chain, axis=1, ddof=1)
+#     W = np.mean(ssq, axis=0)
+#     θb = np.mean(chain, axis=1)
+#     θbb = np.mean(θb, axis=0)
+#     m = chain.shape[0]
+#     n = chain.shape[1]
+#     B = n / (m - 1) * np.sum((θbb - θb)**2, axis=0)
+#     var_θ = (n - 1) / n * W + 1 / n * B
+#     R = np.sqrt(var_θ / W)
+#     return R
 
 
-def test_convergence(directory, idx_z, iterations, burn):
-    """Test the convergence of the chains"""
-    # ndim_arr = [6]
-    chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    chain = np.load(chainfile)
-    print("ndim\tμ\t\tσ\tGelman-Rubin")
-    print("============================================")
-    ndim = 6
-    print("{0:3d}\t{1: 5.4f}\t\t{2:5.4f}\t\t{3:3.2f}".format(
-                ndim,
-                chain.reshape(-1, chain.shape[-1]).mean(axis=0)[0],
-                chain.reshape(-1, chain.shape[-1]).std(axis=0)[0],
-                gelman_rubin(chain)[0]))
-    # names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
-    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    # samples = MCSamples(samples = samples, names = names)
-    # R = gelman_rubin(chain)
-    # print(R)
+# def test_convergence(directory, idx_z, iterations, burn):
+#     """Test the convergence of the chains"""
+#     # ndim_arr = [6]
+#     chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     chain = np.load(chainfile)
+#     print("ndim\tμ\t\tσ\tGelman-Rubin")
+#     print("============================================")
+#     ndim = 6
+#     print("{0:3d}\t{1: 5.4f}\t\t{2:5.4f}\t\t{3:3.2f}".format(
+#                 ndim,
+#                 chain.reshape(-1, chain.shape[-1]).mean(axis=0)[0],
+#                 chain.reshape(-1, chain.shape[-1]).std(axis=0)[0],
+#                 gelman_rubin(chain)[0]))
+#     # names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', 'ksi']
+#     # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#     # samples = MCSamples(samples = samples, names = names)
+#     # R = gelman_rubin(chain)
+#     # print(R)
 
 
 # def delete_non_converged_chains(directory, iterations, burn, idx_z, selec_chain):
@@ -766,12 +784,12 @@ def test_convergence(directory, idx_z, iterations, burn):
 """Plots"""
 
 
-def plotSMF(directory, smf, hmf, idx_z, params, iterations, burn):
+def plotSMF(directory, samples, smf, hmf, idx_z, params, iterations):
     # load_smf()
     # load_hmf()
-    chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    chain = np.load(chainfile)
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    # chain = np.load(chainfile)
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
     # select = np.where(smf[idx_z][:, 1] > -40)[0]
     if params['do_sm_cut']:
@@ -797,12 +815,12 @@ def plotSMF(directory, smf, hmf, idx_z, params, iterations, burn):
     plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSMHM(directory, smf, idx_z, iterations, burn):
+def plotSMHM(directory, samples, smf, idx_z, iterations):
     # load_smf()
     # load_hmf()
-    chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    chain =  np.load(chainfile)
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    # chain =  np.load(chainfile)
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
     #logMs = np.linspace(9, 13, num=200)
     select = np.where(smf[idx_z][:, 1] > -40)[0]
@@ -816,12 +834,12 @@ def plotSMHM(directory, smf, idx_z, iterations, burn):
     plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSHMR(directory, smf, idx_z, iterations, burn):
+def plotSHMR(directory, samples, smf, idx_z, iterations):
     # load_smf()
     # load_hmf()
-    chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    chain =  np.load(chainfile)
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+    # chainfile =  directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+    # chain =  np.load(chainfile)
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
     #logMs = np.linspace(9, 13, num=200)
     select = np.where(smf[idx_z][:, 1] > -40)[0]
@@ -847,53 +865,53 @@ def plotSHMR(directory, smf, idx_z, iterations, burn):
 #     plt.savefig('../MCMC/Plots/HMvsSM_noksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotchain(directory, chainfile, idx_z, params):
-    iterations, burn, noksi = params['iterations'], params['burn'],  params['noksi']
-    figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-    chain = np.load(chainfile)
-    if noksi:
-        chain = chain[:,:,:5]
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+def plotchain(directory, samples, idx_z, params):
+    iterations, noksi = params['iterations'],  params['noksi']
+    figname = directory + "/Plots/Triangle_z" + str(idx_z) + "_niter=" + str(iterations)
+    # chain = np.load(chainfile)
+    # if noksi:
+    #     chain = chain[:,:,:5]
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     # chain.close()
     fig = corner.corner(
-        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$'])
+        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$'])
     fig.savefig(figname + ".pdf")
     plt.close('all')
 
-def plotchain_noksi(directory, chainfile, idx_z, iterations, burn):
-    figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-    chain = np.load(chainfile)
-    chain = chain[:,:,:5]
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    # chain.close()
-    fig = corner.corner(
-        samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$'])
-    fig.savefig(figname + ".pdf")
-    plt.close('all')
+# def plotchain_noksi(directory, chainfile, idx_z, iterations, burn):
+#     figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
+#     chain = np.load(chainfile)
+#     chain = chain[:,:,:5]
+#     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#     # chain.close()
+#     fig = corner.corner(
+#         samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$'])
+#     fig.savefig(figname + ".pdf")
+#     plt.close('all')
 
-def plotdist(directory, chainfile, idx_z, iterations, burn, params):
-    figname = directory + "/Plots/Ksi_z" + str(idx_z) + "_niter=" + str(iterations) + "_burn=" + str(burn)
-    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', '$\xi$']
-    chain = np.load(chainfile)
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+def plotdist(directory, samples, idx_z, iterations, params):
+    figname = directory + "/Plots/GetDist_z" + str(idx_z) + "_niter=" + str(iterations)
+    names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
+    # chain = np.load(chainfile)
+    # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
     samples = MCSamples(samples=samples, names=names,
         ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z],
         params['maxbound'][idx_z]])))))
     # chain.close()
     g = plots.getSubplotPlotter()
     g.triangle_plot(samples, filled=True)
-    g.export(figname + '_gd.pdf' )
+    g.export(figname + '.pdf' )
     plt.close('all')
 
 
-def plotLnprob(idx_z, iterations, nwalker=20):
-    lnprob = np.load("../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    for k in range(nwalker):
-        plt.plot(lnprob[k, :])
+# def plotLnprob(idx_z, iterations, nwalker=20):
+#     lnprob = np.load("../MCMC/Chain/LnProb_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+#     for k in range(nwalker):
+#         plt.plot(lnprob[k, :])
 
 
-def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params):
-    mhpeak = MhPeak(chainfile, idx_z, iterations, burn)
+def plot_Mhpeak(directory, samples, idx_z, iterations, params):
+    mhpeak = MhPeak(samples, idx_z, iterations)
     # avg_mhpeak = np.mean(mhpeak)
     med_mhpeak = np.median(mhpeak)
     std_mhpeak = np.std(mhpeak)
@@ -906,288 +924,288 @@ def plot_Mhpeak(directory, chainfile, idx_z, iterations, burn, params):
     plt.savefig(directory+'/Plots/MhPeak_z' + str(idx_z) + '.pdf')
 
 
-def plotSigmaHMvsSM(directory, idx_z, iterations, burn):
-    # load_smf()
-    # load_hmf()
-    chainfile = directory + "/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    chain = np.load(chainfile)
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    # chain.close()
-    numpoints = 100
-    logMs = np.linspace(9, 12, num=numpoints)
-    logmhalo = np.zeros([samples.shape[0], numpoints])
-    for idx_simu in range(samples.shape[0]):
-        M1, Ms0, beta, delta, gamma = samples[idx_simu]
-        logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
-    av_logMh = np.average(logmhalo, axis=0)
-    conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
-    conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
-    # for i in range(numpoints):
-    #     av_logMh[i] = np.average(logmhalo[:, i])
-    # plt.close('all')
-    # plt.figure()
-    # plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
-    # plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
-    # plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
-    # plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
-    # plt.legend()
-    # plt.tight_layout()
-    # plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
-    #     str(iterations) + "_burn=" + str(burn) + '.pdf')
-    return av_logMh, conf_min_logMh, conf_max_logMh
+# def plotSigmaHMvsSM(directory, idx_z, iterations, burn):
+#     # load_smf()
+#     # load_hmf()
+#     chainfile = directory + "/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     chain = np.load(chainfile)
+#     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#     # chain.close()
+#     numpoints = 100
+#     logMs = np.linspace(9, 12, num=numpoints)
+#     logmhalo = np.zeros([samples.shape[0], numpoints])
+#     for idx_simu in range(samples.shape[0]):
+#         M1, Ms0, beta, delta, gamma = samples[idx_simu]
+#         logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+#     av_logMh = np.average(logmhalo, axis=0)
+#     conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+#     conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
+#     # for i in range(numpoints):
+#     #     av_logMh[i] = np.average(logmhalo[:, i])
+#     # plt.close('all')
+#     # plt.figure()
+#     # plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
+#     # plt.plot(logMs, av_logMh, label=str(redshifts[idx_z])+'<z<'+str(redshifts[idx_z+1]))
+#     # plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+#     # plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
+#     # plt.legend()
+#     # plt.tight_layout()
+#     # plt.savefig('../MCMC/Plots/SigmaHMvsSM' + str(idx_z) + "_niter=" +
+#     #     str(iterations) + "_burn=" + str(burn) + '.pdf')
+#     return av_logMh, conf_min_logMh, conf_max_logMh
 
 
-def plotAllSigmaHMvsSM(directory, iterations, burn):
-    # load_smf()
-    # load_hmf()
-    params['numzbin'] =10
-    plt.close('all')
-    plt.figure()
-    numpoints = 100
-    logMs = np.linspace(9, 12, num=numpoints)
-    for idx_z in range(params['numzbin']):
-        chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        chain = np.load(chainfile)
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        # chain.close()
-        logmhalo = np.zeros([samples.shape[0], numpoints])
-        for idx_simu in range(samples.shape[0]):
-            M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
-            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        av_logMh = np.average(logmhalo, axis=0)
-        conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
-        conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
-        # for i in range(numpoints):
-        #     av_logMh[i] = np.average(logmhalo[:, i])
-        plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
-        plt.plot(logMs, av_logMh, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
-    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    # plt.savefig('../MCMC/Plots/SigmaHMvsSM_Allz_niter=' +
-    #     str(iterations) + "_burn=" + str(burn) + '.pdf')
+# def plotAllSigmaHMvsSM(directory, iterations, burn):
+#     # load_smf()
+#     # load_hmf()
+#     params['numzbin'] =10
+#     plt.close('all')
+#     plt.figure()
+#     numpoints = 100
+#     logMs = np.linspace(9, 12, num=numpoints)
+#     for idx_z in range(params['numzbin']):
+#         chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#         chain = np.load(chainfile)
+#         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#         # chain.close()
+#         logmhalo = np.zeros([samples.shape[0], numpoints])
+#         for idx_simu in range(samples.shape[0]):
+#             M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
+#             logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+#         av_logMh = np.average(logmhalo, axis=0)
+#         conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+#         conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
+#         # for i in range(numpoints):
+#         #     av_logMh[i] = np.average(logmhalo[:, i])
+#         plt.fill_between(logMs, conf_min_logMh, conf_max_logMh, alpha=0.3)
+#         plt.plot(logMs, av_logMh, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+#     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+#     plt.ylabel('Log($M_{h}/M_{\odot}$)', size=20)
+#     plt.legend()
+#     plt.tight_layout()
+#     # plt.savefig('../MCMC/Plots/SigmaHMvsSM_Allz_niter=' +
+#     #     str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 
-def temp():
-    # Plot Ms/Mh en ayant pris le Mh average. tester après en prenant la moyenne de Ms/Mh pour un Ms donné
-    numpoints = 100
-    logMs = np.linspace(9, 12, num=numpoints)
-    for idx_z in range(10):
-        plt.plot(tot[idx_z][0], logMs-tot[idx_z][0], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
-        plt.fill_between(tot[idx_z][0], logMs - tot[idx_z][1], logMs-tot[idx_z][2], alpha=0.3)
-    plt.legend()
-    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+# def temp():
+#     # Plot Ms/Mh en ayant pris le Mh average. tester après en prenant la moyenne de Ms/Mh pour un Ms donné
+#     numpoints = 100
+#     logMs = np.linspace(9, 12, num=numpoints)
+#     for idx_z in range(10):
+#         plt.plot(tot[idx_z][0], logMs-tot[idx_z][0], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+#         plt.fill_between(tot[idx_z][0], logMs - tot[idx_z][1], logMs-tot[idx_z][2], alpha=0.3)
+#     plt.legend()
+#     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+#     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
 
 
-def plotSigmaSHMR(idx_z, iterations, burn):
-    # load_smf()
-    # load_hmf()
-    chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    chain = np.load(chainfile)
-    samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-    # chain.close()
-    numpoints = 100
-    logMs = np.linspace(9, 12, num=numpoints)
-    logmhalo = np.zeros([samples.shape[0], numpoints])
-    for idx_simu in range(samples.shape[0]):
-        M1, Ms0, beta, delta, gamma = samples[idx_simu]
-        logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
-    av_SHMR = np.average(logMs - logmhalo, axis=0)
-    conf_min_SHMR = np.percentile(logMs - logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
-    conf_max_SHMR = np.percentile(logMs - logmhalo, 84, axis=0)
-    # for i in range(numpoints):
-    #     av_logMh[i] = np.average(logmhalo[:, i])
-    plt.close('all')
-    plt.figure()
-    plt.fill_between(logMs, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
-    plt.plot(logMs, av_SHMR, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
-    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    # plt.savefig('../MCMC/Plots/SigmaSHMRvsSM' + str(idx_z) + "_niter=" +
-        # str(iterations) + "_burn=" + str(burn) + '.pdf')
-    return av_logMh, conf_min_logMh, conf_max_logMh
+# def plotSigmaSHMR(idx_z, iterations, burn):
+#     # load_smf()
+#     # load_hmf()
+#     chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#     chain = np.load(chainfile)
+#     samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#     # chain.close()
+#     numpoints = 100
+#     logMs = np.linspace(9, 12, num=numpoints)
+#     logmhalo = np.zeros([samples.shape[0], numpoints])
+#     for idx_simu in range(samples.shape[0]):
+#         M1, Ms0, beta, delta, gamma = samples[idx_simu]
+#         logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+#     av_SHMR = np.average(logMs - logmhalo, axis=0)
+#     conf_min_SHMR = np.percentile(logMs - logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+#     conf_max_SHMR = np.percentile(logMs - logmhalo, 84, axis=0)
+#     # for i in range(numpoints):
+#     #     av_logMh[i] = np.average(logmhalo[:, i])
+#     plt.close('all')
+#     plt.figure()
+#     plt.fill_between(logMs, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
+#     plt.plot(logMs, av_SHMR, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+#     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+#     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+#     plt.legend()
+#     plt.tight_layout()
+#     # plt.savefig('../MCMC/Plots/SigmaSHMRvsSM' + str(idx_z) + "_niter=" +
+#         # str(iterations) + "_burn=" + str(burn) + '.pdf')
+#     return av_logMh, conf_min_logMh, conf_max_logMh
 
 
-def plotAllSigmaSHMRvsSM(iterations, burn):
-    # load_smf()
-    # load_hmf()
-    numpoints = 100
-    logMs = np.linspace(9, 12, num=numpoints)
-    plt.close('all')
-    plt.figure()
-    for idx_z in range(params['numzbin']):
-        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        chain = np.load(chainfile)
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        # chain.close()
-        logmhalo = np.zeros([samples.shape[0], numpoints])
-        for idx_simu in range(samples.shape[0]):
-            M1, Ms0, beta, delta, gamma = samples[idx_simu]
-            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        av_logMh = np.average(logmhalo, axis=0)
-        av_SHMR = np.average(logMs - logmhalo, axis=0)
-        conf_min_SHMR = np.percentile(logMs - logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
-        conf_max_SHMR = np.percentile(logMs - logmhalo, 84, axis=0)
-    # for i in range(numpoints):
-    #     av_logMh[i] = np.average(logmhalo[:, i])
-        plt.fill_between(av_logMh, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
-        plt.plot(av_logMh, av_SHMR, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
-    plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('../MCMC/Plots/SigmaSHMRvsSM_All_niter=' +
-        str(iterations) + "_burn=" + str(burn) + '.pdf')
+# def plotAllSigmaSHMRvsSM(iterations, burn):
+#     # load_smf()
+#     # load_hmf()
+#     numpoints = 100
+#     logMs = np.linspace(9, 12, num=numpoints)
+#     plt.close('all')
+#     plt.figure()
+#     for idx_z in range(params['numzbin']):
+#         chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#         chain = np.load(chainfile)
+#         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#         # chain.close()
+#         logmhalo = np.zeros([samples.shape[0], numpoints])
+#         for idx_simu in range(samples.shape[0]):
+#             M1, Ms0, beta, delta, gamma = samples[idx_simu]
+#             logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+#         av_logMh = np.average(logmhalo, axis=0)
+#         av_SHMR = np.average(logMs - logmhalo, axis=0)
+#         conf_min_SHMR = np.percentile(logMs - logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+#         conf_max_SHMR = np.percentile(logMs - logmhalo, 84, axis=0)
+#     # for i in range(numpoints):
+#     #     av_logMh[i] = np.average(logmhalo[:, i])
+#         plt.fill_between(av_logMh, conf_min_SHMR, conf_max_SHMR, alpha=0.3)
+#         plt.plot(av_logMh, av_SHMR, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+#     plt.xlabel('Log($M_{*}/M_{\odot}$)', size=20)
+#     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+#     plt.legend()
+#     plt.tight_layout()
+#     plt.savefig('../MCMC/Plots/SigmaSHMRvsSM_All_niter=' +
+#         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 
-def plotFakeAllSigmaSHMRvsMH(iterations, burn):
-    # load_smf()
-    # load_hmf()
-    plt.close('all')
-    plt.figure()
-    numpoints = 100
-    logMs = np.linspace(9, 12, num=numpoints)
-    for idx_z in range(params['numzbin']):
-        chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        chain = np.load(chainfile)
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        # chain.close()
-        logmhalo = np.zeros([samples.shape[0], numpoints])
-        for idx_simu in range(samples.shape[0]):
-            M1, Ms0, beta, delta, gamma = samples[idx_simu]
-            logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        av_logMh = np.average(logmhalo, axis=0)
-        conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
-        conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
-        # for i in range(numpoints):
-        #     av_logMh[i] = np.average(logmhalo[:, i])
-        plt.fill_between(av_logMh, logMs - conf_min_logMh, logMs - conf_max_logMh, alpha=0.3)
-        plt.plot(av_logMh, logMs - av_logMh, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
-    # plt.plot([10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
-    #     [-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010], label='Harikane z=4')
-    # plt.plot([10.975, 11.292, 12.041]+np.log10(67/70) , [-2.36, -2.206, -2.132], label='Hariakne z=6')
-    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('../MCMC/Plots/SigmaFAKE_SHRMvsHM_Allz_niter=' +
-        str(iterations) + "_burn=" + str(burn) + '.pdf')
+# def plotFakeAllSigmaSHMRvsMH(iterations, burn):
+#     # load_smf()
+#     # load_hmf()
+#     plt.close('all')
+#     plt.figure()
+#     numpoints = 100
+#     logMs = np.linspace(9, 12, num=numpoints)
+#     for idx_z in range(params['numzbin']):
+#         chainfile = "../MCMC/Chain/Chain_noksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#         chain = np.load(chainfile)
+#         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#         # chain.close()
+#         logmhalo = np.zeros([samples.shape[0], numpoints])
+#         for idx_simu in range(samples.shape[0]):
+#             M1, Ms0, beta, delta, gamma = samples[idx_simu]
+#             logmhalo[idx_simu, :] = logMh(logMs, M1, Ms0, beta, delta, gamma)
+#         av_logMh = np.average(logmhalo, axis=0)
+#         conf_min_logMh = np.percentile(logmhalo, 16, axis=0)  # 16th percentile = median - 1sigma (68% confidence interval)
+#         conf_max_logMh = np.percentile(logmhalo, 84, axis=0)
+#         # for i in range(numpoints):
+#         #     av_logMh[i] = np.average(logmhalo[:, i])
+#         plt.fill_between(av_logMh, logMs - conf_min_logMh, logMs - conf_max_logMh, alpha=0.3)
+#         plt.plot(av_logMh, logMs - av_logMh, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+#     # plt.plot([10.519, 10.693, 10.968, 11.231, 11.337, 11.691, 11.940, 12.219, 12.610],
+#     #     [-3.232, -3.072, -2.828, -2.629, -2.488, -2.306, -2.172, -2.057, -2.010], label='Harikane z=4')
+#     # plt.plot([10.975, 11.292, 12.041]+np.log10(67/70) , [-2.36, -2.206, -2.132], label='Hariakne z=6')
+#     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+#     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+#     plt.legend()
+#     plt.tight_layout()
+#     plt.savefig('../MCMC/Plots/SigmaFAKE_SHRMvsHM_Allz_niter=' +
+#         str(iterations) + "_burn=" + str(burn) + '.pdf')
 
 
-def plotAllSHMRvsSM(directory, iterations, burn):
-    # load_smf('cosmos')
-    # load_hmf('bolshoi_tot')
-    # plt.close('all')
-    plt.figure()
-    numpoints = 100
-    # Use the interploation formula of Mlim(z) in Davidzon et al. 2017
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
-    print(Ms_min)
-    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-    Ms_max = 11.8
-    nselect = 100000  # Number of samples o randomly select in the chains
-    logMhbins = np.linspace(11.5, 14, num=numpoints)
-    for idx_z in range(params['numzbin']):
-        # idx_z += 9
-        logMs = np.linspace(9, 11.8, num=numpoints)
-        avg_MSonMH = np.zeros(numpoints-1)
-        confminus_MSonMH = np.zeros(numpoints-1)
-        confplus_MSonMH = np.zeros(numpoints-1)
-        chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-        chain = np.load(chainfile)
-        samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-        #print(len(samples))
-        samples = samples[np.random.randint(len(samples), size=nselect)]
-        del chain
-        print('Chain loaded for idx_z = '+str(idx_z))
-        nsimu = samples.shape[0]
-        print(nsimu)
-        logmhalo = np.zeros([nsimu, numpoints])
-        for idx_simu in range(nsimu):
-            # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
-            logmhalo[idx_simu, :] = logMh(logMs, *samples[idx_simu][:-1])
-            if idx_simu % (nsimu/10) == 0:
-                print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
-        print('    All logmhalo computed')
-        print('Computing bins of halo mass..')
-        for idx_bin in range(numpoints-1):
-            idx_MhinBin = np.where(
-                            np.logical_and(
-                                logmhalo >= logMhbins[idx_bin],
-                                logmhalo < logMhbins[idx_bin+1]
-                            )
-            )  # Select points that have a halo mass inside the bin
-            smhm_tmp = logMs[idx_MhinBin[1]] - logmhalo[idx_MhinBin]
-            avg_MSonMH[idx_bin] = np.average(smhm_tmp)
-            confminus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
-            confplus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
-        print('Bins computed')
-        np.save(directory + '/Plots/avg_MSonMH' + str(idx_z) + '.npy', avg_MSonMH)
-        np.save(directory + '/Plots/confminus_MSonMH' + str(idx_z) + '.npy', confminus_MSonMH)
-        np.save(directory + '/Plots/confplus_MSonMH' + str(idx_z) + '.npy', confplus_MSonMH)
-        mh_plotmax = np.min(logmhalo[:, -1])
-        print(mh_plotmax)
-        idx_mhplotmax = np.argmin(np.abs(logMhbins -  mh_plotmax))
-        np.save(directory + '/Plots/idx_mhplotmax' + str(idx_z) + '.npy', idx_mhplotmax)
-        print(idx_mhplotmax)
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
-            label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
-        plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            'b--')
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            11.8 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            'b--')
-        print('Ploted redshift bin ' + str(idx_z))
-        del logmhalo
-        del idx_MhinBin
-        del samples
-        plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-        plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(directory+'/Plots/Test' +
-        str(iterations) + "_burn=" + str(burn) + 'z' + str(idx_z) + '.pdf')
+# def plotAllSHMRvsSM(directory, iterations, burn):
+#     # load_smf('cosmos')
+#     # load_hmf('bolshoi_tot')
+#     # plt.close('all')
+#     plt.figure()
+#     numpoints = 100
+#     # Use the interploation formula of Mlim(z) in Davidzon et al. 2017
+#     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
+#     print(Ms_min)
+#     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
+#     Ms_max = 11.8
+#     nselect = 100000  # Number of samples o randomly select in the chains
+#     logMhbins = np.linspace(11.5, 14, num=numpoints)
+#     for idx_z in range(params['numzbin']):
+#         # idx_z += 9
+#         logMs = np.linspace(9, 11.8, num=numpoints)
+#         avg_MSonMH = np.zeros(numpoints-1)
+#         confminus_MSonMH = np.zeros(numpoints-1)
+#         confplus_MSonMH = np.zeros(numpoints-1)
+#         chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+#         chain = np.load(chainfile)
+#         samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+#         #print(len(samples))
+#         samples = samples[np.random.randint(len(samples), size=nselect)]
+#         del chain
+#         print('Chain loaded for idx_z = '+str(idx_z))
+#         nsimu = samples.shape[0]
+#         print(nsimu)
+#         logmhalo = np.zeros([nsimu, numpoints])
+#         for idx_simu in range(nsimu):
+#             # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
+#             logmhalo[idx_simu, :] = logMh(logMs, *samples[idx_simu][:-1])
+#             if idx_simu % (nsimu/10) == 0:
+#                 print('    Computing SHMR in chains at '+str(idx_simu / nsimu * 100) + '%')
+#         print('    All logmhalo computed')
+#         print('Computing bins of halo mass..')
+#         for idx_bin in range(numpoints-1):
+#             idx_MhinBin = np.where(
+#                             np.logical_and(
+#                                 logmhalo >= logMhbins[idx_bin],
+#                                 logmhalo < logMhbins[idx_bin+1]
+#                             )
+#             )  # Select points that have a halo mass inside the bin
+#             smhm_tmp = logMs[idx_MhinBin[1]] - logmhalo[idx_MhinBin]
+#             avg_MSonMH[idx_bin] = np.average(smhm_tmp)
+#             confminus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 16, axis=0)
+#             confplus_MSonMH[idx_bin] = np.percentile(smhm_tmp, 84, axis=0)
+#         print('Bins computed')
+#         np.save(directory + '/Plots/avg_MSonMH' + str(idx_z) + '.npy', avg_MSonMH)
+#         np.save(directory + '/Plots/confminus_MSonMH' + str(idx_z) + '.npy', confminus_MSonMH)
+#         np.save(directory + '/Plots/confplus_MSonMH' + str(idx_z) + '.npy', confplus_MSonMH)
+#         mh_plotmax = np.min(logmhalo[:, -1])
+#         print(mh_plotmax)
+#         idx_mhplotmax = np.argmin(np.abs(logMhbins -  mh_plotmax))
+#         np.save(directory + '/Plots/idx_mhplotmax' + str(idx_z) + '.npy', idx_mhplotmax)
+#         print(idx_mhplotmax)
+#         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
+#             label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+#         plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#             confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
+#         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#             9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#             'b--')
+#         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#             11.8 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#             'b--')
+#         print('Ploted redshift bin ' + str(idx_z))
+#         del logmhalo
+#         del idx_MhinBin
+#         del samples
+#         plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+#         plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+#         plt.legend()
+#         plt.tight_layout()
+#         plt.savefig(directory+'/Plots/Test' +
+#         str(iterations) + "_burn=" + str(burn) + 'z' + str(idx_z) + '.pdf')
 
 
-def plotAllSHMRvsSM(directory):
-    """Load previously computed SHMR(HM) and plot them in one figure"""
-    params['numzbin'] = 10
-    numpoints = 100
-    avg_MSonMH = np.zeros(numpoints-1)
-    confminus_MSonMH = np.zeros(numpoints-1)
-    confplus_MSonMH = np.zeros(numpoints-1)
-    logMhbins = np.linspace(11.5, 14, num=numpoints)
-    plt.figure()
-    params['redshifts'] = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
-    for idx_z in range(params['numzbin']):
-        avg_MSonMH = np.load(directory + '/avg_MSonMH' + str(idx_z) + '.npy')
-        confminus_MSonMH = np.load(directory + '/confminus_MSonMH' + str(idx_z) + '.npy')
-        confplus_MSonMH = np.load(directory + '/confplus_MSonMH' + str(idx_z) + '.npy')
-        idx_mhplotmax = np.load(directory + '/idx_mhplotmax' + str(idx_z) + '.npy')
-        plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
-            label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
-        plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-            confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
-    # plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-    #     9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
-    #     color='black', linestyle=':')
-    # plt.plot((logMhbins[1:] + logMhbins[:-1])/2,
-    #     11.8 - (logMhbins[1:] + logMhbins[:-1])/2,
-    #     color='black', linestyle=':')
-    plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
-    plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
-    plt.legend()
-    plt.tight_layout()
+# def plotAllSHMRvsSM(directory):
+#     """Load previously computed SHMR(HM) and plot them in one figure"""
+#     params['numzbin'] = 10
+#     numpoints = 100
+#     avg_MSonMH = np.zeros(numpoints-1)
+#     confminus_MSonMH = np.zeros(numpoints-1)
+#     confplus_MSonMH = np.zeros(numpoints-1)
+#     logMhbins = np.linspace(11.5, 14, num=numpoints)
+#     plt.figure()
+#     params['redshifts'] = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+#     for idx_z in range(params['numzbin']):
+#         avg_MSonMH = np.load(directory + '/avg_MSonMH' + str(idx_z) + '.npy')
+#         confminus_MSonMH = np.load(directory + '/confminus_MSonMH' + str(idx_z) + '.npy')
+#         confplus_MSonMH = np.load(directory + '/confplus_MSonMH' + str(idx_z) + '.npy')
+#         idx_mhplotmax = np.load(directory + '/idx_mhplotmax' + str(idx_z) + '.npy')
+#         plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2, avg_MSonMH[:idx_mhplotmax-1],
+#             label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+#         plt.fill_between((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#             confminus_MSonMH[:idx_mhplotmax-1], confplus_MSonMH[:idx_mhplotmax-1], alpha=0.3)
+#     # plt.plot((logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#     #     9 - (logMhbins[1:idx_mhplotmax] + logMhbins[:idx_mhplotmax-1])/2,
+#     #     color='black', linestyle=':')
+#     # plt.plot((logMhbins[1:] + logMhbins[:-1])/2,
+#     #     11.8 - (logMhbins[1:] + logMhbins[:-1])/2,
+#     #     color='black', linestyle=':')
+#     plt.xlabel('Log($M_{h}/M_{\odot}$)', size=20)
+#     plt.ylabel('Log($M_{*}/M_{h}$)', size=20)
+#     plt.legend()
+#     plt.tight_layout()
 
 
-def plotSHMR_delta(directory, iterations, burn, params, load=True, selected_redshifts=np.arange(10)):
+def plotSHMR_delta(directory, iterations, params, load=True, selected_redshifts=np.arange(10)):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
     smf = load_smf(params)
     hmf = load_hmf(params)
@@ -1197,23 +1215,28 @@ def plotSHMR_delta(directory, iterations, burn, params, load=True, selected_reds
     Ms_max = 11.8
     numpoints = 100
     logMs = np.empty([params['numzbin'], numpoints])
-    nselect = 100000  # Number of samples o randomly select in the chains
+    # nselect = 100000  # Number of samples o randomly select in the chains
     logMhbins = np.linspace(11.5, 14, num=numpoints)
     av_logMh = np.empty([params['numzbin'], numpoints])
     med_logMh = np.empty([params['numzbin'], numpoints])
     conf_min_logMh = np.empty([params['numzbin'], numpoints])
     conf_max_logMh = np.empty([params['numzbin'], numpoints])
+    meantau, burnin, thin = np.transpose(np.loadtxt(directory + "/Chain/Autocorr.txt"))
+    burnin = burnin.astype('int')
+    thin = thin.astype('int')
     if load is False :
         print('Computing arrays')
         for idx_z in selected_redshifts:
         #for idx_z in [6,7,8,9]:
             logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
-            chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-            chain = np.load(chainfile)
-            samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+            # chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+            # chain = np.load(chainfile)
+            # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
             #print(len(samples))
-            samples = samples[np.random.randint(len(samples), size=nselect)]
-            del chain
+            # samples = samples[np.random.randint(len(samples), size=nselect)]
+            filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
+            sampler = emcee.backends.HDFBackend(filename)
+            samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
             print('Chain loaded for idx_z = '+str(idx_z))
             nsimu = samples.shape[0]
             print(nsimu)
@@ -1262,7 +1285,7 @@ def plotSHMR_delta(directory, iterations, burn, params, load=True, selected_reds
     plt.tight_layout()
     #plt.show()
     plt.savefig(directory + '/Plots/SHMR_Allz0_niter=' +
-        str(iterations) + "_burn=" + str(burn) + '.pdf')
+        str(iterations) + '.pdf')
 
     plt.figure()
     for idx_z in selected_redshifts:
@@ -1296,59 +1319,59 @@ def plotSHMR_delta(directory, iterations, burn, params, load=True, selected_reds
     plt.tight_layout()
     # plt.show()
     plt.savefig(directory + '/Plots/DeltaSHMR_Allz0_niter=' +
-        str(iterations) + "_burn=" + str(burn) + '.pdf')
+        str(iterations) + '.pdf')
 
-def plotMsMh_fixedMh(directory):
-    load_smf('cosmos')
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
-    print(Ms_min)
-    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-    Ms_max = 11.8
-    numpoints = 100
-    logMs = np.empty([params['numzbin'], numpoints])
-    for idx_z in range(params['numzbin']):
-        logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
-    av_logMh = np.load(directory + '/av_logMh.npy')
-    conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
-    conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
-    idx_12 = np.zeros(params['numzbin']).astype('int')
-    idx_13 = np.zeros(params['numzbin']).astype('int')
-    smhm_12 = np.zeros(params['numzbin'])
-    conf_smhm_12 = np.zeros([2, params['numzbin']])
-    smhm_13 = np.zeros(params['numzbin'])
-    conf_smhm_13 = np.zeros([2, params['numzbin']])
-    for idx_z in range(params['numzbin']-2):
-        idx_12[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 12))
-        idx_13[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 13))
-        smhm_12[idx_z] = logMs[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
-        smhm_13[idx_z] = logMs[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]
-        # The error interval on the log of the SMHM ratio is the same as the error on the Halo mass
-        conf_smhm_12[:, idx_z] = [av_logMh[idx_z, idx_12[idx_z]] - conf_min_logMh[idx_z, idx_12[idx_z]],
-            conf_max_logMh[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]]
-        conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]],
-            conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
-    plt.figure()
-    plt.errorbar(params['redshiftsbin'][:-2], smhm_12[:-2], yerr=conf_smhm_12[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{12} M_{\odot}$')
-    plt.errorbar(params['redshiftsbin'][:-2], smhm_13[:-2], yerr=conf_smhm_13[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{13} M_{\odot}$')
-    plt.xlabel('Redshift', size=17)
-    plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\mathrm{h}})$', size=17)
-    plt.tick_params(axis='both', which='major', labelsize=13)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+# def plotMsMh_fixedMh(directory):
+#     load_smf('cosmos')
+#     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
+#     print(Ms_min)
+#     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
+#     Ms_max = 11.8
+#     numpoints = 100
+#     logMs = np.empty([params['numzbin'], numpoints])
+#     for idx_z in range(params['numzbin']):
+#         logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
+#     av_logMh = np.load(directory + '/av_logMh.npy')
+#     conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
+#     conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
+#     idx_12 = np.zeros(params['numzbin']).astype('int')
+#     idx_13 = np.zeros(params['numzbin']).astype('int')
+#     smhm_12 = np.zeros(params['numzbin'])
+#     conf_smhm_12 = np.zeros([2, params['numzbin']])
+#     smhm_13 = np.zeros(params['numzbin'])
+#     conf_smhm_13 = np.zeros([2, params['numzbin']])
+#     for idx_z in range(params['numzbin']-2):
+#         idx_12[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 12))
+#         idx_13[idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - 13))
+#         smhm_12[idx_z] = logMs[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]
+#         smhm_13[idx_z] = logMs[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]
+#         # The error interval on the log of the SMHM ratio is the same as the error on the Halo mass
+#         conf_smhm_12[:, idx_z] = [av_logMh[idx_z, idx_12[idx_z]] - conf_min_logMh[idx_z, idx_12[idx_z]],
+#             conf_max_logMh[idx_z, idx_12[idx_z]] - av_logMh[idx_z, idx_12[idx_z]]]
+#         conf_smhm_13[:, idx_z] = [av_logMh[idx_z, idx_13[idx_z]] - conf_min_logMh[idx_z, idx_13[idx_z]],
+#             conf_max_logMh[idx_z, idx_13[idx_z]] - av_logMh[idx_z, idx_13[idx_z]]]
+#     plt.figure()
+#     plt.errorbar(params['redshiftsbin'][:-2], smhm_12[:-2], yerr=conf_smhm_12[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{12} M_{\odot}$')
+#     plt.errorbar(params['redshiftsbin'][:-2], smhm_13[:-2], yerr=conf_smhm_13[:, :-2], capsize=3, label='$M_{\mathrm{h}} = 10^{13} M_{\odot}$')
+#     plt.xlabel('Redshift', size=17)
+#     plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\mathrm{h}})$', size=17)
+#     plt.tick_params(axis='both', which='major', labelsize=13)
+#     plt.legend()
+#     plt.tight_layout()
+#     plt.show()
 
 
-def show_nll():
-    chain = np.load("../MCMC_2018-4-25T18-31/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    lnprob = np.load("../MCMC_2018-4-25T18-31/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
-    # plt.figure()
-    for k in range(20):
-        # plt.plot(lnprob[k, :])
-        plt.figure()
-        plt.plot(chain[k, ::1000, 3])
-        plt.title(str(k))
-    # for k in selec_chain:
-    #     plt.plot(chain[k, ::1000, 5])
+# def show_nll():
+#     chain = np.load("../MCMC_2018-4-25T18-31/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+#     lnprob = np.load("../MCMC_2018-4-25T18-31/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy")
+#     # plt.figure()
+#     for k in range(20):
+#         # plt.plot(lnprob[k, :])
+#         plt.figure()
+#         plt.plot(chain[k, ::1000, 3])
+#         plt.title(str(k))
+#     # for k in selec_chain:
+#     #     plt.plot(chain[k, ::1000, 5])
 
 
 """Plots and tests"""
