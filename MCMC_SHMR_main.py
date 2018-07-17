@@ -575,93 +575,93 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
     # print('Nthreads: '+str(nthreads))
-    # with Pool() as pool:
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
-        args=[smf, hmf, idx_z, params, minbound, maxbound],
-        backend=backend)
-    print("idx_z = " +str (idx_z))
-    print("ndim = " + str(ndim))
-    print("start = " + str(starting_point[idx_z]))
-    print("std = " + str(std))
-    print("iterations = " + str(iterations))
-    # print("burn = " + str(burn))
-    print(sampler.backend)
+    with Pool(processes=15) as pool:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
+            args=[smf, hmf, idx_z, params, minbound, maxbound], pool=pool,
+            backend=backend)
+        print("idx_z = " +str (idx_z))
+        print("ndim = " + str(ndim))
+        print("start = " + str(starting_point[idx_z]))
+        print("std = " + str(std))
+        print("iterations = " + str(iterations))
+        # print("burn = " + str(burn))
+        print(sampler.backend)
 
-    # Old style run
-    # start_time = time.time()
-    # sampler.run_mcmc(p0, iterations)
-    # elapsed_time = time.time() - start_time
-    # print('Time elapsed: ' + str(elapsed_time))
-    # print('Acceptance fraction:')
-    # print(sampler.acceptance_fraction)
+        # Old style run
+        # start_time = time.time()
+        # sampler.run_mcmc(p0, iterations)
+        # elapsed_time = time.time() - start_time
+        # print('Time elapsed: ' + str(elapsed_time))
+        # print('Acceptance fraction:')
+        # print(sampler.acceptance_fraction)
 
 
-    # We'll track how the average autocorrelation time estimate changes
-    index = 0
-    autocorr = np.empty(iterations)
-    # This will be useful to testing convergence∏
-    old_tau = np.inf
-    # Now we'll sample for up to iterations steps
-    for sample in sampler.sample(p0, iterations=iterations, progress=True):
-        # Only check convergence every 100 steps
-        if sampler.iteration % 100:
-            continue
-        # Compute the autocorrelation time so far
-        # Using tol=0 means that we'll always get an estimate even
-        # if it isn't trustworthy
+        # We'll track how the average autocorrelation time estimate changes
+        index = 0
+        autocorr = np.empty(iterations)
+        # This will be useful to testing convergence∏
+        old_tau = np.inf
+        # Now we'll sample for up to iterations steps
+        for sample in sampler.sample(p0, iterations=iterations, progress=True):
+            # Only check convergence every 100 steps
+            if sampler.iteration % 100:
+                continue
+            # Compute the autocorrelation time so far
+            # Using tol=0 means that we'll always get an estimate even
+            # if it isn't trustworthy
+            tau = sampler.get_autocorr_time(tol=0)
+            autocorr[index] = np.mean(tau)
+            index += 1
+            # Check convergence
+            converged = np.all(tau * 50 < sampler.iteration)
+            converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
+            if converged:
+                print('Breaking MCMC because chain converged () at step ' + str(index))
+                print('More than 50 worst autocorr time iterations, and autocorr time varied by less than 1\%')
+                break
+            old_tau = tau
+        # print('Autocorrelation time:')
+        # print(sampler.get_autocorr_time(tol=0, discard=burn))
+
+        plt.close('all')
+        plotAutocorr(directory, idx_z, autocorr, index)
+
+        # # Save chains and loglike of chains ### Now already saved with the backend
+        # chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        # savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+        # np.save(chainfile, sampler.chain)
+        # np.save(savenameln, sampler.lnprobability)
+        # # test convergence
+        # # test_convergence(directory, idx_z, iterations, burn)
+
+        # Clean samples
         tau = sampler.get_autocorr_time(tol=0)
-        autocorr[index] = np.mean(tau)
-        index += 1
-        # Check convergence
-        converged = np.all(tau * 50 < sampler.iteration)
-        converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
-        if converged:
-            print('Breaking MCMC because chain converged () at step ' + str(index))
-            print('More than 50 worst autocorr time iterations, and autocorr time varied by less than 1\%')
-            break
-        old_tau = tau
-    # print('Autocorrelation time:')
-    # print(sampler.get_autocorr_time(tol=0, discard=burn))
+        burnin = int(2*np.max(tau))
+        print("Burnin "+str(burnin))
+        thin = int(0.5*np.min(tau))
+        with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
+            myfile.write(str(np.mean(tau))+ "  " + str(burnin) + "  " + str(thin) + "\n")
 
-    plt.close('all')
-    plotAutocorr(directory, idx_z, autocorr, index)
+        samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
 
-    # # Save chains and loglike of chains ### Now already saved with the backend
-    # chainfile = directory + "/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    # savenameln = directory + "/Chain/LnProb_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-    # np.save(chainfile, sampler.chain)
-    # np.save(savenameln, sampler.lnprobability)
-    # # test convergence
-    # # test_convergence(directory, idx_z, iterations, burn)
+        # Plot all relevant figures
+        plt.close('all')
+        plotchain(directory, samples, idx_z, params)
+        plt.close('all')
+        plotdist(directory, samples, idx_z, iterations, params)
+        plt.close('all')
+        plotSMF(directory, samples, smf, hmf, idx_z, params, iterations)
+        plt.close('all')
+        plotSMHM(directory, samples, smf, idx_z, iterations)
+        plt.close('all')
+        plotSHMR(directory, samples, smf, idx_z, iterations)
+        plt.close('all')
+        plot_Mhpeak(directory, samples, idx_z, iterations, params)
+        plt.close('all')
+        save_results(directory, samples, idx_z, iterations, params['noksi'], params)
 
-    # Clean samples
-    tau = sampler.get_autocorr_time(tol=0)
-    burnin = int(2*np.max(tau))
-    print("Burnin "+str(burnin))
-    thin = int(0.5*np.min(tau))
-    with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
-        myfile.write(str(np.mean(tau))+ "  " + str(burnin) + "  " + str(thin) + "\n")
-
-    samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
-
-    # Plot all relevant figures
-    plt.close('all')
-    plotchain(directory, samples, idx_z, params)
-    plt.close('all')
-    plotdist(directory, samples, idx_z, iterations, params)
-    plt.close('all')
-    plotSMF(directory, samples, smf, hmf, idx_z, params, iterations)
-    plt.close('all')
-    plotSMHM(directory, samples, smf, idx_z, iterations)
-    plt.close('all')
-    plotSHMR(directory, samples, smf, idx_z, iterations)
-    plt.close('all')
-    plot_Mhpeak(directory, samples, idx_z, iterations, params)
-    plt.close('all')
-    save_results(directory, samples, idx_z, iterations, params['noksi'], params)
-
-    # # Reset before new MCMC
-    # sampler.reset()
+        # # Reset before new MCMC
+        # sampler.reset()
 
 
 def plotAutocorr(directory, idx_z, autocorr, index):
