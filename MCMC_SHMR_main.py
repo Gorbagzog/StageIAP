@@ -460,23 +460,23 @@ def loglike(theta, smf, hmf, idx_z, params, minbound, maxbound):
 """ Run MCMC """
 
 def get_platform():
-    """Returns the save path and the number of threads (=cores for parallelization)
+    """Returns the save path and the number of processes for parallelization
     depending on the machin teh script is ran."""
     if platform.uname()[1] == 'imac-de-louis':
-        print('Run locally')
-        return '../', 1
+        print('Run locally on my iMac')
+        return '../', 4
     elif platform.uname()[1] == 'glx-calcul3':
         print('Run on the glx-calcul3 machine')
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 20
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 6
     elif platform.uname()[1] == 'glx-calcul1':
         print('Run on the glx-calcul1 machine')
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 20
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 6
     elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
         print('Run on local on my MBP')
-        return '../', 1
+        return '../', 4
     elif platform.uname()[1] == 'mic-llegrand.ias.u-psud.fr':
         print('Run on local on my MBP on IAS network')
-        return '../', 1
+        return '../', 4
     else:
         print('Unknown machine, please update the save path')
         sys.exit("Unknown machine, please update the save path")
