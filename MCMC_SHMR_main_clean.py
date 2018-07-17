@@ -468,7 +468,7 @@ def get_platform():
         return '../', 4
     elif platform.uname()[1] == 'glx-calcul3':
         print('Run on the glx-calcul3 machine')
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 6
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 24
     elif platform.uname()[1] == 'glx-calcul1':
         print('Run on the glx-calcul1 machine')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', 6
@@ -818,7 +818,7 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params, iterations):
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     #plt.ylim(-50, -1)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        logphi = log_phi_true(logMs, hmf, idx_z, params, M1, Ms0, beta, delta, gamma, ksi)
+        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     # plt.show()
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
