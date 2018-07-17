@@ -594,7 +594,7 @@ def MhPeak(samples, idx_z, iterations):
     return Mhalopeak
 
 
-def readAndAnalyse(directory, idx_z, iterations):
+def readAndAnalyseBin(directory, idx_z, iterations):
     """Read previously computed chains and make the analysis."""
     paramfile = directory + '/MCMC_param.ini'
     global params
@@ -605,7 +605,7 @@ def readAndAnalyse(directory, idx_z, iterations):
     hmf = load_hmf(params)
     filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
     reader = emcee.backends.HDFBackend(filename, read_only=True)
-    tau = reader.get_autocorr_time()
+    tau = reader.get_autocorr_time(tol=0)
     burnin = int(2*np.max(tau))
     thin = int(0.5*np.min(tau))
     samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
