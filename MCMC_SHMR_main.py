@@ -577,7 +577,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     # print('Nthreads: '+str(nthreads))
     # with Pool() as pool:
     sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
-        args=[smf, hmf, idx_z, params, minbound, maxbound], pool=pool,
+        args=[smf, hmf, idx_z, params, minbound, maxbound],
         backend=backend)
     print("idx_z = " +str (idx_z))
     print("ndim = " + str(ndim))
