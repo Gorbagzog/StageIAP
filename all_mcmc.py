@@ -7,7 +7,7 @@ sys.stdout.flush()
 
 import matplotlib
 matplotlib.use('Agg')
-from MCMC_SHMR_main import *
+from MCMC_SHMR_main_clean import *
 
 
 paramfile = 'MCMC_param.ini'
