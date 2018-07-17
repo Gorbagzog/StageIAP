@@ -575,7 +575,7 @@ def runMCMC(directory, smf, hmf, idx_z, params):
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
     # print('Nthreads: '+str(nthreads))
-    with Pool(processes=15) as pool:
+    with Pool(processes=4) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
             args=[smf, hmf, idx_z, params, minbound, maxbound], pool=pool,
             backend=backend)
