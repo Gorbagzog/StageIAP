@@ -417,7 +417,7 @@ def get_platform():
         return '../', 4
     elif platform.uname()[1] == 'glx-calcul3':
         print('Run on the glx-calcul3 machine')
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 24
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 8
     elif platform.uname()[1] == 'glx-calcul1':
         print('Run on the glx-calcul1 machine')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', 6
