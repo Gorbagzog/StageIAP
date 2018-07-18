@@ -420,7 +420,7 @@ def get_platform():
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', 8
     elif platform.uname()[1] == 'glx-calcul1':
         print('Run on the glx-calcul1 machine')
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 6
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 8
     elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
         print('Run on local on my MBP')
         return '../', 4
@@ -692,7 +692,7 @@ def plotSMHM(directory, samples, smf, idx_z, iterations):
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
         plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
-    plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{\odot})$')
+    plt.xlabel('$M_{\odot} / \mathrm{log}_{10}(M_{\mathrm{h}})$')
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{*})$')
     plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
@@ -855,7 +855,7 @@ def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arang
         str(iterations) + '.pdf')
 
 
-def plotSHMR_delta(idx_z, M1, Ms0, beta, delta, gamma, ksi):
+def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
     paramfile = 'MCMC_param.ini'
     global params
