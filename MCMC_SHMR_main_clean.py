@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 # import sys
 import emcee
 from astropy.cosmology import LambdaCDM, Planck15
+from astropy import convolution
+from astropy.convolution import Gaussian1DKernel
 # import scipy.optimize as op
 from scipy import signal
 import corner
@@ -297,8 +299,9 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     log_Mh1 = logMh(logMs, M1, Ms0, beta, delta, gamma)
     log_Mh2 = logMh(logMs + epsilon, M1, Ms0, beta, delta, gamma)
     # if np.any(log_Mh2 > hmf[idx_z][-1, 0]) or np.any(log_Mh1 < hmf[idx_z][0, 0]):
-    #     # print('above hmf')
+    #     print('above hmf')
     #     return log_Mh1 * 0. + 10
+    #     return log_Mh1 * 0. - np.inf
     # else :
     # if True:
     # Select the index of the HMF corresponding to the halo masses
@@ -312,6 +315,9 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     #     return log_Mh1 * 0. + 1
     # else:
     log_phidirect = hmf[idx_z][index_Mh, 1] + np.log10((log_Mh2 - log_Mh1)/epsilon)
+    # if np.any(log_Mh2 > hmf[idx_z][-1, 0]):
+    #     print('above hmf')
+    #     log_phidirect = log_phidirect[log_Mh2 > hmf[idx_z][-1, 0]] = -np.inf
     return log_phidirect
 
     # log_phidirect[log_Mh1 > hmf[idx_z][-1, 0]] = 10**6 # Do not use points with halo masses not defined in the HMF
@@ -321,18 +327,35 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
 # def gauss(y, ksi):
 #     return 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (y / ksi)**2)
 
-def log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
+def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Use convolution defined in Behroozi et al 2010"""
-    log_phi_dir = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
+    log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     # dx = logMs[1] - logMs[0]
     # if params['smf_name'] == 'cosmos_schechter':
     dx = 0.1
     # else:
     #     print('Warning, the step between two mass bins in not defined in this case.')
-    x = np.arange(-10*ksi/dx, 10*ksi/dx, dx)
+    x = np.arange(-4*ksi/dx, 4*ksi/dx, dx)
     gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
-    # return np.log10(np.convolve(10**log_phi_dir, gaussian, mode='same'))
-    return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
+    # print(np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same')))
+    # return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
+
+    """Make an extension of the array on the left side to avoid convolution border effects"""
+    log_phi_dir_extend = np.concatenate((np.full(x.shape[0] // 2, log_phidirect[0]), log_phidirect))
+    phi_true_extend = signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')
+    phi_true = phi_true_extend[x.shape[0] // 2:]
+    # print(M1, Ms0, beta, delta, gamma, ksi)
+    # print(log_phi_true)
+    # return log_phi_true
+    # return np.log10(signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')[x.shape[0] // 2:])
+    if any(np.isnan(phi_true_extend)): 
+        print( M1, Ms0, beta, delta, gamma, ksi)
+        print(phi_true_extend[x.shape[0] // 2:])
+        return
+    else:
+        return phi_true_extend[x.shape[0] // 2:]
+    # gaussian = Gaussian1DKernel(stddev=ksi/dx)
+    # return np.log10(convolution.convolve(10**log_phi_dir, gaussian, boundary='extend'))
 
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
@@ -340,7 +363,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
     logMs = smf[idx_z][select[:], 0]
-    pred = 10**log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+    pred = phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
     # if params['smf_name'] == ('cosmos' or 'candels'):
     #     print('Check that there may be an issue with the SMF cut')
         # chi2 = np.sum(
@@ -376,7 +399,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
 
 def loglike(theta, idx_z, minbound, maxbound):
     """return the loglikelihood"""
-    if all(theta >= minbound[idx_z]) and all(theta <= maxbound[idx_z]):
+    if all(theta > minbound[idx_z]) and all(theta < maxbound[idx_z]):
         M1, Ms0, beta, delta, gamma, ksi = theta[:]
         return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
     else:
@@ -477,7 +500,7 @@ def runMCMC_allZ(paramfile):
         print('Max bound: ' + str(params['maxbound'][idx_z]))
         runMCMC(directory, smf, hmf, idx_z, params)
     # Plot all SHMR on one graph
-    plotSHMR_delta(directory, params['iterations'], params, load=False, selected_redshifts = params['selected_redshifts'])
+    plotSHMR_delta(directory, params['iterations'], load=False, selected_redshifts = params['selected_redshifts'])
     # Plot the MhaloPeak graph
     plt.clf()
     plt.figure(figsize=(10, 5))
@@ -656,7 +679,7 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params, iterations):
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
+        logphi = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(\phi)$')
@@ -679,7 +702,6 @@ def plotSHMR(directory, samples, smf, idx_z, iterations):
     logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
-        # logphi = log_phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi)
         plt.plot(logMs, logmhalo, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_{*} / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{\odot})$')
@@ -720,8 +742,13 @@ def plot_Mhpeak(directory, samples, idx_z, iterations, params):
     plt.savefig(directory+'/Plots/MhPeak_z' + str(idx_z) + '.pdf')
 
 
-def plotSHMR_delta(directory, iterations, params, load=True, selected_redshifts=np.arange(10)):
+def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arange(10)):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
     smf = load_smf(params)
     hmf = load_hmf(params)
     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
@@ -736,19 +763,22 @@ def plotSHMR_delta(directory, iterations, params, load=True, selected_redshifts=
     med_logMh = np.empty([params['numzbin'], numpoints])
     conf_min_logMh = np.empty([params['numzbin'], numpoints])
     conf_max_logMh = np.empty([params['numzbin'], numpoints])
-    meantau, burnin, thin = np.transpose(np.loadtxt(directory + "/Chain/Autocorr.txt"))
-    burnin = burnin.astype('int')
-    thin = thin.astype('int')
+    # meantau, burnin, thin = np.transpose(np.loadtxt(directory + "/Chain/Autocorr.txt"))
+    # burnin = burnin.astype('int')
+    # thin = thin.astype('int')
     if load is False :
         print('Computing arrays')
         for idx_z in selected_redshifts:
             logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
             filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
-            sampler = emcee.backends.HDFBackend(filename)
-            samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
+            reader = emcee.backends.HDFBackend(filename, read_only=True)
+            tau = reader.get_autocorr_time(tol=0)
+            burnin = int(2*np.max(tau))
+            thin = int(0.5*np.min(tau))
+            samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
             print('Chain loaded for idx_z = '+str(idx_z))
             nsimu = samples.shape[0]
-            print(nsimu)
+            print('Number of samples:'+str(nsimu))
             logmhalo = np.zeros([nsimu, numpoints])
             for idx_simu in range(nsimu):
                 # M1, Ms0, beta, delta, gamma, ksi = samples[idx_simu]
@@ -824,3 +854,30 @@ def plotSHMR_delta(directory, iterations, params, load=True, selected_redshifts=
     plt.savefig(directory + '/Plots/DeltaSHMR_Allz0_niter=' +
         str(iterations) + '.pdf')
 
+
+def plotSHMR_delta(idx_z, M1, Ms0, beta, delta, gamma, ksi):
+    """Good version to use to plot the SHMR and the Ms(Mh)"""
+    paramfile = 'MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    if params['do_sm_cut']:
+        select = np.where(np.logical_and(
+                np.logical_and(
+                    smf[idx_z][:, 0] > params['SM_cut_min'][idx_z],
+                    smf[idx_z][:, 0] < params['SM_cut_max'][idx_z]
+                ),
+                smf[idx_z][:, 1] > -40)
+            )[0]
+    else:
+        select = np.where(smf[idx_z][:, 1] > -40)[0]
+    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
+    plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
+        yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
+    
+    logphitrue = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
+    plt.plot(logMs, logphitrue)
+    plt.show()
