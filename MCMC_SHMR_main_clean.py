@@ -413,20 +413,25 @@ def get_platform():
     """Returns the save path and the number of processes for parallelization
     depending on the machin teh script is ran."""
     if platform.uname()[1] == 'imac-de-louis':
-        print('Run locally on my iMac')
-        return '../', 4
+        numprocess = 4
+        print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
+        return '../', numprocess
     elif platform.uname()[1] == 'glx-calcul3':
-        print('Run on the glx-calcul3 machine')
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 8
+        numprocess = 8
+        print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', numprocess
     elif platform.uname()[1] == 'glx-calcul1':
-        print('Run on the glx-calcul1 machine')
-        return '/data/glx-calcul3/data1/llegrand/StageIAP/', 8
+        numprocess = 8
+        print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
+        return '/data/glx-calcul3/data1/llegrand/StageIAP/', numprocess
     elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
-        print('Run on local on my MBP')
-        return '../', 4
+        numprocess = 4
+        print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
+        return '../', numprocess
     elif platform.uname()[1] == 'mic-llegrand.ias.u-psud.fr':
-        print('Run on local on my MBP on IAS network')
-        return '../', 4
+        numprocess = 4
+        print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
+        return '../', numprocess
     else:
         print('Unknown machine, please update the save path')
         sys.exit("Unknown machine, please update the save path")
