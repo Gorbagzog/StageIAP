@@ -1226,22 +1226,22 @@ def plotSHMR_delta(directory, iterations, params, load=True, selected_redshifts=
     med_logMh = np.empty([params['numzbin'], numpoints])
     conf_min_logMh = np.empty([params['numzbin'], numpoints])
     conf_max_logMh = np.empty([params['numzbin'], numpoints])
-    meantau, burnin, thin = np.transpose(np.loadtxt(directory + "/Chain/Autocorr.txt"))
-    burnin = burnin.astype('int')
-    thin = thin.astype('int')
+    # meantau, burnin, thin = np.transpose(np.loadtxt(directory + "/Chain/Autocorr.txt"))
+    # burnin = burnin.astype('int')
+    # thin = thin.astype('int')
     if load is False :
         print('Computing arrays')
         for idx_z in selected_redshifts:
         #for idx_z in [6,7,8,9]:
             logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
-            # chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
-            # chain = np.load(chainfile)
-            # samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
-            #print(len(samples))
-            # samples = samples[np.random.randint(len(samples), size=nselect)]
-            filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
-            sampler = emcee.backends.HDFBackend(filename)
-            samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
+            chainfile = directory+"/Chain/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".npy"
+            chain = np.load(chainfile)
+            samples = chain[:, burn:, :].reshape((-1, chain.shape[2]))
+            print(len(samples))
+            samples = samples[np.random.randint(len(samples), size=nselect)]
+            # filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
+            # sampler = emcee.backends.HDFBackend(filename)
+            # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
             print('Chain loaded for idx_z = '+str(idx_z))
             nsimu = samples.shape[0]
             print(nsimu)
