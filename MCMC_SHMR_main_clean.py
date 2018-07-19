@@ -348,7 +348,7 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # print(log_phi_true)
     # return log_phi_true
     # return np.log10(signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')[x.shape[0] // 2:])
-    if any(np.isnan(phi_true_extend)): 
+    if any(np.isnan(phi_true_extend)):
         print( M1, Ms0, beta, delta, gamma, ksi)
         print(phi_true_extend[x.shape[0] // 2:])
         return
@@ -608,7 +608,7 @@ def save_results(directory, samples, idx_z, iterations, noksi, params):
 
 def MhPeak(samples, idx_z, iterations):
     chainsize = np.shape(samples)[0]
-    logMs = np.linspace(8, 12, num=300)
+    logMs = np.linspace(8, 12.5, num=300)
     Mhalopeak = np.zeros(chainsize)
     for i in range(chainsize):
         logmhalo = logMh(logMs, samples[i, 0], samples[i, 1], samples[i, 2], samples[i, 3], samples[i, 4])
@@ -754,7 +754,7 @@ def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arang
     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
     print(Ms_min)
     # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-    Ms_max = 11.8
+    Ms_max = params['SM_cut_max']
     numpoints = 100
     logMs = np.empty([params['numzbin'], numpoints])
     # nselect = 100000  # Number of samples o randomly select in the chains
@@ -769,7 +769,7 @@ def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arang
     if load is False :
         print('Computing arrays')
         for idx_z in selected_redshifts:
-            logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max, num=numpoints)
+            logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max[idx_z], num=numpoints)
             filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
             reader = emcee.backends.HDFBackend(filename, read_only=True)
             tau = reader.get_autocorr_time(tol=0)
@@ -842,7 +842,7 @@ def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arang
         plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
         plt.plot(x, y, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
     logspace = np.linspace(11, 16)
-    plt.plot(logspace, 11.8 -logspace, c='black', linestyle='--', label='$M_{*}= 10^{11.8} M_{\odot}$')
+    plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
     plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
     plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=17)
     plt.tick_params(axis='both', which='major', labelsize=13)
@@ -877,7 +877,7 @@ def plotSHMR_delta(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
-    
+
     logphitrue = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
     plt.plot(logMs, logphitrue)
     plt.show()
