@@ -108,7 +108,7 @@ redshiftMoster13 = tmp[0]
 MhaloPeakMoster13 = tmp[1]
 
 
-# Load M1 from Moster et al. 2013 
+# Load M1 from Moster et al. 2013
 # File provided by Iary by graphic reading of the Figure 4
 # Use it as a proxy of the error on Mpeak as it is proportional to M1.
 # Dont go to z>4
@@ -141,7 +141,7 @@ MhaloPeakMoster18 = tmp[1]
 
 # Ms/Mh graphic reading on the Fig4. of Behroozi and Silk 2015.
 # Files were sent by Iary Davidzon by mail.
-# I took the max of the fit by eye. 
+# I took the max of the fit by eye.
 redshiftBS15 = np.array([4, 5])
 MhaloPeakBS15_oldfit = np.log10(np.array([1.3*10**12, 7.65*10**11]))
 MhaloPeakBS15_newfit = np.log10(np.array([1.78*10**12, 10*10**11]))
@@ -156,8 +156,8 @@ def plotLiterrature():
     # plt.errorbar(redshiftCoupon17, MhaloPeakCoupon17 - np.log10(0.7),
     #              yerr=MhaloSigmaCoupon17,
     #              fmt='o', color='blue', capsize=5, label='Coupon et al. 2017 Draft')
-    
-    plt.fill_between(redshiftM1Moster13, 
+
+    plt.fill_between(redshiftM1Moster13,
             MhaloPeakMoster13[index_M13z] + M1Moster13[1], MhaloPeakMoster13[index_M13z] + M1Moster13[2],
             color='royalblue', alpha=0.1,linewidth=0.0,
             label='Moster et al. 2013')
@@ -253,7 +253,7 @@ def plotLiterrature():
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', size=17)
     # plt.ylim(11.7, 13)
     plt.ylim(11.7, 13.8)
-    plt.xlim(0, 4.5)
+    plt.xlim(0, 5.5)
     # plt.xlim(0.2, 8)
     # plt.xscale('log')
     # box = ax.get_position()

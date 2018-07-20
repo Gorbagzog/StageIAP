@@ -500,12 +500,12 @@ def runMCMC_allZ(paramfile):
     # for idx_z in range(params['numzbin']):
     for idx_z in params['selected_redshifts']:
         print(idx_z)
-        print('Starting MCMC run for idx_z =' + str(idx_z) )
+        print('Starting MCMC run for idx_z =' + str(idx_z))
         print('Min bound: ' + str(params['minbound'][idx_z]))
         print('Max bound: ' + str(params['maxbound'][idx_z]))
         runMCMC(directory, smf, hmf, idx_z, params)
     # Plot all SHMR on one graph
-    plotSHMR_delta(directory, params['iterations'], load=False, selected_redshifts = params['selected_redshifts'])
+    plotSHMR_delta(directory, params['iterations'], load=False, selected_redshifts=params['selected_redshifts'])
     # Plot the MhaloPeak graph
     plt.clf()
     plt.figure(figsize=(10, 5))
@@ -611,9 +611,9 @@ def save_results(directory, samples, idx_z, iterations, noksi, params):
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
 
 
-def MhPeak(samples, idx_z, iterations):
+def MhPeak(samples, idx_z, iterations, Ms_max):
     chainsize = np.shape(samples)[0]
-    logMs = np.linspace(8, 12.5, num=300)
+    logMs = np.linspace(8, Ms_max, num=300)
     Mhalopeak = np.zeros(chainsize)
     for i in range(chainsize):
         logmhalo = logMh(logMs, samples[i, 0], samples[i, 1], samples[i, 2], samples[i, 3], samples[i, 4])
@@ -735,7 +735,7 @@ def plotdist(directory, samples, idx_z, iterations, params):
 
 
 def plot_Mhpeak(directory, samples, idx_z, iterations, params):
-    mhpeak = MhPeak(samples, idx_z, iterations)
+    mhpeak = MhPeak(samples, idx_z, iterations, params['SM_cut_max'][idx_z])
     med_mhpeak = np.median(mhpeak)
     std_mhpeak = np.std(mhpeak)
     with open(directory + "/MhaloPeak.txt", "a") as myfile:
