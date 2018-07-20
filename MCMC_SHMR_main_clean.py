@@ -32,6 +32,10 @@ from colossus.cosmology import cosmology
 from colossus.lss import mass_function
 import Plot_MhaloPeak
 from multiprocessing import Pool
+import multiprocessing.pool
+from joblib import Parallel, delayed
+import multiprocessing
+from functools import partial
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -421,7 +425,7 @@ def get_platform():
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', numprocess
     elif platform.uname()[1] == 'glx-calcul1':
-        numprocess = 8
+        numprocess = 3
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', numprocess
     elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
@@ -466,6 +470,20 @@ def load_params(paramfile):
     return params
 
 
+class NoDaemonProcess(multiprocessing.Process):
+    # make 'daemon' attribute always return False
+    def _get_daemon(self):
+        return False
+    def _set_daemon(self, value):
+        pass
+    daemon = property(_get_daemon, _set_daemon)
+
+# We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
+# because the latter is only a wrapper function, not a proper class.
+class MyPool(multiprocessing.pool.Pool):
+    Process = NoDaemonProcess
+
+
 def runMCMC_allZ(paramfile):
     """Main function to run all MCMC on all zbins based on the param file."""
     global params
@@ -498,12 +516,28 @@ def runMCMC_allZ(paramfile):
         myfile.write("# Mean autocorrelation, Burn in length,  Thin length \n")
     # run all MCMC for all zbins
     # for idx_z in range(params['numzbin']):
-    for idx_z in params['selected_redshifts']:
-        print(idx_z)
-        print('Starting MCMC run for idx_z =' + str(idx_z))
-        print('Min bound: ' + str(params['minbound'][idx_z]))
-        print('Max bound: ' + str(params['maxbound'][idx_z]))
-        runMCMC(directory, smf, hmf, idx_z, params)
+    # for idx_z in params['selected_redshifts']:
+    #     print(idx_z)
+    #     print('Starting MCMC run for idx_z =' + str(idx_z))
+    #     print('Min bound: ' + str(params['minbound'][idx_z]))
+    #     print('Max bound: ' + str(params['maxbound'][idx_z]))
+    #     runMCMC(directory, idx_z, params)
+
+    # Run all redshift at the same time
+    #Pool().map(partial(runMCMC, directory=directory, params=params), params['selected_redshifts'])
+    print("Creating 10 (non-daemon) workers and jobs in main process.")
+    pool = MyPool(10)
+
+    result = pool.map(partial(runMCMC, directory=directory, params=params),
+        params['selected_redshifts'])
+
+    # The following is not really needed, since the (daemon) workers of the
+    # child's pool are killed when the child is terminated, but it's good
+    # practice to cleanup after ourselves anyway.
+    pool.close()
+    pool.join()
+    return result
+
     # Plot all SHMR on one graph
     plotSHMR_delta(directory, params['iterations'], load=False, selected_redshifts=params['selected_redshifts'])
     # Plot the MhaloPeak graph
@@ -515,7 +549,7 @@ def runMCMC_allZ(paramfile):
     plt.clf()
 
 
-def runMCMC(directory, smf, hmf, idx_z, params):
+def runMCMC(idx_z, directory, params):
     minbound, maxbound, starting_point, std, iterations, nwalkers = params['minbound'], params['maxbound'], params['starting_point'], params['std'], params['iterations'], params['nwalkers']
     p0 = emcee.utils.sample_ball(starting_point[idx_z], std, size=nwalkers)
     ndim = len(starting_point[idx_z])
