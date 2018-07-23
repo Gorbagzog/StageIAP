@@ -336,7 +336,7 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     # dx = logMs[1] - logMs[0]
     # if params['smf_name'] == 'cosmos_schechter':
-    dx = 0.1
+    dx = np.around(logMs[1] - logMs[0], decimals=1)
     # else:
     #     print('Warning, the step between two mass bins in not defined in this case.')
     x = np.arange(-4*ksi/dx, 4*ksi/dx, dx)
