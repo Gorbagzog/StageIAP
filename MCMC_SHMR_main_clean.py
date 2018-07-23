@@ -66,6 +66,9 @@ def load_smf(params):
                     # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
                     # + str(i) + '.dat')
                 )
+            print('/!\ /!\ Warning the step in stellar mass may not be good !!! needed for the convoltution in phi true')
+            print('/!\ /!\ Warning the step in stellar mass may not be good !!! needed for the convoltution in phi true')
+            return None
         elif smf_name == 'cosmos_schechter':
             print('Use the COSMOS Schechter fit SMF')
             for i in range(params['numzbin']):
@@ -140,6 +143,8 @@ def load_smf(params):
 
     if smf_name == 'candels':
         print('Use the Candels SMF')
+        print('/!\ /!\ Warning the step in stellar mass may not be good !!! needed for the convoltution in phi true')
+        return None
         """Load the SMF from Candels Grazian"""
         # Code is copied from IaryDavidzonSMF.py as of 12 june
         # redshifts of the Candels+15 data
@@ -336,10 +341,9 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     # dx = logMs[1] - logMs[0]
     # if params['smf_name'] == 'cosmos_schechter':
-    dx = np.around(logMs[1] - logMs[0], decimals=1)
+    dx = np.mean(logMs[1:] - logMs[:-1])
     # else:
     #     print('Warning, the step between two mass bins in not defined in this case.')
-    print(ksi/dx)
     x = np.arange(-4*ksi/dx, 4*ksi/dx, dx)
     gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
     # print(np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same')))
@@ -741,7 +745,6 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params, iterations):
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
-        print(ksi)
         logphi = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
