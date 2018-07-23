@@ -339,6 +339,7 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     dx = np.around(logMs[1] - logMs[0], decimals=1)
     # else:
     #     print('Warning, the step between two mass bins in not defined in this case.')
+    print(ksi/dx)
     x = np.arange(-4*ksi/dx, 4*ksi/dx, dx)
     gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
     # print(np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same')))
@@ -532,9 +533,9 @@ def runMCMC_allZ(paramfile):
 
     # Run all redshift at the same time
     #Pool().map(partial(runMCMC, directory=directory, params=params), params['selected_redshifts'])
-    print("Creating 10 (non-daemon) workers and jobs in main process.")
-    pool = MyPool()
-    result = pool.map(partial(runMCMC, directory=directory, params=params),
+    print("Creating xx (non-daemon) workers and jobs in main process.")
+    pool = MyPool(10)
+    pool.map(partial(runMCMC, directory=directory, params=params),
         params['selected_redshifts'])
 
     # The following is not really needed, since the (daemon) workers of the
@@ -542,7 +543,7 @@ def runMCMC_allZ(paramfile):
     # practice to cleanup after ourselves anyway.
     pool.close()
     pool.join()
-    return result
+    # return result
 
     # Plot all SHMR on one graph
     plotSHMR_delta(directory, params['iterations'], load=False, selected_redshifts=params['selected_redshifts'])
@@ -740,6 +741,7 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params, iterations):
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        print(ksi)
         logphi = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
