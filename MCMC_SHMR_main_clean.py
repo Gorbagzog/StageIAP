@@ -634,15 +634,28 @@ def runMCMC(idx_z, directory, params):
         plt.close('all')
         plot_Mhpeak(directory, samples, idx_z, iterations, params)
         plt.close('all')
-        save_results(directory, samples, idx_z, iterations, params['noksi'], params)
+        with open(directory + "/Results.txt", "a") as myfile:
+            myfile.write(r'Print mean value, 68% lower and 68% upper limits' + '\n')
+            myfile.write('M1, Ms0, beta, delta, gamma, ksi \n')
+        save_results(directory, samples, idx_z, iterations, params)
 
 
-def save_results(directory, samples, idx_z, iterations, noksi, params):
+def save_results(directory, samples, idx_z, iterations, params):
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
     ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
     samples = MCSamples(samples=samples, names=names, ranges=ranges)
     res = samples.getTable()
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+
+    margeStats = samples.getMargeStats()
+    results = np.empty(3 * len(names))
+    with open(directory + "/Results.txt", "a") as myfile:
+        for i in range(len(names)):
+            results[3*i] = margeStats.names[i].mean
+            results[3*i + 1] = margeStats.names[i].limits[0].lower
+            results[3*i + 2] = margeStats.names[i].limits[0].upper
+        # myfile.write(str(results) + "\n")
+        np.savetxt(myfile, results.reshape(1, results.shape[0]), fmt='%.4e')
 
 
 def MhPeak(samples, idx_z, iterations, Ms_max):
@@ -685,7 +698,10 @@ def readAndAnalyseBin(directory, idx_z, iterations):
     plt.close('all')
     plot_Mhpeak(directory, samples, idx_z, iterations, params)
     plt.close('all')
-    save_results(directory, samples, idx_z, iterations, params['noksi'], params)
+    with open(directory + "/Results.txt", "a") as myfile:
+        myfile.write(r'Print mean value, 68% lower and 68% upper limits')
+        myfile.write('M1, Ms0, beta, delta, gamma, ksi')
+    save_results(directory, samples, idx_z, iterations, params)
 
 
 """Plots"""
