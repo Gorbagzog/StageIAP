@@ -66,6 +66,9 @@ def load_smf(params):
                     # '../Data/Davidzon/schechter_fixedMs/mf_mass2b_fl5b_tot_VmaxFit2E'
                     # + str(i) + '.dat')
                 )
+            print('/!\ /!\ Warning the step in stellar mass may not be good !!! needed for the convoltution in phi true')
+            print('/!\ /!\ Warning the step in stellar mass may not be good !!! needed for the convoltution in phi true')
+            return None
         elif smf_name == 'cosmos_schechter':
             print('Use the COSMOS Schechter fit SMF')
             for i in range(params['numzbin']):
@@ -140,6 +143,8 @@ def load_smf(params):
 
     if smf_name == 'candels':
         print('Use the Candels SMF')
+        print('/!\ /!\ Warning the step in stellar mass may not be good !!! needed for the convoltution in phi true')
+        return None
         """Load the SMF from Candels Grazian"""
         # Code is copied from IaryDavidzonSMF.py as of 12 june
         # redshifts of the Candels+15 data
@@ -336,7 +341,7 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
     # dx = logMs[1] - logMs[0]
     # if params['smf_name'] == 'cosmos_schechter':
-    dx = 0.1
+    dx = np.mean(logMs[1:] - logMs[:-1])
     # else:
     #     print('Warning, the step between two mass bins in not defined in this case.')
     x = np.arange(-4*ksi/dx, 4*ksi/dx, dx)
@@ -345,19 +350,26 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
 
     """Make an extension of the array on the left side to avoid convolution border effects"""
-    log_phi_dir_extend = np.concatenate((np.full(x.shape[0] // 2, log_phidirect[0]), log_phidirect))
+    n_ext = x.shape[0] // 2
+    log_phi_dir_extend = np.concatenate((np.full(n_ext, log_phidirect[0]), log_phidirect))
+    """Make a zero padding on the right side of the array"""
+    log_phi_dir_extend = np.concatenate((log_phi_dir_extend, np.full(n_ext, -np.inf)))
     phi_true_extend = signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')
-    phi_true = phi_true_extend[x.shape[0] // 2:]
+    # print(M1, Ms0, beta, delta, gamma, ksi)
+    # print(n_ext)
+    # print(log_phidirect.shape)
+    phi_true = phi_true_extend[n_ext: -n_ext or None] # Put None in case n_ext is 0 (avoid empty list)
     # print(M1, Ms0, beta, delta, gamma, ksi)
     # print(log_phi_true)
     # return log_phi_true
     # return np.log10(signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')[x.shape[0] // 2:])
-    if any(np.isnan(phi_true_extend)):
-        print( M1, Ms0, beta, delta, gamma, ksi)
-        print(phi_true_extend[x.shape[0] // 2:])
-        return
-    else:
-        return phi_true_extend[x.shape[0] // 2:]
+    # if any(np.isnan(phi_true_extend)):
+    #     print( M1, Ms0, beta, delta, gamma, ksi)
+    #     print(phi_true_extend[x.shape[0] // 2:])
+    #     return
+    # else:
+    # print(phi_true.shape)
+    return phi_true
     # gaussian = Gaussian1DKernel(stddev=ksi/dx)
     # return np.log10(convolution.convolve(10**log_phi_dir, gaussian, boundary='extend'))
 
@@ -525,10 +537,9 @@ def runMCMC_allZ(paramfile):
 
     # Run all redshift at the same time
     #Pool().map(partial(runMCMC, directory=directory, params=params), params['selected_redshifts'])
-    print("Creating 10 (non-daemon) workers and jobs in main process.")
-    pool = MyPool()
-
-    result = pool.map(partial(runMCMC, directory=directory, params=params),
+    print("Creating xx (non-daemon) workers and jobs in main process.")
+    pool = MyPool(10)
+    pool.map(partial(runMCMC, directory=directory, params=params),
         params['selected_redshifts'])
 
     # The following is not really needed, since the (daemon) workers of the
@@ -536,7 +547,7 @@ def runMCMC_allZ(paramfile):
     # practice to cleanup after ourselves anyway.
     pool.close()
     pool.join()
-    return result
+    # return result
 
     # Plot all SHMR on one graph
     plotSHMR_delta(directory, params['iterations'], load=False, selected_redshifts=params['selected_redshifts'])
@@ -634,15 +645,28 @@ def runMCMC(idx_z, directory, params):
         plt.close('all')
         plot_Mhpeak(directory, samples, idx_z, iterations, params)
         plt.close('all')
-        save_results(directory, samples, idx_z, iterations, params['noksi'], params)
+        with open(directory + "/Results.txt", "a") as myfile:
+            myfile.write(r'Print mean value, 68% lower and 68% upper limits' + '\n')
+            myfile.write('M1, Ms0, beta, delta, gamma, ksi \n')
+        save_results(directory, samples, idx_z, iterations, params)
 
 
-def save_results(directory, samples, idx_z, iterations, noksi, params):
+def save_results(directory, samples, idx_z, iterations, params):
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
     ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
     samples = MCSamples(samples=samples, names=names, ranges=ranges)
     res = samples.getTable()
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
+
+    margeStats = samples.getMargeStats()
+    results = np.empty(3 * len(names))
+    with open(directory + "/Results.txt", "a") as myfile:
+        for i in range(len(names)):
+            results[3*i] = margeStats.names[i].mean
+            results[3*i + 1] = margeStats.names[i].limits[0].lower
+            results[3*i + 2] = margeStats.names[i].limits[0].upper
+        # myfile.write(str(results) + "\n")
+        np.savetxt(myfile, results.reshape(1, results.shape[0]), fmt='%.4e')
 
 
 def MhPeak(samples, idx_z, iterations, Ms_max):
@@ -685,7 +709,10 @@ def readAndAnalyseBin(directory, idx_z, iterations):
     plt.close('all')
     plot_Mhpeak(directory, samples, idx_z, iterations, params)
     plt.close('all')
-    save_results(directory, samples, idx_z, iterations, params['noksi'], params)
+    with open(directory + "/Results.txt", "a") as myfile:
+        myfile.write(r'Print mean value, 68% lower and 68% upper limits')
+        myfile.write('M1, Ms0, beta, delta, gamma, ksi')
+    save_results(directory, samples, idx_z, iterations, params)
 
 
 """Plots"""
