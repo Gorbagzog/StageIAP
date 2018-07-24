@@ -421,7 +421,7 @@ def get_platform():
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '../', numprocess
     elif platform.uname()[1] == 'glx-calcul3':
-        numprocess = 8
+        numprocess = 4
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', numprocess
     elif platform.uname()[1] == 'glx-calcul1':
@@ -526,7 +526,7 @@ def runMCMC_allZ(paramfile):
     # Run all redshift at the same time
     #Pool().map(partial(runMCMC, directory=directory, params=params), params['selected_redshifts'])
     print("Creating 10 (non-daemon) workers and jobs in main process.")
-    pool = MyPool(10)
+    pool = MyPool()
 
     result = pool.map(partial(runMCMC, directory=directory, params=params),
         params['selected_redshifts'])
@@ -843,7 +843,6 @@ def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arang
         conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
         conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
 
-
     plt.figure()
     for idx_z in selected_redshifts:
         plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
@@ -859,6 +858,34 @@ def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arang
     #plt.show()
     plt.savefig(directory + '/Plots/SHMR_Allz0_niter=' +
         str(iterations) + '.pdf')
+
+    if np.size(selected_redshifts)==10:
+        plt.figure()
+        for idx_z in np.arange(6):
+            plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
+            plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        """PLot the Behroozi SHMR"""
+        plt.xlabel('$\mathrm{log}_{10}(M_{*}/M_{\odot})$', size=17)
+        plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
+        plt.tick_params(axis='both', which='major', labelsize=13)
+        plt.legend(prop={'size': 12})
+        plt.tight_layout()
+        #plt.show()
+        plt.savefig(directory + '/Plots/SHMR_upto6_niter=' +
+            str(iterations) + '.pdf')
+        plt.figure()
+        for idx_z in np.arange(3)+7:
+            plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
+            plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        """PLot the Behroozi SHMR"""
+        plt.xlabel('$\mathrm{log}_{10}(M_{*}/M_{\odot})$', size=17)
+        plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
+        plt.tick_params(axis='both', which='major', labelsize=13)
+        plt.legend(prop={'size': 12})
+        plt.tight_layout()
+        #plt.show()
+        plt.savefig(directory + '/Plots/SHMR_789_niter=' +
+            str(iterations) + '.pdf')
 
     plt.figure()
     for idx_z in selected_redshifts:
@@ -892,6 +919,54 @@ def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arang
     # plt.show()
     plt.savefig(directory + '/Plots/DeltaSHMR_Allz0_niter=' +
         str(iterations) + '.pdf')
+
+    if np.size(selected_redshifts)==10:
+        plt.figure()
+        for idx_z in np.arange(6):
+            """Plot the median"""
+            x = med_logMh[idx_z]
+            y = logMs[idx_z] - med_logMh[idx_z]
+            xerr = [x - conf_min_logMh[idx_z], conf_max_logMh[idx_z] - x]
+            # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
+            yerr = [xerr[1], xerr[0]]
+            # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
+            plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
+            plt.plot(x, y, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        logspace = np.linspace(11, 16)
+        # plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
+        plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
+        plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=17)
+        plt.tick_params(axis='both', which='major', labelsize=13)
+        plt.xlim(11.2, 14.6)
+        plt.ylim(-2.85, -0.9)
+        plt.legend(ncol=2, loc=3)
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig(directory + '/Plots/DeltaSHMR_upto6_niter=' +
+            str(iterations) + '.pdf')
+        plt.figure()
+        for idx_z in np.arange(3)+7:
+            """Plot the median"""
+            x = med_logMh[idx_z]
+            y = logMs[idx_z] - med_logMh[idx_z]
+            xerr = [x - conf_min_logMh[idx_z], conf_max_logMh[idx_z] - x]
+            # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
+            yerr = [xerr[1], xerr[0]]
+            # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
+            plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
+            plt.plot(x, y, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        logspace = np.linspace(11, 16)
+        # plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
+        plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
+        plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=17)
+        plt.tick_params(axis='both', which='major', labelsize=13)
+        plt.xlim(11.2, 14.6)
+        plt.ylim(-2.85, -0.9)
+        plt.legend(ncol=2, loc=3)
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig(directory + '/Plots/DeltaSHMR_789_niter=' +
+            str(iterations) + '.pdf')
 
 
 def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
