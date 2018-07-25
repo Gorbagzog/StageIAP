@@ -723,8 +723,8 @@ def plotAutocorr(directory, idx_z, autocorr, index):
     y = autocorr[:index]
     plt.plot(n, n / 50.0, "--k")
     plt.plot(n, y)
-    plt.xlim(0, n.max())
-    plt.ylim(0, y.max() + 0.1*(y.max() - y.min()))
+    # plt.xlim(0, n.max())
+    # plt.ylim(0, y.max() + 0.1*(y.max() - y.min()))
     plt.xlabel("number of steps")
     plt.ylabel(r"mean $\hat{\tau}$");
     plt.savefig(directory+'/Plots/TestConvergence_'+str(idx_z)+'.pdf')
