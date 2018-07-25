@@ -441,7 +441,7 @@ def get_platform():
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', numprocess
     elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
-        numprocess = 1
+        numprocess = 4
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '../', numprocess
     elif platform.uname()[1] == 'mic-llegrand.ias.u-psud.fr':
@@ -538,7 +538,7 @@ def runMCMC_allZ(paramfile):
     # Run all redshift at the same time
     #Pool().map(partial(runMCMC, directory=directory, params=params), params['selected_redshifts'])
     print("Creating xx (non-daemon) workers and jobs in main process.")
-    pool = MyPool()
+    pool = MyPool(10)
     pool.map(partial(runMCMC, directory=directory, params=params),
         params['selected_redshifts'])
 
@@ -550,7 +550,7 @@ def runMCMC_allZ(paramfile):
     # return result
 
     # Plot all SHMR on one graph
-    plotSHMR_delta(directory, load=False, selected_redshifts=params['selected_redshifts'])
+    plotSHMR_delta(directory, params['iterations'], load=False, selected_redshifts=params['selected_redshifts'])
     # Plot the MhaloPeak graph
     plt.clf()
     plt.figure(figsize=(10, 5))
@@ -635,28 +635,28 @@ def runMCMC(idx_z, directory, params):
         plt.close('all')
         plotchain(directory, samples, idx_z, params)
         plt.close('all')
-        plotdist(directory, samples, idx_z, params)
+        plotdist(directory, samples, idx_z, iterations, params)
         plt.close('all')
-        plotSMF(directory, samples, smf, hmf, idx_z, params)
+        plotSMF(directory, samples, smf, hmf, idx_z, params, iterations)
         plt.close('all')
-        plotSMHM(directory, samples, smf, idx_z)
+        plotSMHM(directory, samples, smf, idx_z, iterations)
         plt.close('all')
-        plotSHMR(directory, samples, smf, idx_z)
+        plotSHMR(directory, samples, smf, idx_z, iterations)
         plt.close('all')
-        plot_Mhpeak(directory, samples, idx_z, params)
+        plot_Mhpeak(directory, samples, idx_z, iterations, params)
         plt.close('all')
         with open(directory + "/Results.txt", "a") as myfile:
             myfile.write(r'Print mean value, 68% lower and 68% upper limits' + '\n')
             myfile.write('M1, Ms0, beta, delta, gamma, ksi \n')
-        save_results(directory, samples, idx_z, params)
+        save_results(directory, samples, idx_z, iterations, params)
 
 
-def save_results(directory, samples, idx_z, params):
+def save_results(directory, samples, idx_z, iterations, params):
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
     ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
     samples = MCSamples(samples=samples, names=names, ranges=ranges)
     res = samples.getTable()
-    res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + ".txt")
+    res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + "_niter=" + str(iterations) + ".txt")
 
     margeStats = samples.getMargeStats()
     results = np.empty(3 * len(names))
@@ -669,7 +669,7 @@ def save_results(directory, samples, idx_z, params):
         np.savetxt(myfile, results.reshape(1, results.shape[0]), fmt='%.4e')
 
 
-def MhPeak(samples, idx_z, Ms_max):
+def MhPeak(samples, idx_z, iterations, Ms_max):
     chainsize = np.shape(samples)[0]
     logMs = np.linspace(8, Ms_max, num=300)
     Mhalopeak = np.zeros(chainsize)
@@ -680,7 +680,7 @@ def MhPeak(samples, idx_z, Ms_max):
     return Mhalopeak
 
 
-def readAndAnalyseBin(directory, idx_z):
+def readAndAnalyseBin(directory, idx_z, iterations):
     """Read previously computed chains and make the analysis."""
     paramfile = directory + '/MCMC_param.ini'
     global params
@@ -699,20 +699,20 @@ def readAndAnalyseBin(directory, idx_z):
     plt.close('all')
     plotchain(directory, samples, idx_z, params)
     plt.close('all')
-    plotdist(directory, samples, idx_z, params)
+    plotdist(directory, samples, idx_z, iterations, params)
     plt.close('all')
-    plotSMF(directory, samples, smf, hmf, idx_z, params)
+    plotSMF(directory, samples, smf, hmf, idx_z, params, iterations)
     plt.close('all')
-    plotSMHM(directory, samples, smf, idx_z)
+    plotSMHM(directory, samples, smf, idx_z, iterations)
     plt.close('all')
-    plotSHMR(directory, samples, smf, idx_z)
+    plotSHMR(directory, samples, smf, idx_z, iterations)
     plt.close('all')
-    plot_Mhpeak(directory, samples, idx_z, params)
+    plot_Mhpeak(directory, samples, idx_z, iterations, params)
     plt.close('all')
     with open(directory + "/Results.txt", "a") as myfile:
         myfile.write(r'Print mean value, 68% lower and 68% upper limits')
         myfile.write('M1, Ms0, beta, delta, gamma, ksi')
-    save_results(directory, samples, idx_z, params)
+    save_results(directory, samples, idx_z, iterations, params)
 
 
 """Plots"""
@@ -730,7 +730,7 @@ def plotAutocorr(directory, idx_z, autocorr, index):
     plt.savefig(directory+'/Plots/TestConvergence_'+str(idx_z)+'.pdf')
 
 
-def plotSMF(directory, samples, smf, hmf, idx_z, params):
+def plotSMF(directory, samples, smf, hmf, idx_z, params, iterations):
     if params['do_sm_cut']:
         select = np.where(np.logical_and(
                 np.logical_and(
@@ -749,10 +749,10 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params):
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(\phi)$')
-    plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + '.pdf')
+    plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSMHM(directory, samples, smf, idx_z):
+def plotSMHM(directory, samples, smf, idx_z, iterations):
     select = np.where(smf[idx_z][:, 1] > -40)[0]
     logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
@@ -760,10 +760,10 @@ def plotSMHM(directory, samples, smf, idx_z):
         plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
     plt.xlabel('$M_{\odot} / \mathrm{log}_{10}(M_{\mathrm{h}})$')
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{*})$')
-    plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + '.pdf')
+    plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
-def plotSHMR(directory, samples, smf, idx_z):
+def plotSHMR(directory, samples, smf, idx_z, iterations):
     select = np.where(smf[idx_z][:, 1] > -40)[0]
     logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
@@ -771,19 +771,20 @@ def plotSHMR(directory, samples, smf, idx_z):
         plt.plot(logMs, logmhalo, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_{*} / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{\odot})$')
-    plt.savefig(directory+'/Plots/SHMR'+ str(idx_z) + "_niter=" + '.pdf')
+    plt.savefig(directory+'/Plots/SHMR'+ str(idx_z) + "_niter=" + str(iterations) + '.pdf')
 
 
 def plotchain(directory, samples, idx_z, params):
-    figname = directory + "/Plots/Triangle_z" + str(idx_z)
+    iterations, noksi = params['iterations'],  params['noksi']
+    figname = directory + "/Plots/Triangle_z" + str(idx_z) + "_niter=" + str(iterations)
     fig = corner.corner(
         samples, labels=['$M_{1}$', '$M_{*,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$'])
     fig.savefig(figname + ".pdf")
     plt.close('all')
 
 
-def plotdist(directory, samples, idx_z, params):
-    figname = directory + "/Plots/GetDist_z" + str(idx_z)
+def plotdist(directory, samples, idx_z, iterations, params):
+    figname = directory + "/Plots/GetDist_z" + str(idx_z) + "_niter=" + str(iterations)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
     samples = MCSamples(samples=samples, names=names,
         ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z],
@@ -794,8 +795,8 @@ def plotdist(directory, samples, idx_z, params):
     plt.close('all')
 
 
-def plot_Mhpeak(directory, samples, idx_z, params):
-    mhpeak = MhPeak(samples, idx_z, params['SM_cut_max'][idx_z])
+def plot_Mhpeak(directory, samples, idx_z, iterations, params):
+    mhpeak = MhPeak(samples, idx_z, iterations, params['SM_cut_max'][idx_z])
     med_mhpeak = np.median(mhpeak)
     std_mhpeak = np.std(mhpeak)
     with open(directory + "/MhaloPeak.txt", "a") as myfile:
@@ -807,7 +808,7 @@ def plot_Mhpeak(directory, samples, idx_z, params):
     plt.savefig(directory+'/Plots/MhPeak_z' + str(idx_z) + '.pdf')
 
 
-def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
+def plotSHMR_delta(directory, iterations, load=True, selected_redshifts=np.arange(10)):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
     paramfile = directory + '/MCMC_param.ini'
     global params
@@ -870,11 +871,9 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
 
     plt.figure()
-    plt.ylim(11, 15)
-    plt.xlim(9, 12)
     for idx_z in selected_redshifts:
         plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
-        plt.plot(logMs[idx_z], med_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
     """PLot the Behroozi SHMR"""
     # log_ms_boo, log_mh_boo = np.load('SHMR_Behroozi_z0.npy')
     # plt.plot(log_ms_boo, log_mh_boo, c='black', linestyle='--', label='Behroozi et al. 2013, z=0.35')
@@ -884,36 +883,36 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
     plt.legend(prop={'size': 12})
     plt.tight_layout()
     #plt.show()
-    plt.savefig(directory + '/Plots/SHMR_Allz0.pdf')
+    plt.savefig(directory + '/Plots/SHMR_Allz0_niter=' +
+        str(iterations) + '.pdf')
 
     if np.size(selected_redshifts)==10:
         plt.figure()
-        plt.ylim(11, 15)
-        plt.xlim(9, 12)
         for idx_z in np.arange(6):
             plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
-            plt.plot(logMs[idx_z], med_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+            plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        """PLot the Behroozi SHMR"""
         plt.xlabel('$\mathrm{log}_{10}(M_{*}/M_{\odot})$', size=17)
         plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
         plt.tick_params(axis='both', which='major', labelsize=13)
         plt.legend(prop={'size': 12})
         plt.tight_layout()
         #plt.show()
-        plt.savefig(directory + '/Plots/SHMR_upto6.pdf')
-
+        plt.savefig(directory + '/Plots/SHMR_upto6_niter=' +
+            str(iterations) + '.pdf')
         plt.figure()
-        plt.ylim(11, 15)
-        plt.xlim(9, 12)
         for idx_z in np.arange(4)+6:
             plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
-            plt.plot(logMs[idx_z], med_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+            plt.plot(logMs[idx_z], av_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
+        """PLot the Behroozi SHMR"""
         plt.xlabel('$\mathrm{log}_{10}(M_{*}/M_{\odot})$', size=17)
         plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
         plt.tick_params(axis='both', which='major', labelsize=13)
         plt.legend(prop={'size': 12})
         plt.tight_layout()
         #plt.show()
-        plt.savefig(directory + '/Plots/SHMR_789.pdf')
+        plt.savefig(directory + '/Plots/SHMR_789_niter=' +
+            str(iterations) + '.pdf')
 
     plt.figure()
     for idx_z in selected_redshifts:
@@ -936,7 +935,7 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
         plt.plot(x, y, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
     logspace = np.linspace(11, 16)
-    plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
+    # plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
     plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
     plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=17)
     plt.tick_params(axis='both', which='major', labelsize=13)
@@ -945,7 +944,8 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
     plt.legend(ncol=2, loc=3)
     plt.tight_layout()
     # plt.show()
-    plt.savefig(directory + '/Plots/DeltaSMHM_Allz.pdf')
+    plt.savefig(directory + '/Plots/DeltaSHMR_Allz0_niter=' +
+        str(iterations) + '.pdf')
 
     if np.size(selected_redshifts)==10:
         plt.figure()
@@ -964,12 +964,13 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
         plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=17)
         plt.tick_params(axis='both', which='major', labelsize=13)
-        plt.xlim(11.2, 13.5)
-        plt.ylim(-2.5, -1.4)
+        plt.xlim(11.2, 14.6)
+        plt.ylim(-2.85, -0.9)
         plt.legend(ncol=2, loc=3)
         plt.tight_layout()
         # plt.show()
-        plt.savefig(directory + '/Plots/DeltaSMHM_upto6.pdf')
+        plt.savefig(directory + '/Plots/DeltaSHMR_upto6_niter=' +
+            str(iterations) + '.pdf')
         plt.figure()
         for idx_z in np.arange(4)+6:
             """Plot the median"""
@@ -991,7 +992,8 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.legend(ncol=2, loc=3)
         plt.tight_layout()
         # plt.show()
-        plt.savefig(directory + '/Plots/DeltaSMHM_789.pdf')
+        plt.savefig(directory + '/Plots/DeltaSHMR_789_niter=' +
+            str(iterations) + '.pdf')
 
 
 def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):

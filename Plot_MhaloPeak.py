@@ -175,7 +175,7 @@ def plotLiterrature():
                 markersize=5)
     plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014, elinewidth=1,
                 yerr=MhaloSigmaMartinezManso2014, markersize=5,
-                fmt='D', c='purple', markerfacecolor='white', capsize=2, label='Martinez-Manso et al. 2014')
+                fmt='D', c='purple', markerfacecolor='white', capsize=2, label='Martinez-Manso et al. 2015')
     # plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
                 #  fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
     plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
