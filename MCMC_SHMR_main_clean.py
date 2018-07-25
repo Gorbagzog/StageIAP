@@ -353,12 +353,12 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     n_ext = x.shape[0] // 2
     log_phi_dir_extend = np.concatenate((np.full(n_ext, log_phidirect[0]), log_phidirect))
     """Make a zero padding on the right side of the array"""
-    log_phi_dir_extend = np.concatenate((log_phi_dir_extend, np.full(n_ext, -np.inf)))
+    log_phi_dir_extend = np.concatenate((log_phi_dir_extend, np.full(n_ext*2, -np.inf)))
     phi_true_extend = signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')
     # print(M1, Ms0, beta, delta, gamma, ksi)
     # print(n_ext)
     # print(log_phidirect.shape)
-    phi_true = phi_true_extend[n_ext: -n_ext or None] # Put None in case n_ext is 0 (avoid empty list)
+    phi_true = phi_true_extend[n_ext: -n_ext*2 or None] # Put None in case n_ext is 0 (avoid empty list)
     # print(M1, Ms0, beta, delta, gamma, ksi)
     # print(log_phi_true)
     # return log_phi_true
@@ -749,7 +749,19 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params):
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(\phi)$')
-    plt.savefig(directory+'/Plots/SMF_ksi'+ str(idx_z) + '.pdf')
+    plt.savefig(directory+'/Plots/SMF_'+ str(idx_z) + '.pdf')
+    plt.close()
+    plt.figure()
+    plt.xlim(9, 12)
+    plt.ylim(-6, -2)
+    plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
+        yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
+    for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
+        logphi = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
+        plt.plot(logMs, logphi, color="k", alpha=0.1)
+    plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
+    plt.ylabel('$\mathrm{log}_{10}(\phi)$')
+    plt.savefig(directory+'/Plots/SMF_zoom'+ str(idx_z) + '.pdf')
 
 
 def plotSMHM(directory, samples, smf, idx_z):
