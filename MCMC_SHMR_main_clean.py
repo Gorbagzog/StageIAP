@@ -266,7 +266,7 @@ def load_hmf(params):
             hmf.append(np.transpose(np.array([np.log10(h.m / h.cosmo_model.h),
                        np.log10(h.dndlog10m * (h.cosmo_model.h)**3)])))  # Replace the h implicit in the HMF
 
-    if hmf_name == ('despali16' or 'tinker08' or 'watson13' or 'bocquet16' or 'bhattacharya11'):
+    if hmf_name == 'despali16' or hmf_name == 'tinker08' or hmf_name == 'watson13' or hmf_name == 'bocquet16' or hmf_name == 'bhattacharya11':
         """Use the Colossus module for the HMF"""
         print('Use '+hmf_name+' HMF in Planck15 cosmo from Colossus module')
         if hmf_name == ('watson13' or 'bhattacharya11'):
@@ -333,13 +333,13 @@ def log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma):
     # log_phidirect[log_Mh1 < hmf[idx_z][0, 0]] = 10**6
 
 
-# def gauss(y, ksi):
-#     return 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (y / ksi)**2)
+def gauss(y, ksi):
+    return 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (y / ksi)**2)
+
 
 def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Use convolution defined in Behroozi et al 2010"""
     log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-    # dx = logMs[1] - logMs[0]
     # if params['smf_name'] == 'cosmos_schechter':
     dx = np.mean(logMs[1:] - logMs[:-1])
     # else:
@@ -347,7 +347,6 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     u = np.arange(0, 10*ksi, dx)
     x = np.concatenate((np.flip(u, 0)[:-1], u)) # kepp the zero at the center of the array
     gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
-    # print(np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same')))
     # return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
 
     """Make an extension of the array on the left side to avoid convolution border effects"""
@@ -356,13 +355,8 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Make a zero padding on the right side of the array"""
     log_phi_dir_extend = np.concatenate((log_phi_dir_extend, np.full(n_ext*2, -np.inf)))
     phi_true_extend = signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')
-    # print(M1, Ms0, beta, delta, gamma, ksi)
-    # print(n_ext)
-    # print(log_phidirect.shape)
     phi_true = phi_true_extend[n_ext: -n_ext*2 or None] # Put None in case n_ext is 0 (avoid empty list)
-    # print(M1, Ms0, beta, delta, gamma, ksi)
-    # print(log_phi_true)
-    # return log_phi_true
+    return phi_true
     # return np.log10(signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')[x.shape[0] // 2:])
     # if any(np.isnan(phi_true_extend)):
     #     print( M1, Ms0, beta, delta, gamma, ksi)
@@ -370,10 +364,14 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     #     return
     # else:
     # print(phi_true.shape)
-    return phi_true
+    # return phi_true
     # gaussian = Gaussian1DKernel(stddev=ksi/dx)
     # return np.log10(convolution.convolve(10**log_phi_dir, gaussian, boundary='extend'))
-
+    # phitrue = log_phidirect * 0.
+    # for i in range(phitrue.size):
+    #     for j in range(phitrue.size -1):
+    #         phitrue[i] = phitrue[i] + 10**log_phidirect[j] * gauss(logMs[j] - logMs[i], ksi) * (logMs[j+1] - logMs[j])
+    # return phitrue
 
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """"return the chi**2 between the observed and the expected SMF."""

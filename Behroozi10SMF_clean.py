@@ -58,41 +58,50 @@ def beta(a):
 
 def delta(a):
     return delta_0 + delta_a*(a-1)
-    
+
 def gamma(a):
     return gamma_0 + gamma_a*(a-1)
-    
+
 
 """Compute the SMF"""
 
 paramfile = 'MCMC_param.ini'
 params = load_params(paramfile)
 
-smf = load_smf(params)
-hmf = load_hmf(params)
+print(params['hmf_name'])
+params['hmf_name'] = 'tinker08'
+print(params['hmf_name'])
 
+
+smf = load_smf(params)
+params['redshiftsbin'] = params['redshiftsbin'] *0.
+print(params['redshiftsbin'])
+hmf = load_hmf(params)
+print(hmf)
 z = 0.1
 idx_z = 0
 
 select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
 # We choose to limit the fit only for abundances higher than 10**-7
-logMs = smf[idx_z][select[:], 0]
+#logMs = smf[idx_z][select[:], 0]
+
+logMs = np.linspace(8, 12)
 
 log_Mh = logMh(logMs, logM1(af(z)), logMs0(af(z)), beta(af(z)), delta(af(z)), gamma(af(z)))
 
 # plt.plot(log_Mh, logMs)
 # plt.show()
 
-idx_z=2
-
 logphidir  = log_phi_direct(logMs, hmf, idx_z, logM1(af(z)), logMs0(af(z)), beta(af(z)), delta(af(z)), gamma(af(z)))
 # logphidir  = log_phi_direct(logMs, hmf, idx_z, M1_0, Ms0_0, beta_0, delta_0, gamma_0)
 print(logM1(af(z)), logMs0(af(z)), beta(af(z)), delta(af(z)), gamma(af(z)), ksi)
-logphitrue = np.log10(phi_true(logMs, hmf, idx_z, params, logM1(af(z)), logMs0(af(z)), beta(af(z)), delta(af(z)), gamma(af(z)), ksi))
+logphitrue = np.log10(phi_true(logMs, hmf, idx_z, logM1(af(z)), logMs0(af(z)), beta(af(z)), delta(af(z)), gamma(af(z)), ksi))
 
 plt.plot(logMs, logphidir, label='B10 best fit, no convolution')
 plt.plot(logMs, logphitrue, label='B10 best fit, with convolution')
-plt.plot(log_Ms_B10, log_phi_B10, '--', label='B10 (plot digitizer)')
+if idx_z ==0:
+    plt.plot(log_Ms_B10, log_phi_B10, '--', label='B10 (plot digitizer)')
+plt.ylim(-7, -1)
 plt.legend()
 plt.xlabel('log($M_*$)')
 plt.ylabel('log($\phi$)')

@@ -58,10 +58,10 @@ def beta(a):
 
 def delta(a):
     return delta_0 + delta_a*(a-1)
-    
+
 def gamma(a):
     return gamma_0 + gamma_a*(a-1)
-    
+
 
 """Compute the SMF"""
 
