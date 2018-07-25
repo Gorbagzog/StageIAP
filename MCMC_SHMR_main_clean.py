@@ -344,7 +344,8 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     dx = np.mean(logMs[1:] - logMs[:-1])
     # else:
     #     print('Warning, the step between two mass bins in not defined in this case.')
-    x = np.arange(-4*ksi/dx, 4*ksi/dx, dx)
+    u = np.arange(0, 10*ksi, dx)
+    x = np.concatenate((np.flip(u, 0)[:-1], u)) # kepp the zero at the center of the array
     gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
     # print(np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same')))
     # return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
@@ -741,7 +742,7 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params):
             )[0]
     else:
         select = np.where(smf[idx_z][:, 1] > -40)[0]
-    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=50)
+    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=100)
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
