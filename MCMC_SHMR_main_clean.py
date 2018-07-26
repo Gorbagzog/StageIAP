@@ -373,6 +373,7 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     #         phitrue[i] = phitrue[i] + 10**log_phidirect[j] * gauss(logMs[j] - logMs[i], ksi) * (logMs[j+1] - logMs[j])
     # return phitrue
 
+
 def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """"return the chi**2 between the observed and the expected SMF."""
     select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
