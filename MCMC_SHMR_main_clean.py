@@ -752,15 +752,15 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params):
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(\phi)$')
     plt.savefig(directory+'/Plots/SMF_'+ str(idx_z) + '.pdf')
-    plt.close()
+    # plt.close()
     plt.figure()
-    plt.xlim(9, 12)
-    plt.ylim(-6, -2)
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
         plt.plot(logMs, logphi, color="k", alpha=0.1)
+    plt.xlim(9, 12)
+    plt.ylim(-6, -2)
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(\phi)$')
     plt.savefig(directory+'/Plots/SMF_zoom'+ str(idx_z) + '.pdf')
