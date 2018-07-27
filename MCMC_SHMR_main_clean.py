@@ -283,9 +283,7 @@ def load_hmf(params):
                 np.transpose(
                     np.array(
                         [np.log10(M / cosmo.h),
-                         np.log10(mass_function.massFunction(
-                                M, redshift_haloes[i], mdef = mdef, model =hmf_name, q_out = 'dndlnM'
-                            ) * np.log(10) * cosmo.h**3
+                         np.log10(mass_function.massFunction(M, redshift_haloes[i], mdef = mdef, model =hmf_name, q_out = 'dndlnM') * np.log(10) * cosmo.h**3
                             ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
                             )]
                         )
