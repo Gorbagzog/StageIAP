@@ -37,7 +37,7 @@ from joblib import Parallel, delayed
 import multiprocessing
 from functools import partial
 
-os.environ["OMP_NUM_THREADS"] = "1"
+# os.environ["OMP_NUM_THREADS"] = "1"
 
 
 def load_smf(params):
@@ -283,7 +283,7 @@ def load_hmf(params):
                 np.transpose(
                     np.array(
                         [np.log10(M / cosmo.h),
-                         np.log10(mass_function.massFunction(M, redshift_haloes[i], mdef = mdef, model =hmf_name, q_out = 'dndlnM') * np.log(10) * cosmo.h**3
+                         np.loming10(mass_function.massFunction(M, redshift_haloes[i], mdef = mdef, model =hmf_name, q_out = 'dndlnM') * np.log(10) * cosmo.h**3
                             ## Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
                             )]
                         )
@@ -573,7 +573,7 @@ def runMCMC(idx_z, directory, params):
     backend = emcee.backends.HDFBackend(filename)
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
-    with Pool(processes=params['nthreads']) as pool:
+    with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
                     args=[idx_z, minbound, maxbound], pool=pool,
                     backend=backend)
