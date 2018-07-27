@@ -607,7 +607,7 @@ def runMCMC(idx_z, directory, params):
             # Using tol=0 means that we'll always get an estimate even
             # if it isn't trustworthy
             tau = sampler.get_autocorr_time(tol=0)
-            autocorr[index] = np.nanmean(tau)
+            autocorr[index] = np.mean(tau)
             index += 1
             # Check convergence
             converged = np.all(tau * 50 < sampler.iteration)
@@ -625,9 +625,9 @@ def runMCMC(idx_z, directory, params):
 
         # Clean samples
         tau = sampler.get_autocorr_time(tol=0)
-        burnin = int(2*np.nanmax(tau))
+        burnin = int(2*np.max(tau))
         print("Burnin "+str(burnin))
-        thin = int(0.5*np.nanmin(tau))
+        thin = int(0.5*np.min(tau))
         with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
             myfile.write(str(np.mean(tau)) + "  " + str(burnin) + "  " + str(thin) + "\n")
 
@@ -695,8 +695,8 @@ def readAndAnalyseBin(directory, idx_z):
     filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
     reader = emcee.backends.HDFBackend(filename, read_only=True)
     tau = reader.get_autocorr_time(tol=0)
-    burnin = int(2*np.nanmax(tau))
-    thin = int(0.5*np.nanmin(tau))
+    burnin = int(2*np.max(tau))
+    thin = int(0.5*np.min(tau))
     samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
     # Plot all relevant figures
     plt.close('all')
@@ -853,8 +853,8 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
             filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
             reader = emcee.backends.HDFBackend(filename, read_only=True)
             tau = reader.get_autocorr_time(tol=0)
-            burnin = int(2*np.nanmax(tau))
-            thin = int(0.5*np.nanmin(tau))
+            burnin = int(2*np.max(tau))
+            thin = int(0.5*np.min(tau))
             samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
             print('Chain loaded for idx_z = '+str(idx_z))
             nsimu = samples.shape[0]
