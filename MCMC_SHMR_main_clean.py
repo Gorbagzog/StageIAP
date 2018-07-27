@@ -354,8 +354,9 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     log_phi_dir_extend = np.concatenate((np.full(n_ext, log_phidirect[0]), log_phidirect))
     """Make a zero padding on the right side of the array"""
     log_phi_dir_extend = np.concatenate((log_phi_dir_extend, np.full(n_ext*2, -np.inf)))
-    phi_true_extend = signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')
-    phi_true = phi_true_extend[n_ext: -n_ext*2 or None] # Put None in case n_ext is 0 (avoid empty list)
+    u = 10**log_phi_dir_extend
+    phi_true_extend = signal.convolve(u, gaussian, mode='same')
+    phi_true = phi_true_extend[n_ext: -n_ext*2 or None]   # Put None in case n_ext is 0 (avoid empty list)
     return phi_true
     # return np.log10(signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')[x.shape[0] // 2:])
     # if any(np.isnan(phi_true_extend)):
