@@ -566,6 +566,7 @@ def runMCMC_allZ(paramfile):
 def runMCMC(idx_z, directory, params):
     minbound, maxbound, starting_point, std, iterations, nwalkers = params['minbound'], params['maxbound'], params['starting_point'], params['std'], params['iterations'], params['nwalkers']
     p0 = emcee.utils.sample_ball(starting_point[idx_z], std, size=nwalkers)
+    p0 = np.abs(p0)  # ensure that everything is positive at the begining to avoid points stucked
     ndim = len(starting_point[idx_z])
 
     # Set up the backend
@@ -774,6 +775,8 @@ def plotSMHM(directory, samples, smf, idx_z):
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logmhalo = logMh(logMs, M1, Ms0, beta, delta, gamma)
         plt.plot(logmhalo, logMs-logmhalo, color="k", alpha=0.1)
+    plt.xlim(10, 16)
+    plt.ylim(-4, -0.5)
     plt.xlabel('$M_{\odot} / \mathrm{log}_{10}(M_{\mathrm{h}})$')
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}} / M_{*})$')
     plt.savefig(directory+'/Plots/SMHM_ksi'+ str(idx_z) + "_niter=" + '.pdf')
