@@ -695,8 +695,8 @@ def readAndAnalyseBin(directory, idx_z):
     filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
     reader = emcee.backends.HDFBackend(filename, read_only=True)
     tau = reader.get_autocorr_time(tol=0)
-    burnin = int(2*np.nanmax(tau))
-    thin = int(0.5*np.nanmin(tau))
+    burnin = int(2*np.max(tau))
+    thin = int(0.5*np.min(tau))
     samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
     # Plot all relevant figures
     plt.close('all')
