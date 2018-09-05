@@ -135,9 +135,11 @@ def load_smf(params):
         # print(params['SMF_subsampling'])
         if params['SMF_subsampling']:
             subsampling_step = params['subsampling_step']
+            sub_start = params['subsampling_start']
             print('Do a subsampling of the SMF with a step of '+str(subsampling_step))
+            print('Start subsample at index ' + str(sub_start))
             for i in range(params['numzbin']):
-                smf[i] = np.array(np.transpose([smf[i][::subsampling_step, 0], smf[i][::subsampling_step, 1], smf[i][::subsampling_step, 2], smf[i][::subsampling_step, 3]]))
+                smf[i] = np.array(np.transpose([smf[i][sub_start::subsampling_step, 0], smf[i][sub_start::subsampling_step, 1], smf[i][sub_start::subsampling_step, 2], smf[i][sub_start::subsampling_step, 3]]))
         else:
             print('No subsampling of the SMF')
 
@@ -464,6 +466,7 @@ def load_params(paramfile):
     params['SM_cut_max'] = np.array(config.getlist('Mass_functions.SM_cut')).astype('float')
     params['SMF_subsampling'] = config.getbool('Mass_functions.SMF_subsampling')
     params['subsampling_step'] = config.getint('Mass_functions.subsampling_step')
+    params['subsampling_start'] = config.getint('Mass_functions.subsampling_start')
     params['hmf_name'] = config.getstr('Mass_functions.HMF')
     params['iterations'] = config.getint('MCMC_run_parameters.iterations')
     # params['burn'] = config.getint('MCMC_run_parameters.burn')
