@@ -405,7 +405,7 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     #             # 10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
     # )
     chi2 = np.sum(
-            ((np.log10(pred[sm_select]) - smf[idx_z][select, 1][sm_select]) / ((smf[idx_z][select, 2][sm_select] + smf[idx_z][select, ][sm_select])/2) )**2)
+            ((np.log10(pred[sm_select]) - smf[idx_z][select, 1][sm_select]) / ((smf[idx_z][select, 2][sm_select] + smf[idx_z][select, 2][sm_select])/2) )**2)
     return chi2
 
 
