@@ -259,7 +259,7 @@ def load_hmf(params):
     if hmf_name == 'despali16' or hmf_name == 'tinker08' or hmf_name == 'watson13' or hmf_name == 'bocquet16' or hmf_name == 'bhattacharya11':
         """Use the Colossus module for the HMF"""
         print('Use '+hmf_name+' HMF in Planck15 cosmo from Colossus module')
-        if hmf_name == ('watson13' or 'bhattacharya11'):
+        if hmf_name == 'watson13' or hmf_name =='bhattacharya11':
             print(hmf_name)
             mdef='fof'
         else:
