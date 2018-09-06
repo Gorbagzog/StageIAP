@@ -733,8 +733,6 @@ def plotAutocorr(directory, idx_z, autocorr, index):
 
 
 def plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_start):
-    print(subsampling_step)
-    print(sub_start)
     if params['do_sm_cut']:
         select = np.where(np.logical_and(
                 np.logical_and(
@@ -745,8 +743,6 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_s
             )[0]
     else:
         select = np.where(smf[idx_z][:, 1] > -40)[0]
-    print(smf[idx_z][select, 0])
-    print(smf[idx_z][select, 0][sub_start::subsampling_step])
     cut_smf = np.array([smf[idx_z][select, 0][sub_start::subsampling_step], smf[idx_z][select, 1][sub_start::subsampling_step], 
         smf[idx_z][select, 2][sub_start::subsampling_step], smf[idx_z][select, 3][sub_start::subsampling_step]])
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
@@ -763,8 +759,6 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_s
     plt.savefig(directory+'/Plots/SMF_'+ str(idx_z) + '.pdf')
     # plt.close()
     plt.figure()
-    print(subsampling_step)
-    print(sub_start)
     plt.errorbar(smf[idx_z][select, 0][sub_start::subsampling_step], smf[idx_z][select, 1][sub_start::subsampling_step],
         yerr=[smf[idx_z][select, 3][sub_start::subsampling_step], smf[idx_z][select, 2][sub_start::subsampling_step]], fmt='o')
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
