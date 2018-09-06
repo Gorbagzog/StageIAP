@@ -131,18 +131,6 @@ def load_smf(params):
             DL_Planck = Planck15.luminosity_distance(params['redshiftsbin'][i])
             smf[i][:, 0] = smf[i][:, 0] + 2*np.log10(DL_Planck/DL_D17)
 
-        """Test to do subsampling of the SMF"""
-        # print(params['SMF_subsampling'])
-        if params['SMF_subsampling']:
-            subsampling_step = params['subsampling_step']
-            sub_start = params['subsampling_start']
-            print('Do a subsampling of the SMF with a step of '+str(subsampling_step))
-            print('Start subsample at index ' + str(sub_start))
-            for i in range(params['numzbin']):
-                smf[i] = np.array(np.transpose([smf[i][sub_start::subsampling_step, 0], smf[i][sub_start::subsampling_step, 1], smf[i][sub_start::subsampling_step, 2], smf[i][sub_start::subsampling_step, 3]]))
-        else:
-            print('No subsampling of the SMF')
-
     if smf_name == 'candels':
         print('Use the Candels SMF')
         print('/!\ /!\ Warning the step in stellar mass may not be good !!! needed for the convoltution in phi true')
@@ -345,7 +333,7 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # else:
     #     print('Warning, the step between two mass bins in not defined in this case.')
     u = np.arange(0, 10*ksi, dx)
-    x = np.concatenate((np.flip(u, 0)[:-1], u)) # kepp the zero at the center of the array
+    x = np.concatenate((-np.flip(u, 0)[:-1], u)) # kepp the zero at the center of the array
     gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
     # return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
 
@@ -354,8 +342,8 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     log_phi_dir_extend = np.concatenate((np.full(n_ext, log_phidirect[0]), log_phidirect))
     """Make a zero padding on the right side of the array"""
     log_phi_dir_extend = np.concatenate((log_phi_dir_extend, np.full(n_ext*2, -np.inf)))
-    u = 10**log_phi_dir_extend
-    phi_true_extend = signal.convolve(u, gaussian, mode='same')
+    phi_dir_extend = 10**log_phi_dir_extend
+    phi_true_extend = signal.convolve(phi_dir_extend, gaussian, mode='same')
     phi_true = phi_true_extend[n_ext: -n_ext*2 or None]   # Put None in case n_ext is 0 (avoid empty list)
     return phi_true
     # return np.log10(signal.convolve(10**log_phi_dir_extend, gaussian, mode='same')[x.shape[0] // 2:])
@@ -375,7 +363,7 @@ def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     # return phitrue
 
 
-def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
+def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi, subsampling_step, sub_start):
     """"return the chi**2 between the observed and the expected SMF."""
     select = np.where(smf[idx_z][:, 1] > -40)[0]  # select points where the smf is defined
     # We choose to limit the fit only for abundances higher than 10**-7
@@ -398,14 +386,9 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
             )
     else:
         sm_select = True
-    """In the case of the Schechter fit, error bars are non symmetric."""
-    # chi2 = np.sum(
-    #         ((pred[sm_select] - 10**smf[idx_z][select, 1][sm_select]) / (
-    #             10**(smf[idx_z][select, 2][sm_select] + smf[idx_z][select, 1][sm_select]) - 10**smf[idx_z][select, 1][sm_select]))**2
-    #             # 10**smf[idx_z][select, 1] - 10**(smf[idx_z][select, 1] - smf[idx_z][select, 3])))**2
-    # )
+
     chi2 = np.sum(
-            ((np.log10(pred[sm_select]) - smf[idx_z][select, 1][sm_select]) / ((smf[idx_z][select, 2][sm_select] + smf[idx_z][select, 2][sm_select])/2) )**2)
+        ((np.log10(pred[sm_select]) - smf[idx_z][select, 1][sm_select]) / ((smf[idx_z][select, 2][sm_select] + smf[idx_z][select, 2][sm_select])/2) )[sub_start::subsampling_step]**2)
     return chi2
 
 
@@ -416,11 +399,11 @@ def chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi):
 #     return sig0 + sig1 * (x_true - x_est)
 
 
-def loglike(theta, idx_z, minbound, maxbound):
+def loglike(theta, idx_z, minbound, maxbound, subsampling_step, sub_start):
     """return the loglikelihood"""
     if all(theta > minbound[idx_z]) and all(theta < maxbound[idx_z]):
         M1, Ms0, beta, delta, gamma, ksi = theta[:]
-        return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi)/2
+        return -chi2(idx_z, M1, Ms0, beta, delta, gamma, ksi, subsampling_step, sub_start)/2
     else:
         return -np.inf
 
@@ -569,7 +552,13 @@ def runMCMC(idx_z, directory, params):
     p0 = emcee.utils.sample_ball(starting_point[idx_z], std, size=nwalkers)
     p0 = np.abs(p0)  # ensure that everything is positive at the begining to avoid points stucked
     ndim = len(starting_point[idx_z])
-
+    """SMF subsampling"""
+    if params['SMF_subsampling']:
+        subsampling_step = params['subsampling_step']
+        sub_start = params['subsampling_start']
+    else:
+        subsampling_step = None
+        sub_start = None
     # Set up the backend
     # Don't forget to clear it in case the file already exists
     filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
@@ -578,7 +567,7 @@ def runMCMC(idx_z, directory, params):
     print('Using backend to save the chain to '+filename)
     with Pool(processes=2) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
-                    args=[idx_z, minbound, maxbound], pool=pool,
+                    args=[idx_z, minbound, maxbound, subsampling_step, sub_start], pool=pool,
                     backend=backend)
         print("idx_z = " + str (idx_z))
         print("ndim = " + str(ndim))
