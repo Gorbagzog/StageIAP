@@ -487,11 +487,6 @@ def runMCMC_allZ(paramfile):
     """Main function to run all MCMC on all zbins based on the param file."""
     global params
     params = load_params(paramfile)
-    global smf
-    global hmf
-    smf = load_smf(params)
-    hmf = load_hmf(params)
-
     # Create save direcory
     now = datetime.datetime.now()
     dateName = "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
@@ -504,6 +499,16 @@ def runMCMC_allZ(paramfile):
         # os.makedirs(directory+'/Plots/MhaloPeak')
         os.makedirs(directory+'/Results')
         print('Created new directory')
+    orig_stdout = sys.stdout
+    f = open(directory+'/out.txt', 'w')
+    sys.stdout.flush()
+    sys.stdout = f
+
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+
     # Copy parameter files in the save directory
     copyfile(params['starting_point_file'], directory + '/' + params['starting_point_file'])
     copyfile(paramfile, directory + '/' + paramfile)
@@ -545,6 +550,9 @@ def runMCMC_allZ(paramfile):
     Plot_MhaloPeak.plotFit(directory, params['smf_name'], params['hmf_name'])
     Plot_MhaloPeak.savePlot(directory)
     plt.clf()
+
+    sys.stdout = orig_stdout
+    f.close()
 
 
 def runMCMC(idx_z, directory, params):
@@ -591,7 +599,7 @@ def runMCMC(idx_z, directory, params):
         # This will be useful to testing convergence∏
         old_tau = np.inf
         # Now we'll sample for up to iterations steps
-        for sample in sampler.sample(p0, iterations=iterations, progress=True):
+        for sample in sampler.sample(p0, iterations=iterations, progress=False):
             # Only check convergence every 100 steps
             if sampler.iteration % 100:
                 continue
