@@ -631,7 +631,7 @@ def runMCMC(idx_z, directory, params):
         plt.close('all')
         plotdist(directory, samples, idx_z, params)
         plt.close('all')
-        plotSMF(directory, samples, smf, hmf, idx_z, params)
+        plotSMF(directory, samples, smf, hmf, idx_z, params,  subsampling_step, sub_start)
         plt.close('all')
         plotSMHM(directory, samples, smf, idx_z)
         plt.close('all')
@@ -683,6 +683,13 @@ def readAndAnalyseBin(directory, idx_z):
     global hmf
     smf = load_smf(params)
     hmf = load_hmf(params)
+    """SMF subsampling"""
+    if params['SMF_subsampling']:
+        subsampling_step = params['subsampling_step']
+        sub_start = params['subsampling_start']
+    else:
+        subsampling_step = None
+        sub_start = None
     print('Start loading and plotting '+str(idx_z))
     filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
     reader = emcee.backends.HDFBackend(filename, read_only=True)
@@ -696,7 +703,7 @@ def readAndAnalyseBin(directory, idx_z):
     plt.close('all')
     plotdist(directory, samples, idx_z, params)
     plt.close('all')
-    plotSMF(directory, samples, smf, hmf, idx_z, params)
+    plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_start)
     plt.close('all')
     plotSMHM(directory, samples, smf, idx_z)
     plt.close('all')
@@ -725,7 +732,9 @@ def plotAutocorr(directory, idx_z, autocorr, index):
     plt.savefig(directory+'/Plots/TestConvergence_'+str(idx_z)+'.pdf')
 
 
-def plotSMF(directory, samples, smf, hmf, idx_z, params):
+def plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_start):
+    print(subsampling_step)
+    print(sub_start)
     if params['do_sm_cut']:
         select = np.where(np.logical_and(
                 np.logical_and(
@@ -736,19 +745,28 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params):
             )[0]
     else:
         select = np.where(smf[idx_z][:, 1] > -40)[0]
-    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=100)
+    print(smf[idx_z][select, 0])
+    print(smf[idx_z][select, 0][sub_start::subsampling_step])
+    cut_smf = np.array([smf[idx_z][select, 0][sub_start::subsampling_step], smf[idx_z][select, 1][sub_start::subsampling_step], 
+        smf[idx_z][select, 2][sub_start::subsampling_step], smf[idx_z][select, 3][sub_start::subsampling_step]])
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
-        yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
+        yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o', label='all points')
+    plt.errorbar(cut_smf[0], cut_smf[1],
+        yerr=[cut_smf[3], cut_smf[2]], fmt='o', label='fitted points')
+    logMs = np.linspace(smf[idx_z][select[0], 0], smf[idx_z][select[-1], 0], num=100)
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
         plt.plot(logMs, logphi, color="k", alpha=0.1)
     plt.xlabel('$\mathrm{log}_{10}(M_* / M_{\odot})$')
     plt.ylabel('$\mathrm{log}_{10}(\phi)$')
+    plt.legend()
     plt.savefig(directory+'/Plots/SMF_'+ str(idx_z) + '.pdf')
     # plt.close()
     plt.figure()
-    plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
-        yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o')
+    print(subsampling_step)
+    print(sub_start)
+    plt.errorbar(smf[idx_z][select, 0][sub_start::subsampling_step], smf[idx_z][select, 1][sub_start::subsampling_step],
+        yerr=[smf[idx_z][select, 3][sub_start::subsampling_step], smf[idx_z][select, 2][sub_start::subsampling_step]], fmt='o')
     for M1, Ms0, beta, delta, gamma, ksi in samples[np.random.randint(len(samples), size=100)]:
         logphi = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
         plt.plot(logMs, logphi, color="k", alpha=0.1)
