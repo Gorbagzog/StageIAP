@@ -178,28 +178,28 @@ def plotLiterrature():
                 fmt='D', c='purple', markerfacecolor='white', capsize=2, label='M+2015')
     # plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
                 #  fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
-    plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
-                fmt='v', c='violet', markerfacecolor='white', capsize=2, label='I+17',
-                elinewidth=1)
+    # plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
+    #             fmt='v', c='violet', markerfacecolor='white', capsize=2, label='I+17',
+    #             elinewidth=1)
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=5,
                 fmt='*', c='orange', markerfacecolor='white', capsize=2, label='C+18',
                 elinewidth=1,)
-    plt.errorbar(redshiftHarikane, MhaloPeakHarikane,
-                yerr=0.1, elinewidth=1,
-                c='brown', label='H+18, low lim',
-                fmt='o', linestyle='none', capsize=3, lolims=True,
-                markersize=3)
+    # plt.errorbar(redshiftHarikane, MhaloPeakHarikane,
+    #             yerr=0.1, elinewidth=1,
+    #             c='brown', label='H+18, low lim',
+    #             fmt='o', linestyle='none', capsize=3, lolims=True,
+    #             markersize=3)
     # plt.scatter(redshiftBS15, MhaloPeakBS15_oldfit, label='BS15 oldfit')
-    plt.plot(redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=7,
-            markerfacecolor='white', label='B+15')
+    # plt.plot(redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=7,
+    #         markerfacecolor='white', label='B+15')
     # plt.scatter(redshiftMoster18, MhaloPeakMoster18,
     #         label='Moster et al. 2018')
-    plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
-            label='B+13')
+    # plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
+    #         label='B+13')
     plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--',
             label='B+18')
-    plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
-            label='Y+12')
+    # plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
+    #         label='Y+12')
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
         label='M+13')
     # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
@@ -279,18 +279,20 @@ def loadMhPeak(directory):
 
 
 def plotFit(directory, smf_name, hmf_name):
-    MhaloPeak =loadMhPeak(directory)
+    MhaloPeak = loadMhPeak(directory)
     redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
-    if smf_name =='cosmos_schechter':
-        smf_short ='SchtFit'
-    elif smf_name=='cosmos':
-        smf_short='Vmax'
+    if smf_name == 'cosmos_schechter':
+        smf_short = 'SchtFit'
+    elif smf_name == 'cosmos':
+        smf_short ='Vmax'
     else:
         smf_short = smf_name
     cut_point = -10 # -10 to cut no points, 1 to cut last point
-    plt.errorbar(redshiftsbinTrue[MhaloPeak[:-cut_point,0].astype('int')[:]], MhaloPeak[:-cut_point, 1], yerr=MhaloPeak[:-cut_point, 2], c='red',
-    fmt='o', capsize=3, label='This work, SMF:'+smf_short+'; HMF:'+hmf_name,
-    markersize=8)
+    plt.errorbar(
+        redshiftsbinTrue[MhaloPeak[:-cut_point,0].astype('int')[:]], MhaloPeak[:-cut_point, 1],
+        yerr=MhaloPeak[:-cut_point, 2], #c='red',
+        fmt='o', capsize=3, label='This work '+hmf_name,
+        markersize=8)
 
 
 def showPlot():
@@ -321,6 +323,7 @@ if __name__ ==  '__main__':
         print('Plot MhaloPeaks from '+directory)
         plotFit(directory, smf_name, hmf_name)
 
+    plt.xlim(0, 4.5)
     showPlot()
 
 
