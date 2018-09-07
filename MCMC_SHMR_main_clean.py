@@ -36,6 +36,8 @@ import multiprocessing.pool
 from joblib import Parallel, delayed
 import multiprocessing
 from functools import partial
+import Plot_results
+
 
 # os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -518,6 +520,9 @@ def runMCMC_allZ(paramfile):
     # Make the file for autocorr, burn in length and thin length
     with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
         myfile.write("# Mean autocorrelation, Burn in length,  Thin length \n")
+    with open(directory + "/Results.txt", "a") as myfile:
+        myfile.write(r'Print mean value, 68% lower and 68% upper limits' + '\n')
+        myfile.write('idx_z, M1, Ms0, beta, delta, gamma, ksi \n')
     # run all MCMC for all zbins
     # for idx_z in range(params['numzbin']):
     # for idx_z in params['selected_redshifts']:
@@ -550,6 +555,9 @@ def runMCMC_allZ(paramfile):
     Plot_MhaloPeak.plotFit(directory, params['smf_name'], params['hmf_name'])
     Plot_MhaloPeak.savePlot(directory)
     plt.clf()
+
+    # Plot evolution of parameters with redshift
+    Plot_results.plot_all(directory)
 
     sys.stdout = orig_stdout
     f.close()
@@ -599,7 +607,7 @@ def runMCMC(idx_z, directory, params):
         # This will be useful to testing convergence∏
         old_tau = np.inf
         # Now we'll sample for up to iterations steps
-        for sample in sampler.sample(p0, iterations=iterations, progress=False):
+        for sample in sampler.sample(p0, iterations=iterations, progress=True):
             # Only check convergence every 100 steps
             if sampler.iteration % 100:
                 continue
@@ -647,9 +655,6 @@ def runMCMC(idx_z, directory, params):
         plt.close('all')
         plot_Mhpeak(directory, samples, idx_z, params)
         plt.close('all')
-        with open(directory + "/Results.txt", "a") as myfile:
-            myfile.write(r'Print mean value, 68% lower and 68% upper limits' + '\n')
-            myfile.write('M1, Ms0, beta, delta, gamma, ksi \n')
         save_results(directory, samples, idx_z, params)
 
 
@@ -661,14 +666,15 @@ def save_results(directory, samples, idx_z, params):
     res.write(directory+"/Results/Chain_ksi_z" + str(idx_z) + ".txt")
 
     margeStats = samples.getMargeStats()
-    results = np.empty(3 * len(names))
+    results = np.empty(3 * len(names) +1 )
     with open(directory + "/Results.txt", "a") as myfile:
         for i in range(len(names)):
-            results[3*i] = margeStats.names[i].mean
-            results[3*i + 1] = margeStats.names[i].limits[0].lower
-            results[3*i + 2] = margeStats.names[i].limits[0].upper
+            results[0] = idx_z
+            results[3*i + 1] = margeStats.names[i].mean
+            results[3*i + 2] = margeStats.names[i].limits[0].lower
+            results[3*i + 3] = margeStats.names[i].limits[0].upper
         # myfile.write(str(results) + "\n")
-        np.savetxt(myfile, results.reshape(1, results.shape[0]), fmt='%.4e')
+        np.savetxt(myfile, results.reshape(1, results.shape[0]))
 
 
 def MhPeak(samples, idx_z, Ms_max):
@@ -706,22 +712,22 @@ def readAndAnalyseBin(directory, idx_z):
     thin = int(0.5*np.nanmin(tau))
     samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
     # Plot all relevant figures
-    plt.close('all')
-    plotchain(directory, samples, idx_z, params)
-    plt.close('all')
-    plotdist(directory, samples, idx_z, params)
-    plt.close('all')
-    plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_start)
-    plt.close('all')
-    plotSMHM(directory, samples, smf, idx_z)
-    plt.close('all')
-    plotSHMR(directory, samples, smf, idx_z)
-    plt.close('all')
-    plot_Mhpeak(directory, samples, idx_z, params)
-    plt.close('all')
-    with open(directory + "/Results.txt", "a") as myfile:
-        myfile.write(r'Print mean value, 68% lower and 68% upper limits')
-        myfile.write('M1, Ms0, beta, delta, gamma, ksi')
+    # plt.close('all')
+    # plotchain(directory, samples, idx_z, params)
+    # plt.close('all')
+    # plotdist(directory, samples, idx_z, params)
+    # plt.close('all')
+    # plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_start)
+    # plt.close('all')
+    # plotSMHM(directory, samples, smf, idx_z)
+    # plt.close('all')
+    # plotSHMR(directory, samples, smf, idx_z)
+    # plt.close('all')
+    # plot_Mhpeak(directory, samples, idx_z, params)
+    # plt.close('all')
+    # with open(directory + "/Results.txt", "a") as myfile:
+    #     myfile.write(r'Print mean value, 68% lower and 68% upper limits')
+    #     myfile.write('M1, Ms0, beta, delta, gamma, ksi')
     save_results(directory, samples, idx_z, params)
 
 
@@ -751,7 +757,7 @@ def plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_s
             )[0]
     else:
         select = np.where(smf[idx_z][:, 1] > -40)[0]
-    cut_smf = np.array([smf[idx_z][select, 0][sub_start::subsampling_step], smf[idx_z][select, 1][sub_start::subsampling_step], 
+    cut_smf = np.array([smf[idx_z][select, 0][sub_start::subsampling_step], smf[idx_z][select, 1][sub_start::subsampling_step],
         smf[idx_z][select, 2][sub_start::subsampling_step], smf[idx_z][select, 3][sub_start::subsampling_step]])
     plt.errorbar(smf[idx_z][select, 0], smf[idx_z][select, 1],
         yerr=[smf[idx_z][select, 3], smf[idx_z][select, 2]], fmt='o', label='all points')
