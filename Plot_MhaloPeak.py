@@ -290,7 +290,7 @@ def plotFit(directory, smf_name, hmf_name):
     cut_point = -10 # -10 to cut no points, 1 to cut last point
     plt.errorbar(redshiftsbinTrue[MhaloPeak[:-cut_point,0].astype('int')[:]], MhaloPeak[:-cut_point, 1],
         yerr=MhaloPeak[:-cut_point, 2], c='red',
-        fmt='o', capsize=3, label='This work',
+        fmt='o', capsize=3, label='This work: ' + hmf_name,
         markersize=8)
 
 
