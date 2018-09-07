@@ -160,48 +160,48 @@ def plotLiterrature():
     plt.fill_between(redshiftM1Moster13,
             MhaloPeakMoster13[index_M13z] + M1Moster13[1], MhaloPeakMoster13[index_M13z] + M1Moster13[2],
             color='royalblue', alpha=0.1,linewidth=0.0,
-            label='Moster et al. 2013')
+            label='M+13')
 
 
 
     plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud,
                 yerr=MhaloSigmaLeauthaud, markersize=5, elinewidth=1,
-                fmt='o', c='green', markerfacecolor='white', capsize=1, label='Leauthaud et al. 2011')
+                fmt='o', c='green', markerfacecolor='white', capsize=1, label='L+11')
     plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12, elinewidth=1,
-                fmt='v', c='grey', markerfacecolor='white', capsize=2, label='Coupon et al. 2012',
+                fmt='v', c='grey', markerfacecolor='white', capsize=2, label='C+12',
                 markersize=5)
     plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15, elinewidth=1,
-                fmt='s', c='turquoise', markerfacecolor='white', capsize=2, label='Coupon et al. 2015',
+                fmt='s', c='turquoise', markerfacecolor='white', capsize=2, label='C+15',
                 markersize=5)
     plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014, elinewidth=1,
                 yerr=MhaloSigmaMartinezManso2014, markersize=5,
-                fmt='D', c='purple', markerfacecolor='white', capsize=2, label='Martinez-Manso et al. 2015')
+                fmt='D', c='purple', markerfacecolor='white', capsize=2, label='M+2015')
     # plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
                 #  fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
     plt.errorbar(redshiftIshikawa17, MhaloPeakIshikawa17, yerr=MhaloSigmaIshikawa17, markersize=5,
-                fmt='v', c='violet', markerfacecolor='white', capsize=2, label='Ishikawa et al. 2017',
+                fmt='v', c='violet', markerfacecolor='white', capsize=2, label='I+17',
                 elinewidth=1)
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=5,
-                fmt='*', c='orange', markerfacecolor='white', capsize=2, label='Cowley et al. 2018',
+                fmt='*', c='orange', markerfacecolor='white', capsize=2, label='C+18',
                 elinewidth=1,)
     plt.errorbar(redshiftHarikane, MhaloPeakHarikane,
                 yerr=0.1, elinewidth=1,
-                c='brown', label='Harikane et al. 2018, low lim',
+                c='brown', label='H+18, low lim',
                 fmt='o', linestyle='none', capsize=3, lolims=True,
                 markersize=3)
     # plt.scatter(redshiftBS15, MhaloPeakBS15_oldfit, label='BS15 oldfit')
     plt.plot(redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=7,
-            markerfacecolor='white', label='Behroozi and Silk 2015')
+            markerfacecolor='white', label='B+15')
     # plt.scatter(redshiftMoster18, MhaloPeakMoster18,
     #         label='Moster et al. 2018')
     plt.plot(redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
-            label='Behroozi et al. 2013')
+            label='B+13')
     plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--',
-            label='Behroozi et al. 2018')
+            label='B+18')
     plt.plot(redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
-            label='Yang et al. 2012')
+            label='Y+12')
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
-        label='Moster et al. 2013')
+        label='M+13')
     # plt.errorbar(redshiftMcCracken15, MhaloPeakMcCracken15,
     #              fmt='d', markerfacecolor='none', capsize=5, label='"Revised" McCracken15')
     # plt.errorbar(MhaloCosmos[:-2, 0], MhaloCosmos[:-2, 1], yerr=[MhaloCosmos[:-2, 2],
