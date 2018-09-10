@@ -252,8 +252,8 @@ def plotLiterrature():
     plt.xlabel('Redshift', size=17)
     plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', size=17)
     # plt.ylim(11.7, 13)
-    plt.ylim(11.7, 13.8)
-    plt.xlim(0, 5.5)
+    # plt.ylim(11.7, 13.8)
+    # plt.xlim(0, 5.5)
     # plt.xlim(0.2, 8)
     # plt.xscale('log')
     # box = ax.get_position()
@@ -290,7 +290,7 @@ def plotFit(directory, smf_name, hmf_name):
     cut_point = -10 # -10 to cut no points, 1 to cut last point
     plt.errorbar(redshiftsbinTrue[MhaloPeak[:-cut_point,0].astype('int')[:]], MhaloPeak[:-cut_point, 1],
         yerr=MhaloPeak[:-cut_point, 2], c='red',
-        fmt='o', capsize=3, label='This work: ' + hmf_name,
+        fmt='o', capsize=3, label='This work',# + hmf_name,
         markersize=8)
 
 
@@ -311,6 +311,7 @@ def savePlot(directory):
 if __name__ ==  '__main__':
     """Plot the Mhalo Peak from the directory given in argument"""
     plt.figure(figsize=(10, 5))
+    # plt.figure()
     plotLiterrature()
 
     numCombined = np.size(sys.argv[1:]) // 3
@@ -322,7 +323,8 @@ if __name__ ==  '__main__':
         print('Plot MhaloPeaks from '+directory)
         plotFit(directory, smf_name, hmf_name)
 
-    plt.xlim(0,4.5)
+    plt.ylim(11.7, 13.1)
+    plt.xlim(0, 4.5)
     showPlot()
 
 
