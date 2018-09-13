@@ -1055,3 +1055,58 @@ def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     logphitrue = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
     plt.plot(logMs, logphitrue)
     plt.show()
+
+
+def plotMsMh_fixedMh(directory):
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
+    print(Ms_min)
+    numpoints = 100
+    Ms_max = params['SM_cut_max']
+    logMs = np.empty([params['numzbin'], numpoints])
+    for idx_z in range(params['numzbin']):
+        logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max[idx_z], num=numpoints)
+    av_logMh = np.load(directory + '/av_logMh.npy')
+    conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
+    conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
+
+    fixed_mh = np.array([11.5, 12, 13])
+    idx_fix = np.zeros([fixed_mh.shape[0], params['numzbin']]).astype('int')
+    smhm_fix = np.zeros([fixed_mh.shape[0], params['numzbin']])
+    conf_smhm_fix = np.zeros([fixed_mh.shape[0], params['numzbin'], 2])
+
+
+    for fix in range(fixed_mh.shape[0]):
+        for idx_z in range(params['numzbin']):
+            idx_fix[fix, idx_z] = np.argmin(np.abs(av_logMh[idx_z, :] - fixed_mh[fix]))
+            if idx_fix[fix, idx_z] == 0 or idx_fix[fix, idx_z] == av_logMh.shape[1]:
+                smhm_fix[fix, idx_z] = None
+                conf_smhm_fix[fix, idx_z, 0] = None
+                conf_smhm_fix[fix, idx_z, 1] = None
+            else:
+                smhm_fix[fix, idx_z] = logMs[idx_z, idx_fix[fix, idx_z]] - av_logMh[idx_z, idx_fix[fix, idx_z]]
+                # The error interval on the log of the SMHM ratio is the same as the error on the Halo mass
+                tmp = np.array([av_logMh[idx_z, idx_fix[fix, idx_z]] - conf_min_logMh[idx_z, idx_fix[fix, idx_z]],
+                    conf_max_logMh[idx_z, idx_fix[fix, idx_z]] - av_logMh[idx_z, idx_fix[fix, idx_z]]])
+                conf_smhm_fix[fix, idx_z, 0] = tmp[0]
+                conf_smhm_fix[fix, idx_z, 1] = tmp[1]
+
+    max_z = 7
+    plt.figure()
+    for fix in range(fixed_mh.shape[0]):
+        plt.errorbar(
+            params['redshiftsbin'][:max_z], smhm_fix[fix, :max_z],
+            yerr=np.transpose(conf_smhm_fix[fix, :max_z, :]), capsize=3,
+            label='$M_{{\mathrm{{h}}}} = 10^{{{:.1f}}} M_{{\odot}}$'.format(fixed_mh[fix]))
+    plt.xlabel('Redshift', size=17)
+    plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\mathrm{h}})$', size=17)
+    plt.tick_params(axis='both', which='major', labelsize=13)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
