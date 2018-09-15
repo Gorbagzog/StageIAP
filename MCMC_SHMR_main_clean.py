@@ -37,6 +37,7 @@ from joblib import Parallel, delayed
 import multiprocessing
 from functools import partial
 import Plot_results
+from cycler import cycler
 
 
 # os.environ["OMP_NUM_THREADS"] = "1"
@@ -428,7 +429,7 @@ def get_platform():
         numprocess = 3
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '/data/glx-calcul3/data1/llegrand/StageIAP/', numprocess
-    elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local':
+    elif platform.uname()[1] == 'MacBook-Pro-de-Louis.local' or platform.uname()[1] == 'MBP-de-Louis':
         numprocess = 1
         print('Run on ' + platform.uname()[1] + ' with ' + str(numprocess) + ' process.')
         return '../', numprocess
@@ -842,31 +843,15 @@ def plot_Mhpeak(directory, samples, idx_z, params):
     plt.savefig(directory+'/Plots/MhPeak_z' + str(idx_z) + '.pdf')
 
 
-def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
-    """Good version to use to plot the SHMR and the Ms(Mh)"""
-    paramfile = directory + '/MCMC_param.ini'
-    global params
-    params = load_params(paramfile)
-    global smf
-    global hmf
-    smf = load_smf(params)
-    hmf = load_hmf(params)
-    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
-    print(Ms_min)
-    # Arbitrary maximum as read on the plots of the SMF of Davidzon+17
-    Ms_max = params['SM_cut_max']
-    numpoints = 100
+def save_load_smhm(directory, Ms_min, Ms_max, numpoints, load, selected_redshifts):
+    """Compute the median, average and scatter of Mh for a given Ms."""
     logMs = np.empty([params['numzbin'], numpoints])
-    # nselect = 100000  # Number of samples o randomly select in the chains
     logMhbins = np.linspace(11.5, 14, num=numpoints)
     av_logMh = np.empty([params['numzbin'], numpoints])
     med_logMh = np.empty([params['numzbin'], numpoints])
     conf_min_logMh = np.empty([params['numzbin'], numpoints])
     conf_max_logMh = np.empty([params['numzbin'], numpoints])
-    # meantau, burnin, thin = np.transpose(np.loadtxt(directory + "/Chain/Autocorr.txt"))
-    # burnin = burnin.astype('int')
-    # thin = thin.astype('int')
-    if load is False :
+    if load is False:
         print('Computing arrays')
         for idx_z in selected_redshifts:
             logMs[idx_z] = np.linspace(Ms_min[idx_z], Ms_max[idx_z], num=numpoints)
@@ -896,13 +881,89 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         np.save(directory + '/conf_min_logMh.npy', conf_min_logMh)
         np.save(directory + '/conf_max_logMh.npy', conf_max_logMh)
         print('Arrays saved')
-    else :
+    else:
         print('Load arrays')
         logMs = np.load(directory + '/logMs.npy')
         av_logMh = np.load(directory + '/av_logMh.npy')
         med_logMh = np.load(directory + '/med_logMh.npy')
         conf_min_logMh = np.load(directory + '/conf_min_logMh.npy')
         conf_max_logMh = np.load(directory + '/conf_max_logMh.npy')
+    return logMs, av_logMh, med_logMh, conf_min_logMh, conf_max_logMh
+
+
+def plotSHMR_noerror(directory, load=True, selected_redshifts=np.arange(10)):
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
+    print(Ms_min)
+    Ms_max = params['SM_cut_max']
+    numpoints = 100
+    logMs, av_logMh, med_logMh, conf_min_logMh, conf_max_logMh = save_load_smhm(
+        directory, Ms_min, Ms_max, numpoints, load, selected_redshifts)
+
+    """Plot the SHMR"""
+    plt.figure()
+    # plt.set_prop_cycle('viridis')
+    plt.ylim(11, 15)
+    plt.xlim(9, 12)
+    for idx_z in selected_redshifts:
+        # plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
+        plt.plot(
+            logMs[idx_z], med_logMh[idx_z],
+            label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]),
+            color="C{}".format(idx_z))
+    plt.xlabel('$\mathrm{log}_{10}(M_{*}/M_{\odot})$', size=16, labelpad=5)
+    plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=16, labelpad=5)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    plt.legend(prop={'size': 12})
+    plt.tight_layout()
+    plt.savefig(directory + '/Plots/SHMR_Allz_noerror.pdf')
+
+    """Plot the Ms/Mh ratio"""
+    plt.figure()
+    plt.set_cmap('viridis')
+    for idx_z in selected_redshifts:
+        """Plot the median"""
+        x = med_logMh[idx_z]
+        y = logMs[idx_z] - med_logMh[idx_z]
+        xerr = [x - conf_min_logMh[idx_z], conf_max_logMh[idx_z] - x]
+        yerr = [xerr[1], xerr[0]]
+        plt.plot(
+            x, y,
+            label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]),
+            color="C{}".format(idx_z))
+    logspace = np.linspace(11, 16)
+    # plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
+    plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=16, labelpad=5)
+    plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=16, labelpad=5)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    plt.xlim(11.2, 14.5)
+    plt.ylim(-2.2, -1.4)
+    plt.legend(ncol=2, loc=3)
+    plt.tight_layout()
+    plt.savefig(directory + '/Plots/DeltaSMHM_Allz_noerror.pdf')
+
+
+def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
+    """Good version to use to plot the SHMR and the Ms(Mh)"""
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
+    print(Ms_min)
+    Ms_max = params['SM_cut_max']
+    numpoints = 100
+    logMs, av_logMh, med_logMh, conf_min_logMh, conf_max_logMh = save_load_smhm(
+        directory,logMs, Ms_min, Ms_max, numpoints, load, selected_redshifts)
 
     plt.figure()
     plt.ylim(11, 15)
@@ -919,7 +980,7 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
     plt.legend(prop={'size': 12})
     plt.tight_layout()
     #plt.show()
-    plt.savefig(directory + '/Plots/SHMR_Allz0.pdf')
+    plt.savefig(directory + '/Plots/SHMR_Allz.pdf')
 
     if np.size(selected_redshifts)==10:
         plt.figure()
