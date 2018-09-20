@@ -963,7 +963,7 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
     Ms_max = params['SM_cut_max']
     numpoints = 100
     logMs, av_logMh, med_logMh, conf_min_logMh, conf_max_logMh = save_load_smhm(
-        directory,logMs, Ms_min, Ms_max, numpoints, load, selected_redshifts)
+        directory, Ms_min, Ms_max, numpoints, load, selected_redshifts)
 
     plt.figure()
     plt.ylim(11, 15)
@@ -1060,8 +1060,10 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.xlabel('$\mathrm{log}_{10}(M_{\mathrm{h}}/M_{\odot})$', size=17)
         plt.ylabel('$\mathrm{log}_{10}(M_{*}/M_{\\mathrm{h}})$', size=17)
         plt.tick_params(axis='both', which='major', labelsize=13)
-        plt.xlim(11.2, 13.5)
-        plt.ylim(-2.5, -1.4)
+        # plt.xlim(11.2, 13.5)
+        # plt.ylim(-2.5, -1.4)
+        plt.xlim(11.2, 14.6)
+        plt.ylim(-2.85, -0.9)
         plt.legend(ncol=2, loc=3)
         plt.tight_layout()
         # plt.show()

@@ -171,12 +171,16 @@ def plotLiterrature():
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
         label='M+13')
 
+    # plt.errorbar(
+    #     redshiftHarikane, MhaloPeakHarikane,
+    #     yerr=0.1, elinewidth=1,
+    #     c='brown', label='H+18, low lim',
+    #     fmt='o', linestyle='none', capsize=3, lolims=True,
+    #     markersize=0)
+
     plt.errorbar(
-        redshiftHarikane, MhaloPeakHarikane,
-        yerr=0.1, elinewidth=1,
-        c='brown', label='H+18, low lim',
-        fmt='o', linestyle='none', capsize=3, lolims=True,
-        markersize=0)
+        redshiftHarikane, MhaloPeakHarikane, c='brown', fmt='p', marker=r'$\uparrow$',
+        markersize=15, capsize=0, elinewidth=0, label='H+18, lower limit')
 
 
     plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud,
