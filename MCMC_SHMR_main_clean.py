@@ -522,8 +522,8 @@ def runMCMC_allZ(paramfile):
     with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
         myfile.write("# Mean autocorrelation, Burn in length,  Thin length \n")
     with open(directory + "/Results.txt", "a") as myfile:
-        myfile.write(r'Print mean value, 68% lower and 68% upper limits' + '\n')
-        myfile.write('idx_z, M1, Ms0, beta, delta, gamma, ksi \n')
+        myfile.write(r'# Print mean value, 68% lower and 68% upper limits' + '\n')
+        myfile.write('# idx_z, M1, Ms0, beta, delta, gamma, ksi \n')
     # run all MCMC for all zbins
     # for idx_z in range(params['numzbin']):
     # for idx_z in params['selected_redshifts']:
@@ -677,6 +677,36 @@ def save_results(directory, samples, idx_z, params):
         # myfile.write(str(results) + "\n")
         np.savetxt(myfile, results.reshape(1, results.shape[0]))
 
+    tab = samples.getLatex()
+    mhpeak = np.loadtxt(directory + "/MhaloPeak.txt")
+    mhpeak = mhpeak[mhpeak[:,0].argsort()]
+    with open(directory + "/Results_table.txt", "a") as myfile:
+        myfile.write(
+            '[{}, {}] & ${}$ & ${}$ & ${}$ & ${}$ & ${}$ & ${}$ & ${:.2f} \pm {:.2f}$\\\\'.format(
+                params['redshifts'][idx_z], params['redshifts'][idx_z+1],
+                tab[1][0], tab[1][1], tab[1][2], tab[1][3], tab[1][4], tab[1][5],
+                mhpeak[idx_z, 1], mhpeak[idx_z, 2])+ '\n')
+
+
+# def save_table(directory, params):
+#     res = np.loadtxt(directory+'/Results.txt')
+#     res = res[res[:,1].argsort()]
+#     # params['redshifts'] = np.array([0.2, 0.5, 0.8, 1.1, 1.5, 2, 2.5, 3, 3.5, 4.5, 5.5])
+#     # params['redshiftsbin'] = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683,
+#     #                                       3.271, 3.926, 4.803])
+#     mhpeak = np.loadtxt(directory + "/MhaloPeak.txt")
+#     mhpeak = mhpeak[mhpeak[:,1].argsort()]
+#     with open(directory + "/Results_table.txt", "a") as myfile:
+#         myfile.write('\\begin{tabular} {l l l l l l l l}'+ '\n'+'\hline' + '\n' + '\hline' + '\n')
+#         myfile.write(r'Redshift bin & $\log(M_{1}/M_{\odot})$ & $\log(M_{*,0}/ M_{\odot})$ & $\beta$ & $\delta$ & $\gamma$ & $\xi$ & $ \log(M_{\rm h}^{\rm peak} /M_{\odot})$' + '\n')
+#         myfile.write('\hline'+'\n')
+#         for i in range(params['numzbin']-1):
+#             myfile.write('[{}, {}] & ${}^{{{}}}_{{{}}}$ & ${}^{{{}}}_{{{}}}$ & ${}^{{{}}}_{{{}}}$ & ${}^{{{}}}_{{{}}}$ & $< 1.70$ & ${}^{{{}}}_{{{}}}$ & ${} \pm {}$  \\\\'.format(
+#                 params['redshifts'][i], params['redshifts'][i+1], res[i, 1], res[i, 2], res[i, 3], res[i, 4], res[i, 5],
+#                 res[i, 6], res[i, 7], res[i, 8], res[i, 9], res[i, 10], res[i, 11],
+#                 res[i, 12], res[i, 13], res[i, 14], res[i, 15], res[i, 16], res[i, 17],
+#                 ) + '\n')
+
 
 def MhPeak(samples, idx_z, Ms_max):
     chainsize = np.shape(samples)[0]
@@ -715,9 +745,9 @@ def readAndAnalyseBin(directory, idx_z):
     # Plot all relevant figures
     # plt.close('all')
     # plotchain(directory, samples, idx_z, params)
-    # plt.close('all')
-    # plotdist(directory, samples, idx_z, params)
-    # plt.close('all')
+    plt.close('all')
+    plotdist(directory, samples, idx_z, params)
+    plt.close('all')
     # plotSMF(directory, samples, smf, hmf, idx_z, params, subsampling_step, sub_start)
     # plt.close('all')
     # plotSMHM(directory, samples, smf, idx_z)
@@ -825,6 +855,10 @@ def plotdist(directory, samples, idx_z, params):
         ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z],
         params['maxbound'][idx_z]])))))
     g = plots.getSubplotPlotter()
+    g.settings.lab_fontsize = 17
+    g.settings.axes_fontsize = 14
+    g.settings.tight_gap_fraction= 0
+    g.settings.x_label_rotation = 45
     g.triangle_plot(samples, filled=True)
     g.export(figname + '.pdf' )
     plt.close('all')
