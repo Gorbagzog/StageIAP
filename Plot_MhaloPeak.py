@@ -267,7 +267,7 @@ def plotFit_several(directory, smf_name, hmf_name, shift):
     plt.errorbar(
         redshiftsbinTrue[MhaloPeak[:-cut_point,0].astype('int')[:]] + shift,
         MhaloPeak[:-cut_point, 1],
-        yerr=MhaloPeak[:-cut_point, 2], c='red',
+        yerr=MhaloPeak[:-cut_point, 2],
         fmt=marker[hmf_name], capsize=4, label=names[hmf_name],
         markersize=12,
         mec='k')
@@ -295,7 +295,6 @@ def plotFit_one(directory, smf_name, hmf_name, shift):
         mec='k')
 
 
-
 def showPlot():
     plt.legend(loc=2, ncol=2, fontsize=12, edgecolor='white', framealpha=0)
     plt.tight_layout()
@@ -311,25 +310,28 @@ def savePlot(directory):
 
 if __name__ == '__main__':
     """Plot the Mhalo Peak from the directory given in argument"""
-    plt.figure(figsize=(10, 5))
-    # plt.figure(figsize=(10, 7))
-    # plt.figure()
     numCombined = np.size(sys.argv[1:]) // 3
     shift = 0
     delta = 0.05
-    for i in range(numCombined):
-        dateName = sys.argv[i*3 + 1]
-        smf_name = sys.argv[i*3 + 2]
-        hmf_name = sys.argv[i*3 + 3]
+    if numCombined == 1:
+        dateName = sys.argv[1]
+        smf_name = sys.argv[2]
+        hmf_name = sys.argv[3]
         directory = '../'+dateName
-        print('Plot MhaloPeaks from ' + directory)
-        if numCombined == 1:
-            plotLiterrature()
-            plotFit_one(directory, smf_name, hmf_name, shift)
-        else:
-            plotLiterrature_several()
+        plt.figure(figsize=(10, 5))
+        plotLiterrature()
+        plotFit_one(directory, smf_name, hmf_name, shift)
+    else:
+        plotLiterrature_several()
+        for i in range(numCombined):
+            dateName = sys.argv[i*3 + 1]
+            smf_name = sys.argv[i*3 + 2]
+            hmf_name = sys.argv[i*3 + 3]
+            directory = '../'+dateName
+            print('Plot MhaloPeaks from ' + directory)
+
             plotFit_several(directory, smf_name, hmf_name, shift)
-        shift += delta
+            shift += delta
 
     plt.ylim(11.7, 13.1)
     plt.xlim(0, 4.2)
