@@ -208,11 +208,11 @@ def plotLiterrature():
 
     plt.xticks(np.arange(0, 5.5, 0.5))
     plt.xlabel('redshift', fontsize=16, labelpad=5)
-    plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', fontsize=16, labelpad=5)
+    plt.ylabel('$\mathrm{log}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', fontsize=16, labelpad=5)
     plt.tick_params(axis='both', which='major', labelsize=15)
 
 
-def plotLiterrature_nolabels():
+def plotLiterrature_several():
     markersize = 7
     plt.fill_between(
         redshiftM1Moster13,
@@ -240,7 +240,7 @@ def plotLiterrature_nolabels():
 
     plt.xticks(np.arange(0, 5.5, 0.5))
     plt.xlabel('redshift', fontsize=16, labelpad=5)
-    plt.ylabel('$\mathrm{log}_{10}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', fontsize=16, labelpad=5)
+    plt.ylabel('$\mathrm{log}(M_{\mathrm{h}}^{\mathrm{peak}}/M_{\odot})$', fontsize=16, labelpad=5)
     plt.tick_params(axis='both', which='major', labelsize=15)
 
 
@@ -250,7 +250,7 @@ def loadMhPeak(directory):
     return Mhalopeak
 
 
-def plotFit(directory, smf_name, hmf_name, shift):
+def plotFit_several(directory, smf_name, hmf_name, shift):
     names = {'Despali16': 'Despali+16', 'Tinker08': 'Tinker+08', 'Watson13': 'Watson+13',
              'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11'}
     marker = {'Despali16': 'o', 'Tinker08': 'o', 'Watson13': 'v',
@@ -272,6 +272,29 @@ def plotFit(directory, smf_name, hmf_name, shift):
         markersize=12,
         mec='k')
 
+def plotFit_one(directory, smf_name, hmf_name, shift):
+    names = {'Despali16': 'Despali+16', 'Tinker08': 'Tinker+08', 'Watson13': 'Watson+13',
+             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11'}
+    marker = {'Despali16': 'o', 'Tinker08': 'o', 'Watson13': 'v',
+             'Bocquet16': 'o', 'Bhattacharya11': 'v'}
+    MhaloPeak = loadMhPeak(directory)
+    redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
+    if smf_name == 'cosmos_schechter':
+        smf_short = 'SchtFit'
+    elif smf_name == 'cosmos':
+        smf_short = 'Vmax'
+    else:
+        smf_short = smf_name
+    cut_point = -10 # -10 to cut no points, 1 to cut last point
+    plt.errorbar(
+        redshiftsbinTrue[MhaloPeak[:-cut_point,0].astype('int')[:]] + shift,
+        MhaloPeak[:-cut_point, 1],
+        yerr=MhaloPeak[:-cut_point, 2], c='red',
+        fmt=marker[hmf_name], capsize=4, label='This work',
+        markersize=12,
+        mec='k')
+
+
 
 def showPlot():
     plt.legend(loc=2, ncol=2, fontsize=12, edgecolor='white', framealpha=0)
@@ -291,8 +314,6 @@ if __name__ == '__main__':
     plt.figure(figsize=(10, 5))
     # plt.figure(figsize=(10, 7))
     # plt.figure()
-    plotLiterrature()
-    # plotLiterrature_nolabels()
     numCombined = np.size(sys.argv[1:]) // 3
     shift = 0
     delta = 0.05
@@ -302,7 +323,12 @@ if __name__ == '__main__':
         hmf_name = sys.argv[i*3 + 3]
         directory = '../'+dateName
         print('Plot MhaloPeaks from ' + directory)
-        plotFit(directory, smf_name, hmf_name, shift)
+        if numCombined == 1:
+            plotLiterrature()
+            plotFit_one(directory, smf_name, hmf_name, shift)
+        else:
+            plotLiterrature_several()
+            plotFit_several(directory, smf_name, hmf_name, shift)
         shift += delta
 
     plt.ylim(11.7, 13.1)
