@@ -1207,27 +1207,41 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
     # cmap = matplotlib.cm.get_cmap('Accent')
     color= ['red', 'blue', 'orange']
     for fix in range(fixed_mh.shape[0]):
-        fix = fixed_mh.shape[0] - fix - 1
-        plt.fill_between(
-            params['redshiftsbin'][:max_z], smhm_fix[fix, :max_z] - conf_smhm_fix[fix, :max_z, 0],
-            conf_smhm_fix[fix, :max_z, 1] + smhm_fix[fix, :max_z],
-            label='$M_{{\mathrm{{h}}}} = 10^{{{:.1f}}} M_{{\odot}}$'.format(fixed_mh[fix]),
-            alpha=0.9,
-            # color=cmap(fix/(fixed_mh.shape[0])),
-            color=color[fix]
-        )
-        plt.plot(
+        # fix = fixed_mh.shape[0] - fix - 1
+        # plt.fill_between(
+        #     params['redshiftsbin'][:max_z], smhm_fix[fix, :max_z] - conf_smhm_fix[fix, :max_z, 0],
+        #     conf_smhm_fix[fix, :max_z, 1] + smhm_fix[fix, :max_z],
+        #     label='$M_{{\mathrm{{h}}}} = 10^{{{:.1f}}} M_{{\odot}}$'.format(fixed_mh[fix]),
+        #     alpha=0.9,
+        #     # color=cmap(fix/(fixed_mh.shape[0])),
+        #     color=color[fix]
+        # )
+        plt.errorbar(
             params['redshiftsbin'][:max_z], smhm_fix[fix, :max_z],
-            # label='$M_{{\mathrm{{h}}}} = 10^{{{:.1f}}} M_{{\odot}}$'.format(fixed_mh[fix]),
-            color='grey', linestyle=':')
+            yerr= np.transpose(conf_smhm_fix[fix, :max_z, :]),
+            label='$M_{{\mathrm{{h}}}} = 10^{{{:.1f}}} M_{{\odot}}$'.format(fixed_mh[fix]),
+            # color='grey',
+            capsize=3,
+            color=color[fix],
+            linestyle='-')
+    # plt.plot(
+    #     params['redshiftsbin'][:max_z], max_ratio[:max_z],
+    #     # label='max($\log(M_*/M_{\mathrm{h}})$)',
+    #     label='Maximum',
+    #     linestyle='--', color='black')
     plt.errorbar(
-        params['redshiftsbin'][:max_z], max_ratio[:max_z], label='max($\log(M_*/M_{\mathrm{h}})$)',
+        params['redshiftsbin'][:max_z], max_ratio[:max_z],
+        # label='max($\log(M_*/M_{\mathrm{h}})$)',
+        # label= r'$\log\left(\frac{M_*(M_{\mathrm{h}}^{\mathrm{peak}})}{M_{\mathrm{h}}^{\mathrm{peak}}} \right)$',
+        # label = r'$\left(\frac{M_*}{M_{\mathrm{h}}}\right)_{|M_\mathrm{h}=M_{\mathrm{h}}^{\mathrm{peak}}}$',
+        label = r'$M_\mathrm{h}=M_{\mathrm{h}}^{\mathrm{peak}}$',
         yerr=np.transpose(conf_max_ratio[:max_z, :]), capsize=3, linestyle='--', color='black')
     # plt.fill_between(
     #     params['redshiftsbin'][:max_z], max_ratio[:max_z] - conf_max_ratio[:max_z, 0],
     #     max_ratio[:max_z] + conf_max_ratio[:max_z, 1],
-    #     label='max($\log(M_*/M_{\mathrm{h}})$)',
-    #     linestyle='--', color='black', alpha= 0.2)
+    #     # label='max($\log(M_*/M_{\mathrm{h}})$)',
+    #     label ='Maximum',
+    #     linestyle='-', color='black', alpha= 0.2)
 
     plt.xlabel('redshift', size=17)
     plt.ylabel('$\mathrm{log}(M_{*}/M_{\mathrm{h}})$', size=17)
