@@ -28,7 +28,7 @@ import sys
 import datetime
 import getconf
 from shutil import copyfile
-import hmf as hmf_calc
+# import hmf as hmf_calc
 from colossus.cosmology import cosmology
 from colossus.lss import mass_function
 import Plot_MhaloPeak
