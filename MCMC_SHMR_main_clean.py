@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/local/Cellar/python3/3.6.5/bin python3
 # -*-coding:Utf-8 -*
 
 """Use MCMC to find the stellar mass halo mass relation.
@@ -1189,6 +1189,8 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
                     conf_max_logMh[idx_z, idx_fix[fix, idx_z]] - med_logMh[idx_z, idx_fix[fix, idx_z]]])
                 conf_smhm_fix[fix, idx_z, 0] = tmp[1]
                 conf_smhm_fix[fix, idx_z, 1] = tmp[0]
+    np.save(directory + '/smhm_fix', smhm_fix)
+    np.save(directory + '/conf_smhm_fix', conf_smhm_fix)
 
     for idx_z in range(params['numzbin']):
         idx_max_ratio = np.argmax(logMs[idx_z] - med_logMh[idx_z])
@@ -1205,7 +1207,7 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
     max_z = 6
     plt.figure()
     # cmap = matplotlib.cm.get_cmap('Accent')
-    color= ['red', 'blue', 'orange']
+    color= ['blue', 'orange', 'red']
     for fix in range(fixed_mh.shape[0]):
         # fix = fixed_mh.shape[0] - fix - 1
         # plt.fill_between(

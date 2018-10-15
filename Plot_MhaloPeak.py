@@ -163,11 +163,11 @@ def plotLiterrature():
         label='B+13')
     plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--',
         label='B+18')
-    plt.fill_between(
-        redshiftM1Moster13,
-        MhaloPeakMoster13[index_M13z] + M1Moster13[1], MhaloPeakMoster13[index_M13z] + M1Moster13[2],
-        color='royalblue', alpha=0.1, linewidth=0.0,
-        label='M+13')
+    # plt.fill_between(
+    #     redshiftM1Moster13,
+    #     MhaloPeakMoster13[index_M13z] + M1Moster13[1], MhaloPeakMoster13[index_M13z] + M1Moster13[2],
+    #     color='royalblue', alpha=0.1, linewidth=0.0,
+    #     label='M+13')
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
         label='M+13')
 
@@ -177,11 +177,6 @@ def plotLiterrature():
     #     c='brown', label='H+18, low lim',
     #     fmt='o', linestyle='none', capsize=3, lolims=True,
     #     markersize=0)
-
-    plt.errorbar(
-        redshiftHarikane, MhaloPeakHarikane, c='brown', fmt='p', marker=r'$\uparrow$',
-        markersize=15, capsize=0, elinewidth=0, label='H+18, lower limit')
-
 
     plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud,
                 yerr=MhaloSigmaLeauthaud, markersize=6, elinewidth=1,
@@ -203,6 +198,12 @@ def plotLiterrature():
         redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=8,
         markerfacecolor='white', label='B+15')
 
+    plt.errorbar(
+        redshiftHarikane, MhaloPeakHarikane, c='brown', fmt='p', marker=r'$\uparrow$',
+        markersize=15, capsize=0, elinewidth=0, label='H+18, lower limit')
+
+
+
     # plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,
     #         fmt='^', c='lightblue', markerfacecolor='white', capsize=2, label='Yang et al. 12')
 
@@ -214,10 +215,10 @@ def plotLiterrature():
 
 def plotLiterrature_several():
     markersize = 7
-    plt.fill_between(
-        redshiftM1Moster13,
-        MhaloPeakMoster13[index_M13z] + M1Moster13[1], MhaloPeakMoster13[index_M13z] + M1Moster13[2],
-        color='royalblue', alpha=0.1, linewidth=0.0)
+    # plt.fill_between(
+    #     redshiftM1Moster13,
+    #     MhaloPeakMoster13[index_M13z] + M1Moster13[1], MhaloPeakMoster13[index_M13z] + M1Moster13[2],
+    #     color='royalblue', alpha=0.1, linewidth=0.0)
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--')
 
     plt.errorbar(redshiftLeauthaud, MhaloPeakLeauthaud,
@@ -257,6 +258,7 @@ def plotFit_several(directory, smf_name, hmf_name, shift):
              'Bocquet16': 'o', 'Bhattacharya11': 'v'}
     MhaloPeak = loadMhPeak(directory)
     redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
+    print(MhaloPeak[MhaloPeak[0]==9, 1])
     if smf_name == 'cosmos_schechter':
         smf_short = 'SchtFit'
     elif smf_name == 'cosmos':
@@ -311,9 +313,10 @@ def savePlot(directory):
 if __name__ == '__main__':
     """Plot the Mhalo Peak from the directory given in argument"""
     numCombined = np.size(sys.argv[1:]) // 3
-    shift = 0
+    shift = -0.1
     delta = 0.05
     if numCombined == 1:
+        shift = 0
         dateName = sys.argv[1]
         smf_name = sys.argv[2]
         hmf_name = sys.argv[3]
