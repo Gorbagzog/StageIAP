@@ -102,6 +102,11 @@ tmp = np.loadtxt('MhaloPeakBehroozi.txt')
 redshiftBehroozi13 = tmp[0]
 MhaloPeakBehroozi13 = tmp[1]
 
+# Load the MhaloPeak(z) from Behroozi et al 2013 updated to PLanck
+tmp = np.loadtxt('MhaloPeakB13_Planck.txt')
+redshiftB13_Planck = tmp[0]
+MhaloPeakB13_Planck = tmp[1]
+
 # Load the MhaloPeak(z) from Moster et al 2013
 tmp = np.loadtxt('MhaloPeakMoster.txt')
 redshiftMoster13 = tmp[0]
@@ -194,6 +199,10 @@ def plotLiterrature():
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=6,
                 fmt='p', c='orange', markerfacecolor='white', capsize=2, label='C+18',
                 elinewidth=1,)
+    plt.plot(
+        redshiftB13_Planck, MhaloPeakB13_Planck,  'b<', markersize=6,
+        color='black', marker='<', markerfacecolor='white',
+        label='B+13, Planck')
     plt.plot(
         redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=8,
         markerfacecolor='white', label='B+15')
