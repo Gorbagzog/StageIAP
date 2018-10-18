@@ -6,6 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 """Load different MhaloPeak values"""
 
@@ -106,6 +107,7 @@ MhaloPeakBehroozi13 = tmp[1]
 tmp = np.loadtxt('MhaloPeakB13_Planck.txt')
 redshiftB13_Planck = tmp[0]
 MhaloPeakB13_Planck = tmp[1]
+MhaloPeakB13_Planck_f = InterpolatedUnivariateSpline(tmp[0], tmp[1], k=4)
 
 # Load the MhaloPeak(z) from Moster et al 2013
 tmp = np.loadtxt('MhaloPeakMoster.txt')
@@ -163,8 +165,11 @@ def plotLiterrature():
     plt.plot(
         redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
         label='Y+12')
-    plt.plot(
-        redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
+    # plt.plot(
+    #     redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
+    #     label='B+13')
+    x = np.linspace(0.1, 5)
+    plt.plot(x, MhaloPeakB13_Planck_f(x), color='limegreen',  linestyle='--',
         label='B+13')
     plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--',
         label='B+18')
@@ -199,10 +204,11 @@ def plotLiterrature():
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=6,
                 fmt='p', c='orange', markerfacecolor='white', capsize=2, label='C+18',
                 elinewidth=1,)
-    plt.plot(
-        redshiftB13_Planck, MhaloPeakB13_Planck,  'b<', markersize=6,
-        color='black', marker='<', markerfacecolor='white',
-        label='B+13, Planck')
+    # plt.plot(
+    #     redshiftB13_Planck, MhaloPeakB13_Planck,  'b<', markersize=6,
+    #     color='black', marker='<', markerfacecolor='white',
+    #     label='B+13, Planck')
+
     plt.plot(
         redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=8,
         markerfacecolor='white', label='B+15')
