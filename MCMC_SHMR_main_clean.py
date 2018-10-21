@@ -1211,6 +1211,7 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
     plt.figure()
     # cmap = matplotlib.cm.get_cmap('Accent')
     color= ['blue', 'orange', 'red']
+    marker = ['x', 'o', 'v']
     for fix in range(fixed_mh.shape[0]):
         # fix = fixed_mh.shape[0] - fix - 1
         # plt.fill_between(
@@ -1227,6 +1228,8 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
             label='$M_{{\mathrm{{h}}}} = 10^{{{:.1f}}} M_{{\odot}}$'.format(fixed_mh[fix]),
             # color='grey',
             capsize=3,
+            fmt=marker[fix],
+            markerfacecolor='white',
             color=color[fix],
             linestyle='-')
     # plt.plot(
@@ -1251,6 +1254,6 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
     plt.xlabel('redshift', size=17)
     plt.ylabel('$\mathrm{log}(M_{*}/M_{\mathrm{h}})$', size=17)
     plt.tick_params(axis='both', which='major', labelsize=13)
-    plt.legend()
+    plt.legend(prop={'size': 12})
     plt.tight_layout()
     plt.show()

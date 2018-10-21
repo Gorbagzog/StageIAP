@@ -38,7 +38,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 # Warning : All masses are in the same cosmo H0 = 70
 
 # Use a small redshift offset for Leauthaud and Cowley
-offset = 0.05
+offset = 0.02
 
 # Harikane et al+17 -> only the minimal position of the peak, not the complete shape of SHMR
 redshiftHarikane = np.array([3.8, 4.9, 5.9])
@@ -94,7 +94,7 @@ MhaloPeakIshikawa17 = np.array([12.10, 11.99, 11.77]) - np.log10(0.7)
 MhaloSigmaIshikawa17 = np.array([0.053, 0.057, 0.097])
 
 # MhaloPeak from Cowley+2017
-redshiftCowley17 = np.array([1.75, 2.5]) - offset # shift redshift to see the points
+redshiftCowley17 = np.array([1.75, 2.5]) + offset # shift redshift to see the points
 MhaloPeakCowley17 = np.array([12.33, 12.5])
 MhaloSigmaCowley17 = np.array([[0.06, 0.08], [0.07, 0.10]])
 
@@ -163,15 +163,15 @@ def plotLiterrature():
         fmt='v', c='violet', markerfacecolor='white', capsize=2, label='I+17',
         elinewidth=1)
     plt.plot(
-        redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle='--',
+        redshiftYang12curve, MhaloPeakYang12curve, color='lightblue', linestyle=':',
         label='Y+12')
     # plt.plot(
     #     redshiftBehroozi13, MhaloPeakBehroozi13, color='limegreen', linestyle='--',
     #     label='B+13')
     x = np.linspace(0.1, 5)
-    plt.plot(x, MhaloPeakB13_Planck_f(x), color='limegreen',  linestyle='--',
+    plt.plot(x, MhaloPeakB13_Planck_f(x), color='limegreen',  linestyle='-.',
         label='B+13')
-    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--',
+    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='orange', linestyle='-',
         label='B+18')
     # plt.fill_between(
     #     redshiftM1Moster13,
@@ -240,7 +240,7 @@ def plotLiterrature_several():
                 yerr=MhaloSigmaLeauthaud, markersize=markersize, elinewidth=1,
                 fmt='o', c='green', markerfacecolor='white', capsize=1)
     plt.errorbar(redshiftCoupon12, MhaloPeakCoupon12, yerr=MhaloSigmaCoupon12, elinewidth=1,
-                fmt='v', c='grey', markerfacecolor='white', capsize=2,
+                fmt='^', c='grey', markerfacecolor='white', capsize=2,
                 markersize=markersize)
     plt.errorbar(redshiftCoupon15, MhaloPeakCoupon15, yerr=MhaloSigmaCoupon15, elinewidth=1,
                 fmt='s', c='turquoise', markerfacecolor='white', capsize=2,
@@ -250,9 +250,9 @@ def plotLiterrature_several():
                 fmt='D', c='purple', markerfacecolor='white', capsize=2,)
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17,
                 markersize=markersize,
-                fmt='*', c='orange', markerfacecolor='white', capsize=2,
+                fmt='p', c='orange', markerfacecolor='white', capsize=2,
                 elinewidth=1,)
-    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='red', linestyle='--')
+    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='orange', linestyle='-')
 
     plt.xticks(np.arange(0, 5.5, 0.5))
     plt.xlabel('redshift', fontsize=16, labelpad=5)
@@ -273,7 +273,7 @@ def plotFit_several(directory, smf_name, hmf_name, shift):
              'Bocquet16': 'o', 'Bhattacharya11': 'v'}
     MhaloPeak = loadMhPeak(directory)
     redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
-    print(MhaloPeak[MhaloPeak[0]==9, 1])
+    # print(MhaloPeak[MhaloPeak[0]==9, 1])
     if smf_name == 'cosmos_schechter':
         smf_short = 'SchtFit'
     elif smf_name == 'cosmos':
@@ -288,6 +288,7 @@ def plotFit_several(directory, smf_name, hmf_name, shift):
         fmt=marker[hmf_name], capsize=4, label=names[hmf_name],
         markersize=12,
         mec='k')
+
 
 def plotFit_one(directory, smf_name, hmf_name, shift):
     names = {'Despali16': 'Despali+16', 'Tinker08': 'Tinker+08', 'Watson13': 'Watson+13',
