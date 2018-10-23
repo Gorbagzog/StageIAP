@@ -202,7 +202,7 @@ def plotLiterrature():
                 fmt='D', c='purple', markerfacecolor='white', capsize=2, label='M+15')
 
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=6,
-                fmt='p', c='orange', markerfacecolor='white', capsize=2, label='C+18',
+                fmt='p', c='fuchsia', markerfacecolor='white', capsize=2, label='C+18',
                 elinewidth=1,)
     # plt.plot(
     #     redshiftB13_Planck, MhaloPeakB13_Planck,  'b<', markersize=6,
@@ -250,7 +250,7 @@ def plotLiterrature_several():
                 fmt='D', c='purple', markerfacecolor='white', capsize=2,)
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17,
                 markersize=markersize,
-                fmt='p', c='orange', markerfacecolor='white', capsize=2,
+                fmt='p', c='fuchsia', markerfacecolor='white', capsize=2,
                 elinewidth=1,)
     plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='orange', linestyle='-')
 
