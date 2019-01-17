@@ -473,18 +473,39 @@ def load_params(paramfile):
     return params
 
 
+# class NoDaemonProcess(multiprocessing.Process):
+#     # make 'daemon' attribute always return False
+#     def _get_daemon(self):
+#         return False
+#     def _set_daemon(self, value):
+#         pass
+#     daemon = property(_get_daemon, _set_daemon)
+
+# # We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
+# # because the latter is only a wrapper function, not a proper class.
+# class MyPool(multiprocessing.pool.Pool):
+#     Process = NoDaemonProcess
+
+
 class NoDaemonProcess(multiprocessing.Process):
-    # make 'daemon' attribute always return False
-    def _get_daemon(self):
+    @property
+    def daemon(self):
         return False
-    def _set_daemon(self, value):
+
+    @daemon.setter
+    def daemon(self, value):
         pass
-    daemon = property(_get_daemon, _set_daemon)
+
+
+class NoDaemonContext(type(multiprocessing.get_context())):
+    Process = NoDaemonProcess
 
 # We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
 # because the latter is only a wrapper function, not a proper class.
 class MyPool(multiprocessing.pool.Pool):
-    Process = NoDaemonProcess
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(MyPool, self).__init__(*args, **kwargs)
 
 
 def runMCMC_allZ(paramfile):
@@ -493,7 +514,7 @@ def runMCMC_allZ(paramfile):
     params = load_params(paramfile)
     # Create save direcory
     now = datetime.datetime.now()
-    dateName = "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)
+    dateName = "MCMC_"+str(now.year)+'-'+str(now.month)+'-'+str(now.day)+'T'+str(now.hour)+'-'+str(now.minute)+'-'+str(now.second)
     directory = params['save_path'] + dateName
     print('Save direcory : ' + directory)
     if not os.path.exists(directory):
@@ -503,10 +524,10 @@ def runMCMC_allZ(paramfile):
         # os.makedirs(directory+'/Plots/MhaloPeak')
         os.makedirs(directory+'/Results')
         print('Created new directory')
-    orig_stdout = sys.stdout
-    f = open(directory+'/out.txt', 'w')
-    sys.stdout.flush()
-    sys.stdout = f
+    # orig_stdout = sys.stdout
+    # f = open(directory+'/out.txt', 'w')
+    # sys.stdout.flush()
+    # sys.stdout = f
 
     global smf
     global hmf
@@ -554,15 +575,18 @@ def runMCMC_allZ(paramfile):
     plt.clf()
     plt.figure(figsize=(10, 5))
     Plot_MhaloPeak.plotLiterrature()
-    Plot_MhaloPeak.plotFit(directory, params['smf_name'], params['hmf_name'])
+    Plot_MhaloPeak.plotFit_one(directory, params['smf_name'], params['hmf_name'], shift=0.)
     Plot_MhaloPeak.savePlot(directory)
     plt.clf()
 
     # Plot evolution of parameters with redshift
-    Plot_results.plot_all(directory)
+    # Plot_results.plot_all(directory)
 
-    sys.stdout = orig_stdout
-    f.close()
+    if params['selected_redshifts'].size == 10:
+        get_latex_table(directory)
+
+    # sys.stdout = orig_stdout
+    # f.close()
 
 
 def runMCMC(idx_z, directory, params):
@@ -646,8 +670,8 @@ def runMCMC(idx_z, directory, params):
         # Plot all relevant figures
         plt.close('all')
         plotchain(directory, samples, idx_z, params)
-        plt.close('all')
-        plotdist(directory, samples, idx_z, params)
+        # plt.close('all')
+        # plotdist(directory, samples, idx_z, params)
         plt.close('all')
         plotSMF(directory, samples, smf, hmf, idx_z, params,  subsampling_step, sub_start)
         plt.close('all')
@@ -678,16 +702,36 @@ def save_results(directory, samples, idx_z, params):
         # myfile.write(str(results) + "\n")
         np.savetxt(myfile, results.reshape(1, results.shape[0]))
 
-    tab = samples.getLatex()
-    mhpeak = np.loadtxt(directory + "/MhaloPeak.txt")
-    mhpeak = mhpeak[mhpeak[:,0].argsort()]
-    with open(directory + "/Results_table.txt", "a") as myfile:
-        myfile.write(
-            '[{}, {}] & ${}$ & ${}$ & ${}$ & ${}$ & ${}$ & ${}$ & ${:.2f} \pm {:.2f}$\\\\'.format(
-                params['redshifts'][idx_z], params['redshifts'][idx_z+1],
-                tab[1][0], tab[1][1], tab[1][2], tab[1][3], tab[1][4], tab[1][5],
-                mhpeak[idx_z, 1], mhpeak[idx_z, 2])+ '\n')
 
+def get_latex_table(directory):
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    smf = load_smf(params)
+    for idx_z in range(10):
+        filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
+        reader = emcee.backends.HDFBackend(filename, read_only=True)
+        fullchain = reader.get_chain(flat=True)
+        print(fullchain.shape)
+        tau = reader.get_autocorr_time(tol=0)
+        burnin = int(2*np.nanmax(tau))
+        thin = int(0.5*np.nanmin(tau))
+        samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
+
+
+        names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
+        ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z], params['maxbound'][idx_z]]))))
+        samples = MCSamples(samples=samples, names=names, ranges=ranges)
+        mhpeak = np.loadtxt(directory + "/MhaloPeak.txt")
+        mhpeak = mhpeak[mhpeak[:, 0].argsort()]
+        if mhpeak.shape[0] == 10:
+            tab = samples.getLatex()
+            with open(directory + "/Results_table.txt", "a") as myfile:
+                myfile.write(
+                    '[{}, {}] & ${}$ & ${}$ & ${}$ & ${}$ & ${}$ & ${}$ & ${:.2f} \pm {:.2f}$\\\\'.format(
+                        params['redshifts'][idx_z], params['redshifts'][idx_z+1],
+                        tab[1][0], tab[1][1], tab[1][2], tab[1][3], tab[1][4], tab[1][5],
+                        mhpeak[idx_z, 1], mhpeak[idx_z, 2])+ '\n')
 
 # def save_table(directory, params):
 #     res = np.loadtxt(directory+'/Results.txt')
