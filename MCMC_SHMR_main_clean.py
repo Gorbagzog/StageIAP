@@ -521,7 +521,7 @@ def runMCMC_allZ(paramfile):
     print(params['selected_redshifts'])
     # Make the file for autocorr, burn in length and thin length
     with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
-        myfile.write("# Mean autocorrelation, Burn in length,  Thin length \n")
+        myfile.write("# idx_z, Mean autocorrelation, Burn in length,  Thin length \n")
     with open(directory + "/Results.txt", "a") as myfile:
         myfile.write(r'# Print mean value, 68% lower and 68% upper limits' + '\n')
         myfile.write('# idx_z, M1, Ms0, beta, delta, gamma, ksi \n')
@@ -639,7 +639,7 @@ def runMCMC(idx_z, directory, params):
         print("Burnin "+str(burnin))
         thin = int(0.5*np.min(tau))
         with open(directory + "/Chain/Autocorr.txt", "a") as myfile:
-            myfile.write(str(np.mean(tau)) + "  " + str(burnin) + "  " + str(thin) + "\n")
+            myfile.write(str(idx_z)+ "  " + str(np.mean(tau)) + "  " + str(burnin) + "  " + str(thin) + "\n")
 
         samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
 
@@ -739,10 +739,13 @@ def readAndAnalyseBin(directory, idx_z):
     print('Start loading and plotting '+str(idx_z))
     filename = directory+'/Chain/samples_'+str(idx_z)+'.h5'
     reader = emcee.backends.HDFBackend(filename, read_only=True)
+    fullchain = reader.get_chain(flat=True)
+    print(fullchain.shape)
     tau = reader.get_autocorr_time(tol=0)
     burnin = int(2*np.nanmax(tau))
     thin = int(0.5*np.nanmin(tau))
     samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
+    print(samples.shape)
     # Plot all relevant figures
     # plt.close('all')
     # plotchain(directory, samples, idx_z, params)
@@ -1208,6 +1211,7 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
     plt.figure()
     # cmap = matplotlib.cm.get_cmap('Accent')
     color= ['blue', 'orange', 'red']
+    marker = ['x', 'o', 'v']
     for fix in range(fixed_mh.shape[0]):
         # fix = fixed_mh.shape[0] - fix - 1
         # plt.fill_between(
@@ -1224,6 +1228,8 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
             label='$M_{{\mathrm{{h}}}} = 10^{{{:.1f}}} M_{{\odot}}$'.format(fixed_mh[fix]),
             # color='grey',
             capsize=3,
+            fmt=marker[fix],
+            markerfacecolor='white',
             color=color[fix],
             linestyle='-')
     # plt.plot(
@@ -1248,6 +1254,6 @@ def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
     plt.xlabel('redshift', size=17)
     plt.ylabel('$\mathrm{log}(M_{*}/M_{\mathrm{h}})$', size=17)
     plt.tick_params(axis='both', which='major', labelsize=13)
-    plt.legend()
+    plt.legend(prop={'size': 12})
     plt.tight_layout()
     plt.show()
