@@ -10,10 +10,13 @@ Started on January 18th 2019 by Louis Legrand at IAP and IAS.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from colossus import defaults
 from colossus.lss import mass_function
 from colossus.halo import mass_so
 from colossus.lss import peaks
 from colossus.cosmology import cosmology
+import emcee
+from multiprocessing import Pool
 cosmology.setCosmology('planck15')
 
 
@@ -42,8 +45,12 @@ def load_um_hmf():
 
 def plot(hmf, z):
     """Plot the hmf of bolshoi planck at a given redshift"""
-    # plt.figure()
+    cosmo = cosmology.getCurrent()
+    plt.figure()
     plt.errorbar(hmf[z][0], hmf[z][1], yerr=[hmf[z][2], hmf[z][3]])
+    M = 10**hmf[z][0] /cosmo.h
+    despalihmf = modelDespali16_fit(theta, M, z, '200c')
+    plt.plot(hmf[z][0], despalihmf)
 
 
 def plot_all(hmf, redshifts):
@@ -69,8 +76,8 @@ def despali(hmf, z):
 
 
 def modelDespali16_fit(theta, M, z, mdef, deltac_args={'corrections': True}):
-	"""
-	The mass function model of Despali et al 2016.
+    """
+    The mass function model of Despali et al 2016.
     This function is updated from the Colossus function to allow to fit paramters on the BP15 HMF.
 
     The parameters were fit for a number of different mass definitions, redshifts, and cosmologies.
@@ -80,46 +87,141 @@ def modelDespali16_fit(theta, M, z, mdef, deltac_args={'corrections': True}):
     Furthermore, the user can choose between results based on
     conventional SO halo finding and an ellipsoidal halo finder.
 
-	Parameters
-	-----------------------------------------------------------------------------------------------
-	theta: array_like
+    Parameters
+    -----------------------------------------------------------------------------------------------
+    theta: array_like
         Contains the 7 free parameters of Depsali HMF to be fitted
     M: array_like
-		Mass in M_{\odot}/h; can be a number or a numpy array.
-	z: float
-		Redshift
-	mdef: str
-		The mass definition to which M corresponds. See :doc:`halo_mass` for details.
+    Mass in M_{\odot}/h; can be a number or a numpy array.
+    z: float
+    Redshift
+    mdef: str
+    The mass definition to which M corresponds. See :doc:`halo_mass` for details.
 
-	Returns
-	-----------------------------------------------------------------------------------------------
-	dndlnM: array_like
-		The halo mass function :math:`dndlnM(M)` in (Mpc/h)^-3.
-	"""
+    Returns
+    -----------------------------------------------------------------------------------------------
+    dndlnM: array_like
+    The halo mass function :math:`dndlnM(M)` in (Mpc/h)^-3.
+    """
     cosmo = cosmology.getCurrent()
-
+    sigma_args = defaults.SIGMA_ARGS
     R = peaks.lagrangianR(M)
-    sigma = cosmo.sigma(R, z)
+    sigma = cosmo.sigma(R, z, **sigma_args)
 
 
-	Delta = mass_so.densityThreshold(z, mdef)
-	Delta_vir = mass_so.densityThreshold(z, 'vir')
-	x = np.log10(Delta / Delta_vir)
+    Delta = mass_so.densityThreshold(z, mdef)
+    Delta_vir = mass_so.densityThreshold(z, 'vir')
+    x = np.log10(Delta / Delta_vir)
 
     # A = -0.1362 * x + 0.3292
     # a = 0.4332 * x**2 + 0.2263 * x + 0.7665
     # p = -0.1151 * x**2 + 0.2554 * x + 0.2488
-    # theta = [-0.1262, 0.3292, 0.4332, 0.2263, 0.7665, -0.1551, 0.2554, 0.2488]
+    # theta = [-0.1262, 0.3292, 0.4332, 0.2263, 0.7665, -0.1151, 0.2554, 0.2488]
     A1, A0, a2, a1, a0, p2, p1, p0 = theta
     A = A1 * x + A0
     a = a2* x**2 + a1 * x + a0
     p = p2 * x**2 + p1 * x + p0
 
-	delta_c = peaks.collapseOverdensity(z=z, **deltac_args)
+    delta_c = peaks.collapseOverdensity(z=z, **deltac_args)
 
-	nu_p = a * delta_c**2 / sigma**2
-	f = 2.0 * A * np.sqrt(nu_p / 2.0 / np.pi) * \
+    nu_p = a * delta_c**2 / sigma**2
+    f = 2.0 * A * np.sqrt(nu_p / 2.0 / np.pi) * \
             np.exp(-0.5 * nu_p) * (1.0 + nu_p ** -p)
 
+    q_out = 'dndlnM'
     mfunc = mass_function.convertMassFunction(f, M, z, 'f', q_out)
-	return f
+    return mfunc
+
+
+def loglike(theta, hmf, selected_redshifts, mass_min):
+    """Compute tthe chi2 between the BP HMF and he despali HMF
+    Returns
+        logike = log likelikelihood"""
+    cosmo = cosmology.getCurrent()
+    z0 = selected_redshifts[0]
+    idx_massmin = np.argmin(np.abs(hmf[z0][0] - mass_min))
+
+    M = 10**hmf[z0][0, idx_massmin:] / cosmo.h  # Mass in Msun/h
+    mdef = '200c'
+    chi2 = 0
+    for z in selected_redshifts:
+        # Get the first zero value at the end of the HMF
+        myList = reversed(hmf[z][1])
+        idx_massmax = -next((i for i, x in enumerate(myList) if x), None)
+
+        despalihmf = modelDespali16_fit(theta, M, z, mdef)
+        chi2 += np.sum((despalihmf[:idx_massmax] -
+                        hmf[z][1, idx_massmin:idx_massmax])**2/0.01)
+
+    logli = -0.5 * chi2
+    if np.isnan(logli):
+        logli = -np.inf
+    return logli
+
+
+def fitemcee():
+    cosmology.setCosmology('planck15')
+    hmf, redshifts = load_um_hmf()
+    selected_redshifts = redshifts[redshifts > 0]
+    selected_redshifts = selected_redshifts[selected_redshifts < 5]
+
+    theta0 = [-0.1262, 0.3292, 0.4332, 0.2263, 0.7665, -0.1151, 0.2554, 0.2488]
+    ndim = len(theta0)
+    std = np.full(ndim, 0.01)
+    nwalkers = 250
+    iterations = 10
+    p0 = emcee.utils.sample_ball(theta0, std, size=nwalkers)
+    # ensure that everything is positive at the begining to avoid points stucked
+
+    mass_min = 10  # minimal mass in log(Msun) for fitting the HMFs
+
+    filename = './fitBP15HMF/samples.h5'
+    backend = emcee.backends.HDFBackend(filename)
+    backend.reset(nwalkers, ndim)
+
+    with Pool() as pool:
+        sampler = emcee.EnsembleSampler(
+            nwalkers, ndim, loglike, args=[hmf, selected_redshifts, mass_min],
+            pool=pool, backend=backend)
+
+
+        # We'll track how the average autocorrelation time estimate changes
+        index = 0
+        autocorr = np.empty(iterations)
+        # This will be useful to testing convergence∏
+        old_tau = np.inf
+        # Now we'll sample for up to iterations steps
+        for sample in sampler.sample(p0, iterations=iterations, progress=True):
+            # Only check convergence every 100 steps
+            if sampler.iteration % 100:
+                continue
+            # Compute the autocorrelation time so far
+            # Using tol=0 means that we'll always get an estimate even
+            # if it isn't trustworthy
+            tau = sampler.get_autocorr_time(tol=0)
+            autocorr[index] = np.mean(tau)
+            index += 1
+            # Check convergence
+            converged = np.all(tau * 50 < sampler.iteration)
+            converged &= np.all(np.abs(old_tau - tau) / tau < 0.01)
+            if converged:
+                print('Breaking MCMC because chain converged () at step ' + str(index))
+                print(
+                    'More than 50 worst autocorr time iterations, and autocorr time varied by less than 1\%')
+                break
+            old_tau = tau
+
+        burnin = 0
+        thin = 1
+        # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
+        samples = sampler.get_chain()
+
+
+    for i in range(8):
+        plt.figure()
+        for j in range(250):
+            plt.plot(samples[:, j, i])
+
+
+if __name__ == "__main__":
+    fitemcee()
