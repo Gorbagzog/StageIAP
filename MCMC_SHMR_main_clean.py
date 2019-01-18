@@ -7,7 +7,7 @@ Based on the Behroozi et al 2010 paper.
 Use a parametrization of the SHMR, plus a given HMF to find the expected SMF and compare it
 to the observed SMF with its uncertainties using a likelihod maximisation.
 
-Started on december 18th by Louis Legrand at IAP and IAS.
+Started on december 18th 2017 by Louis Legrand at IAP and IAS.
 """
 
 import numpy as np
