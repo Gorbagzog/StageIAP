@@ -85,15 +85,24 @@ def plot_all(hmf, redshifts):
     plt.legend()
 
 
-# def despali(hmf, z):
-#     """Get the Despali HMF on the HMF from the Bolshoi PLanck simulation.
+def compareHmf(hmf, z):
+    """Get the Despali HMF on the HMF from the Bolshoi PLanck simulation.
 
-#     Inputs:
-#         hmf : HMFs dictionnary from load_um_hmf
-#         z : redshift corresponding to one of the keys of hmf
-#     """
-#     mfunc = mass_function.massFunction(
-#         hmf[z][0], z, mdef='200m', model='despali16')
+    Inputs:
+        hmf : HMFs dictionnary from load_um_hmf
+        z : redshift corresponding to one of the keys of hmf
+    """
+    M = 10**np.linspace(8, 16)
+    mfunc = mass_function.massFunction(
+        M, z, mdef = 'vir', model = 'despali16', q_out='dndlnM')
+
+    best_fit = [0.682451203557801, 0.6805870483767835, 0.3530677251620634]
+    mfuncfit = modelDespali16_fit(best_fit, M, z,
+                       deltac_args = {'corrections': True})
+    plt.loglog(M, mfunc)
+    plt.loglog(M, mfuncfit)
+    plt.show()
+
 
 
 def modelDespali16_fit(theta, M, z, deltac_args={'corrections': True}):
@@ -124,30 +133,25 @@ def modelDespali16_fit(theta, M, z, deltac_args={'corrections': True}):
     dndlnM: array_like
     The halo mass function :math:`dndlnM(M)` in (Mpc/h)^-3.
     """
+
+    A, a, p = theta
+
     cosmo = cosmology.getCurrent()
     sigma_args = defaults.SIGMA_ARGS
     R = peaks.lagrangianR(M)
     sigma = cosmo.sigma(R, z, **sigma_args)
 
-    A, a, p = theta
+    delta_c = peaks.collapseOverdensity(z=z, **deltac_args)
 
-    tmp = np.array([A, a, p])
+    nu_p = a * delta_c ** 2 / sigma ** 2
+    # if np.abs(nu_p).any() >10:
+    #     return -M*np.inf
+    # else:
+    f = 2.0 * A * np.sqrt(nu_p / 2.0 / np.pi) * np.exp(-0.5 * nu_p) * (1.0 + nu_p ** -p)
 
-    if any(tmp > 1) or any(tmp < 0):
-        return - np.inf * M
-
-    else:
-        delta_c = peaks.collapseOverdensity(z=z, **deltac_args)
-
-        nu_p = a * delta_c ** 2 / sigma ** 2
-        # if np.abs(nu_p).any() >10:
-        #     return -M*np.inf
-        # else:
-        f = 2.0 * A * np.sqrt(nu_p / 2.0 / np.pi) * np.exp(-0.5 * nu_p) * (1.0 + nu_p ** -p)
-
-        q_out = 'dndlnM'
-        mfunc = mass_function.convertMassFunction(f, M, z, 'f', q_out)
-        return mfunc
+    q_out = 'dndlnM'
+    mfunc = mass_function.convertMassFunction(f, M, z, 'f', q_out)
+    return mfunc
 
 
 def loglike(theta, hmf, selected_redshifts, mass_min):
@@ -162,18 +166,22 @@ def loglike(theta, hmf, selected_redshifts, mass_min):
     z0 = selected_redshifts[0]
     idx_massmin = np.argmin(np.abs(hmf[z0][0] - mass_min))
 
-    M = 10**hmf[z0][0, idx_massmin:] / cosmo.h  # Mass in Msun/h
-    mdef = '200c'
-    # mdef='vir'
+    # M = 10**hmf[z0][0, idx_massmin:] / cosmo.h  # Mass in Msun/h
+    M = 10**hmf[z0][0, idx_massmin:]  # Mass in Msun/h
+
     chi2 = 0
     for z in selected_redshifts:
     # for z in [selected_redshifts[0]]:
         # Get the first zero value at the end of the HMF
         myList = reversed(hmf[z][1])
         idx_massmax = -next((i for i, x in enumerate(myList) if x), None) - 1
-        despalihmf = modelDespali16_fit(theta, M, z, mdef)
+        despalihmf = modelDespali16_fit(theta, M, z)
         # tmp_hmf = hmf[z][1]
-        chi2 += np.sum((np.log10(despalihmf[:idx_massmax]) - np.log10(hmf[z][1, idx_massmin:idx_massmax]))** 2 / 1e-7)
+        izero = np.where(hmf[z][1] == 0)
+        hmf[z][1, izero ] = 10**(-42)
+        # chi2 += np.sum((np.log10(despalihmf[:idx_massmax]) - np.log10(
+        #     hmf[z][1, idx_massmin:idx_massmax])) ** 2 / 1e-7)
+        chi2 += np.sum((despalihmf[:idx_massmax] - hmf[z][1, idx_massmin:idx_massmax]) ** 2 / 1e-7)
     if np.isnan(chi2):
         return -np.inf
     else:
@@ -193,7 +201,7 @@ def fitemcee():
     ndim = len(theta0)
     std = np.full(ndim, 0.01)
     nwalkers = 250
-    iterations = 100
+    iterations = 700
     p0 = emcee.utils.sample_ball(theta0, std, size=nwalkers)
     # ensure that everything is positive at the begining to avoid points stucked
 
@@ -254,8 +262,8 @@ def analyse():
     # thin = 1
     # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
     # samples = sampler.get_chain()
-    filename = './fitBP15HMF/save190121_ndim3_samples.h5'
-    # filename = './fitBP15HMF/samples.h5'
+    # filename = './fitBP15HMF/save190121_ndim3_samples.h5'
+    filename = './fitBP15HMF/samples.h5'
     backend = emcee.backends.HDFBackend(filename)
     samples = backend.get_chain()
     logprob = backend.get_log_prob()
