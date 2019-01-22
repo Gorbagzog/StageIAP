@@ -283,7 +283,6 @@ def load_hmf(params):
                         )
                     )
                 )
-    return hmf
 
     if hmf_name == 'despali16_Bolshoifit':
         """Use my fit on the Bolshoi Planck simulation of the Despali HMF.
@@ -309,6 +308,8 @@ def load_hmf(params):
                         )
                     )
                 )
+    return hmf
+
 
 """Function definitions for computation of the theoretical SMF phi_true"""
 

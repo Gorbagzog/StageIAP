@@ -268,9 +268,9 @@ def loadMhPeak(directory):
 
 def plotFit_several(directory, smf_name, hmf_name, shift):
     names = {'despali16': 'Despali+16', 'Tinker08': 'Tinker+08', 'Watson13': 'Watson+13',
-             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11'}
+             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11', 'despali16_Bolshoifit': 'Despali+16 fitted on BolshoiPlanck15'}
     marker = {'despali16': 'o', 'Tinker08': 'o', 'Watson13': 'v',
-             'Bocquet16': 'o', 'Bhattacharya11': 'v'}
+              'Bocquet16': 'o', 'Bhattacharya11': 'v', 'despali16_Bolshoifit': 'o'}
     MhaloPeak = loadMhPeak(directory)
     redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
     # print(MhaloPeak[MhaloPeak[0]==9, 1])
@@ -292,9 +292,9 @@ def plotFit_several(directory, smf_name, hmf_name, shift):
 
 def plotFit_one(directory, smf_name, hmf_name, shift):
     names = {'despali16': 'Despali+16', 'Tinker08': 'Tinker+08', 'Watson13': 'Watson+13',
-             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11'}
+             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11', 'despali16_Bolshoifit': 'Despali+16 fitted on BolshoiPlanck15'}
     marker = {'despali16': 'o', 'Tinker08': 'o', 'Watson13': 'v',
-             'Bocquet16': 'o', 'Bhattacharya11': 'v'}
+             'Bocquet16': 'o', 'Bhattacharya11': 'v', 'despali16_Bolshoifit': 'o'}
     MhaloPeak = loadMhPeak(directory)
     redshiftsbinTrue = np.array([0.37, 0.668, 0.938, 1.286, 1.735, 2.220, 2.683, 3.271, 3.926, 4.803])
     if smf_name == 'cosmos_schechter':
