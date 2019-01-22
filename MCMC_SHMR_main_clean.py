@@ -39,7 +39,7 @@ import multiprocessing
 from functools import partial
 import Plot_results
 from cycler import cycler
-
+import fitHMF_B18 as fitdespali16
 
 # os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -284,6 +284,31 @@ def load_hmf(params):
                     )
                 )
     return hmf
+
+    if hmf_name == 'despali16_Bolshoifit':
+        """Use my fit on the Bolshoi Planck simulation of the Despali HMF.
+        If they did like in Behroozi 2013 then the BP simulations outputs in the Universe machine define the halo masses as the virial mass overdensity criterion
+        of Bryan and Norman 97, and the peak progenitor mass for the mass of the satellites.
+        The HMF gives the total number of halos, (central and satellites)."""
+        print('Use ' + hmf_name + ' HMF in Planck15 cosmo from Colossus module function fited on the Bolshoi-Planck15 simulations of Mhalo at peak mass')
+        mdef = 'mvir'
+        theta_best_fit = np.array(
+            [0.682451203557801, 0.6805870483767835, 0.3530677251620634])
+        cosmo = cosmology.setCosmology('planck15')
+        redshift_haloes = params['redshiftsbin']
+        M = 10**np.arange(8.0, 20, 0.01) # Mass in Msun / h
+        for i in range(params['numzbin']):
+            hmf.append(
+                np.transpose(
+                    np.array(
+                        [np.log10(M / cosmo.h),
+                         np.log10(fitdespali16.modelDespali16_fit(
+                             theta_best_fit, M, redshift_haloes[i], deltac_args={'corrections': True})*np.log(10)*cosmo.h** 3
+                             # Mass functions are in h^3 Mpc^-3, and need to multiply by ln(10) to have dndlog10m
+                            )]
+                        )
+                    )
+                )
 
 """Function definitions for computation of the theoretical SMF phi_true"""
 
@@ -608,6 +633,7 @@ def runMCMC(idx_z, directory, params):
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
     with Pool(processes=2) as pool:
+    # with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
                     args=[idx_z, minbound, maxbound, subsampling_step, sub_start], pool=pool,
                     backend=backend)

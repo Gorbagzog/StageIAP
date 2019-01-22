@@ -28,6 +28,13 @@ def load_um_hmf():
     """Load the hmf of universe machine code, which is using the peak halo mass and not the actual mass of the halo.
     The simulation is in the Planck 2015 cosmology.
 
+    I am not sure how the mass is computed from the simulation, but if they did like in Behroozi et al 2013 paper,
+    the mass is defined with the overdensity criterion of Bryan and Norman 97, and the mass of satellites halo is
+    computed as the peak historical mass of the halo progenitor (before merging).
+
+    The halo mass function gives the total halo counts (central plus satellites).
+    It gives also in one of the columns the satellite fraction.
+
     Returns:
     hmf : a dictionary with the redshift as index and giving the HMFs in numpy array.
         Peak halo masses in Msun
@@ -89,7 +96,7 @@ def plot_all(hmf, redshifts):
 #         hmf[z][0], z, mdef='200m', model='despali16')
 
 
-def modelDespali16_fit(theta, M, z, mdef, deltac_args={'corrections': True}):
+def modelDespali16_fit(theta, M, z, deltac_args={'corrections': True}):
     """
     The mass function model of Despali et al 2016.
     This function is updated from the Colossus function to allow to fit paramters on the BP15 HMF.
@@ -101,16 +108,16 @@ def modelDespali16_fit(theta, M, z, mdef, deltac_args={'corrections': True}):
     Furthermore, the user can choose between results based on
     conventional SO halo finding and an ellipsoidal halo finder.
 
+    I modified the code so it fits for only one definition of the halo mass, which is the one used in theouptuts of the BolshoiPlanck simulation
+
     Parameters
     -----------------------------------------------------------------------------------------------
     theta: array_like
         Contains the 7 free parameters of Depsali HMF to be fitted
     M: array_like
-    Mass in M_{\odot}/h; can be a number or a numpy array.
+        Mass in M_{\odot}/h; can be a number or a numpy array.
     z: float
-    Redshift
-    mdef: str
-    The mass definition to which M corresponds. See :doc:`halo_mass` for details.
+        Redshift
 
     Returns
     -----------------------------------------------------------------------------------------------
@@ -121,20 +128,6 @@ def modelDespali16_fit(theta, M, z, mdef, deltac_args={'corrections': True}):
     sigma_args = defaults.SIGMA_ARGS
     R = peaks.lagrangianR(M)
     sigma = cosmo.sigma(R, z, **sigma_args)
-
-
-    Delta = mass_so.densityThreshold(z, mdef)
-    Delta_vir = mass_so.densityThreshold(z, 'vir')
-    x = np.log10(Delta / Delta_vir)
-
-    # A = -0.1362 * x + 0.3292
-    # a = 0.4332 * x**2 + 0.2263 * x + 0.7665
-    # p = -0.1151 * x**2 + 0.2554 * x + 0.2488
-    # theta = [-0.1262, 0.3292, 0.4332, 0.2263, 0.7665, -0.1151, 0.2554, 0.2488]
-    # A1, A0, a2, a1, a0, p2, p1, p0 = theta
-    # A = A1 * x + A0
-    # a = a2* x**2 + a1 * x + a0
-    # p = p2 * x**2 + p1 * x + p0
 
     A, a, p = theta
 
@@ -161,16 +154,17 @@ def loglike(theta, hmf, selected_redshifts, mass_min):
     """Compute tthe chi2 between the BP HMF and he despali HMF
     Returns
         logike = log likelikelihood """
-    # if any(theta > 1) or any(theta < 0):
-    #     return - np.inf
-    # else :
+
+    if any(theta > 1) or any(theta < 0):
+        return - np.inf
+
     cosmo = cosmology.getCurrent()
     z0 = selected_redshifts[0]
     idx_massmin = np.argmin(np.abs(hmf[z0][0] - mass_min))
 
     M = 10**hmf[z0][0, idx_massmin:] / cosmo.h  # Mass in Msun/h
-    # mdef = '200c'
-    mdef='vir'
+    mdef = '200c'
+    # mdef='vir'
     chi2 = 0
     for z in selected_redshifts:
     # for z in [selected_redshifts[0]]:
@@ -260,8 +254,8 @@ def analyse():
     # thin = 1
     # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
     # samples = sampler.get_chain()
-    # filename = './fitBP15HMF/save190121_ndim3_samples.h5'
-    filename = './fitBP15HMF/samples.h5'
+    filename = './fitBP15HMF/save190121_ndim3_samples.h5'
+    # filename = './fitBP15HMF/samples.h5'
     backend = emcee.backends.HDFBackend(filename)
     samples = backend.get_chain()
     logprob = backend.get_log_prob()
@@ -294,7 +288,8 @@ def analyse():
         txt = txt.format(mcmc[1], q[0], q[1], labels[i])
         display(Math(txt))
 
-    best = np.array([0.35036116, 0.35306773, 0.35574115])
+    best = np.array(
+        [0.682451203557801, 0.6805870483767835, 0.3530677251620634])
 
     hmf, redshifts = load_um_hmf()
     mass_min = 11
