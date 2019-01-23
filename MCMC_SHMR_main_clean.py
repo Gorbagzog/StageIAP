@@ -637,8 +637,8 @@ def runMCMC(idx_z, directory, params):
     backend = emcee.backends.HDFBackend(filename)
     backend.reset(nwalkers, ndim)
     print('Using backend to save the chain to '+filename)
-    with Pool(processes=2) as pool:
-    # with Pool() as pool:
+    # with Pool(processes=2) as pool:
+    with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, loglike,
                     args=[idx_z, minbound, maxbound, subsampling_step, sub_start], pool=pool,
                     backend=backend)
