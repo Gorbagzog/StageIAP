@@ -268,8 +268,8 @@ def loadMhPeak(directory):
 
 def plotFit_several(directory, smf_name, hmf_name, shift):
     names = {'despali16': 'Despali+16', 'Despali16': 'Despali+16', 'Tinker08': 'Tinker+08', 'Watson13': 'Watson+13',
-             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11', 'despali16_Bolshoifit': 'Despali+16 fitted on BolshoiPlanck15',
-             'Despali16_Bolshoifit': 'Despali+16 fitted on BolshoiPlanck15'}
+             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11', 'despali16_Bolshoifit': 'D+16 fit on $M_{\mathrm{max}}$ of BP15',
+             'Despali16_Bolshoifit': 'D+16 fit on $M_{\mathrm{max}}$ of BP15'}
     marker = {'despali16': 'o', 'Despali16': 'o', 'Tinker08': 'o', 'Watson13': 'v',
               'Bocquet16': 'o', 'Bhattacharya11': 'v', 'despali16_Bolshoifit': 'o',
               'Despali16_Bolshoifit': 'o'}
@@ -294,8 +294,8 @@ def plotFit_several(directory, smf_name, hmf_name, shift):
 
 def plotFit_one(directory, smf_name, hmf_name, shift):
     names = {'despali16': 'Despali+16', 'Despali16': 'Despali+16', 'Tinker08': 'Tinker+08', 'Watson13': 'Watson+13',
-             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11', 'despali16_Bolshoifit': 'Despali+16 fitted on BolshoiPlanck15',
-             'Despali16_Bolshoifit': 'Despali+16 fitted on BolshoiPlanck15'}
+             'Bocquet16': 'Bocquet+16', 'Bhattacharya11': 'Bhattacharya+11', 'despali16_Bolshoifit': 'D+16 fit on $M_{\mathrm{max}}$ of BP15',
+             'Despali16_Bolshoifit': 'D+16 fit on $M_{\mathrm{max}}$ of BP15'}
     marker = {'despali16': 'o', 'Despali16': 'o', 'Tinker08': 'o', 'Watson13': 'v',
               'Bocquet16': 'o', 'Bhattacharya11': 'v', 'despali16_Bolshoifit': 'o',
               'Despali16_Bolshoifit': 'o'}
@@ -364,8 +364,16 @@ if __name__ == '__main__':
 """" Exemple of multi plot """
 # python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-23 SchtFit Tinker08 MCMC_2018-6-28T12-33 SchtFit Despali16 MCMC_2018-6-28T15-19 SchtFit Bocquet16 MCMC_2018-6-28T15-37 SchtFit Bhattacharya11 MCMC_2018-6-28T12-10 SchtFit Watson13
 
-# python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-23 SchtFit Tinker08 MCMC_2018-6-28T12-33 SchtFit Despali16 MCMC_2018-6-28T15-19 SchtFit Despali16_Bolshoifit MCMC_2019-1-23T11-58-38 SchtFit Bocquet16 MCMC_2018-6-28T15-37 SchtFit Bhattacharya11 MCMC_2018-6-28T12-10 SchtFit Watson13
+# python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-23 SchtFit Tinker08 MCMC_2018-6-28T12-33 SchtFit Despali16 MCMC_2019-1-23T11-58-38 SchtFit Despali16_Bolshoifit MCMC_2018-6-28T15-19 SchtFit Bocquet16 MCMC_2018-6-28T15-37 SchtFit Bhattacharya11 MCMC_2018-6-28T12-10 SchtFit Watson13
 
 # python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-33 SchtFit Despali16
 
 # python3 Plot_MhaloPeak.py MCMC_2018-6-28T12-33 'Scht<12' Despali16 MCMC_2018-6-28T16-25 'Scht<12.5' Despali16
+
+
+
+# The one used in the article
+# python3 Plot_MhaloPeak.py MCMC_2018-9-6T19-35 SchtFit Bocquet16 MCMC_2018-9-6T19-30 SchtFit Tinker08 MCMC_2018-9-6T16-32 SchtFit Despali16 MCMC_2019-1-23T11-58-38 SchtFit Despali16_Bolshoifit MCMC_2018-9-6T19-34 SchtFit Watson13 MCMC_2018-9-6T19-38 SchtFit Bhattacharya11
+
+
+# python3 Plot_MhaloPeak.py MCMC_2019-1-23T11-58-38 SchtFit Despali16_Bolshoifit
