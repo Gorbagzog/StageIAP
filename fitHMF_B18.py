@@ -78,7 +78,7 @@ def plot_model(theta, hmf, z, mass_min, mdef):
     plt.xlabel('Peak halo masses in Msun')
     plt.ylabel('Number densities in comoving Mpc^-3 dex^-1')
     plt.legend()
-    plt.show()
+    # plt.show()
 
 
 def plot_all(hmf, redshifts):
@@ -272,8 +272,8 @@ def analyse():
     # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
     # samples = sampler.get_chain()
     # filename = './fitBP15HMF/save190121_ndim3_samples.h5'
-    filename = './fitBP15HMF/save190123_ndim3_Msunh_samples.h5'
-    # filename = './fitBP15HMF/samples.h5'
+    # filename = './fitBP15HMF/save190123_ndim3_Msunh_samples.h5'
+    filename = './fitBP15HMF/samples.h5'
     backend = emcee.backends.HDFBackend(filename)
     samples = backend.get_chain()
     logprob = backend.get_log_prob()
@@ -311,7 +311,10 @@ def analyse():
     #     [0.682451203557801, 0.6805870483767835, 0.3530677251620634])
 
     # Best fit when we suppose universe machine gives masses in Msun/h
-    best = [0.4752772505046221, 0.7532675208782209, 0.3520302943602699]
+    # best = [0.4752772505046221, 0.7532675208782209, 0.3520302943602699]
+
+    # Best fit when we suppose universe machine gives masses in Msun, but correcting by Msun * h
+    best = [0.33090366262139637, 0.8311237426711129, 0.3512604117780071]
 
     hmf, redshifts = load_um_hmf()
     mass_min = 11

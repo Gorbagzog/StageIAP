@@ -291,10 +291,12 @@ def load_hmf(params):
         The HMF gives the total number of halos, (central and satellites)."""
         print('Use ' + hmf_name + ' HMF in Planck15 cosmo from Colossus module function fited on the Bolshoi-Planck15 simulations of Mhalo at peak mass')
         mdef = 'mvir'
-        theta_best_fit = np.array(
-            [0.333, 0.794, 0.247])
+        # theta_best_fit = np.array(
+        #     [0.333, 0.794, 0.247])
         # theta_best_fit = np.array(
         #     [0.4752772505046221, 0.7532675208782209, 0.3520302943602699])
+        theta_best_fit = np.array(
+            [0.33090366262139637, 0.8311237426711129, 0.3512604117780071])  # Best fit supposing UM gives masses in Msun -> transformed them by Msun * h
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = params['redshiftsbin']
         M = 10**np.arange(8.0, 20, 0.01) # Mass in Msun / h
