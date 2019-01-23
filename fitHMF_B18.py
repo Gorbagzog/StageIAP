@@ -37,7 +37,7 @@ def load_um_hmf():
 
     Returns:
     hmf : a dictionary with the redshift as index and giving the HMFs in numpy array.
-        Peak halo masses in Msun
+        Peak halo masses in Msun (or Msun/h ??????)
         Number densities in comoving Mpc^-3 dex^-1.
         Columns of the HMFS[a] array = Log10(HM) Number_Density Err+ Err- Satellite_fraction Err+ Err- HM_Left_Edge HM_Right_Edge
     redshifts : numpy array of the redshifts where the HMFs are evaluated
@@ -60,13 +60,20 @@ def plot_model(theta, hmf, z, mass_min, mdef):
     cosmo = cosmology.getCurrent()
     plt.figure()
     plt.errorbar(hmf[z][0], hmf[z][1], yerr=[hmf[z][2], hmf[z][3]], label='Bolshoi planck at z =' +str(z))
-    M = 10**hmf[z][0] /cosmo.h
+    # M = 10**hmf[z][0] / cosmo.h
+    M = 10**hmf[z][0] * cosmo.h
+    # M = 10**hmf[z][0]
     despalihmf = modelDespali16_fit(theta, M, z, mdef)
     plt.plot(hmf[z][0], despalihmf, label='Modified Despali HMF')
     plt.axvline(mass_min, linestyle='--', label='minimal mass fitted')
     myList = reversed(hmf[z][1])
     idx_massmax = -next((i for i, x in enumerate(myList) if x), None) - 1
     plt.axvline(hmf[z][0, idx_massmax-1], linestyle='--', label='max mass fitted')
+
+    # Default theat from Despali16 paper for mvir:
+    def_theta = [0.333, 0.794, 0.247]
+    def_despalihmf = modelDespali16_fit(def_theta, M, z, mdef)
+    plt.plot(hmf[z][0], def_despalihmf, label='Default Despali HMF')
     plt.yscale('log')
     plt.xlabel('Peak halo masses in Msun')
     plt.ylabel('Number densities in comoving Mpc^-3 dex^-1')
@@ -141,7 +148,8 @@ def modelDespali16_fit(theta, M, z, deltac_args={'corrections': True}):
     R = peaks.lagrangianR(M)
     sigma = cosmo.sigma(R, z, **sigma_args)
 
-    delta_c = peaks.collapseOverdensity(z=z, **deltac_args)
+    # delta_c = peaks.collapseOverdensity(z=z, **deltac_args)
+    delta_c = peaks.collapseOverdensity(z=z, corrections=True)
 
     nu_p = a * delta_c ** 2 / sigma ** 2
     # if np.abs(nu_p).any() >10:
@@ -167,7 +175,8 @@ def loglike(theta, hmf, selected_redshifts, mass_min):
     idx_massmin = np.argmin(np.abs(hmf[z0][0] - mass_min))
 
     # M = 10**hmf[z0][0, idx_massmin:] / cosmo.h  # Mass in Msun/h
-    M = 10**hmf[z0][0, idx_massmin:]  # Mass in Msun/h
+    # M = 10**hmf[z0][0, idx_massmin:]  # Mass in Msun/h
+    M = 10**hmf[z0][0, idx_massmin:] * cosmo.h  # Mass in Msun/h
 
     chi2 = 0
     for z in selected_redshifts:
@@ -263,16 +272,17 @@ def analyse():
     # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
     # samples = sampler.get_chain()
     # filename = './fitBP15HMF/save190121_ndim3_samples.h5'
-    filename = './fitBP15HMF/samples.h5'
+    filename = './fitBP15HMF/save190123_ndim3_Msunh_samples.h5'
+    # filename = './fitBP15HMF/samples.h5'
     backend = emcee.backends.HDFBackend(filename)
     samples = backend.get_chain()
     logprob = backend.get_log_prob()
     mean_logprob = np.mean(backend.get_log_prob(), axis=1)
-    plt.plot(mean_logprob)
+    plt.semilogy(-mean_logprob)
 
     plt.figure()
     for i in range(250):
-        plt.plot(logprob[:, i])
+        plt.semilogy(-logprob[:, i])
 
     ndim = samples.shape[-1]
     for i in range(ndim):
@@ -296,8 +306,12 @@ def analyse():
         txt = txt.format(mcmc[1], q[0], q[1], labels[i])
         display(Math(txt))
 
-    best = np.array(
-        [0.682451203557801, 0.6805870483767835, 0.3530677251620634])
+    # Best fit when we suppose universe machine gives masses in Msun
+    # best = np.array(
+    #     [0.682451203557801, 0.6805870483767835, 0.3530677251620634])
+
+    # Best fit when we suppose universe machine gives masses in Msun/h
+    best = [0.4752772505046221, 0.7532675208782209, 0.3520302943602699]
 
     hmf, redshifts = load_um_hmf()
     mass_min = 11
