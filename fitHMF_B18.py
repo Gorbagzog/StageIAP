@@ -67,33 +67,45 @@ def plot_model(theta, hmf, z, mass_min, mdef):
     # M = 10**hmf[z][0] / cosmo.h
     M = 10**hmf[z][0] * cosmo.h
     # M = 10**hmf[z][0]
-    despalihmf = modelDespali16_fit(theta, M, z, mdef)
+    despalihmf = modelDespali16_fit(theta, M, z)
     plt.plot(hmf[z][0], despalihmf, label='Modified Despali HMF')
     plt.axvline(mass_min, linestyle='--', label='minimal mass fitted')
     myList = reversed(hmf[z][1])
     idx_massmax = -next((i for i, x in enumerate(myList) if x), None) - 1
     plt.axvline(hmf[z][0, idx_massmax-1], linestyle='--', label='max mass fitted')
 
-    # Default theat from Despali16 paper for mvir:
+    # Default theta from Despali16 paper for mvir:
     def_theta = [0.333, 0.794, 0.247]
-    def_despalihmf = modelDespali16_fit(def_theta, M, z, mdef)
+    def_despalihmf = modelDespali16_fit(def_theta, M, z)
     plt.plot(hmf[z][0], def_despalihmf, label='Default Despali HMF')
     plt.yscale('log')
-    plt.xlabel('Peak halo masses in Msun')
-    plt.ylabel('Number densities in comoving Mpc^-3 dex^-1')
+    plt.xlabel('peak halo masses in Msun')
+    plt.ylabel('number densities in comoving Mpc^-3 dex^-1')
     plt.legend()
     # plt.show()
 
 
-def plot_all(hmf, redshifts):
+def plot_all(theta, hmf, redshifts, mass_min):
+    cosmo = cosmology.getCurrent()
     plt.figure()
-    for z in redshifts[redshifts < 5][::10]:
-        plt.errorbar(hmf[z][0], hmf[z][1], yerr=[
-                     hmf[z][2], hmf[z][3]], label=str(z), fmt='o')
     plt.yscale('log')
-    plt.xlabel('Peak halo masses in Msun')
-    plt.ylabel('Number densities in comoving Mpc^-3 dex^-1')
+    plt.xlabel('$M_{h, \mathrm{max}}$ [$M_\odot / h$]', size=17)
+    plt.ylabel('halo mass function [$Mpc^{-3} dex^{-1}$]', size=17)
+    plt.tick_params(axis='both', which='major', labelsize=13)
+    plt.xlim(11, 15)
+    plt.ylim(10**-6, 0.1)
+    for z in redshifts:
+        M = 10**hmf[z][0] * cosmo.h
+        despalihmf = modelDespali16_fit(theta, M, z)
+        plt.plot(hmf[z][0], despalihmf)
+        idx_massmin = np.argmin(np.abs(hmf[z][0] - mass_min))
+        myList = reversed(hmf[z][1])
+        idx_massmax = -next((i for i, x in enumerate(myList) if x), None) - 1
+        plt.scatter(hmf[z][0, idx_massmin:idx_massmax], hmf[z][1, idx_massmin:idx_massmax],
+                    label='z = {0:.0f}'.format(z))
+
     plt.legend()
+    plt.tight_layout()
 
 
 def compareHmf(hmf, z):
@@ -277,8 +289,8 @@ def analyse():
     # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
     # samples = sampler.get_chain()
     # filename = './fitBP15HMF/save190121_ndim3_samples'
-    filename = './fitBP15HMF/save190123_ndim3_Msunh_samples'
-    # filename = './fitBP15HMF/save190123_ndim3_corectbyMsunh_samples'
+    # filename = './fitBP15HMF/save190123_ndim3_Msunh_samples'
+    filename = './fitBP15HMF/save190123_ndim3_corectbyMsunh_samples'  # Good one to use
     backend = emcee.backends.HDFBackend(filename + '.h5')
     samples = backend.get_chain()
     logprob = backend.get_log_prob()
@@ -334,8 +346,16 @@ def analyse():
     mass_min = 11
     selected_redshifts = redshifts[redshifts > 0]
     selected_redshifts = selected_redshifts[selected_redshifts < 5]
+
+    z_plots = np.arange(6)
+    idxz = z_plots * 0
+    for i, z in enumerate(z_plots):
+        idxz[i] = np.argmin(np.abs(selected_redshifts - z))
+
     for z in selected_redshifts[::10]:
         plot_model(best, hmf, z, mass_min, mdef='vir')
+
+    plot_all(best, hmf, selected_redshifts[idxz], mass_min)
 
     multipage(filename + 'multipage.pdf')
 

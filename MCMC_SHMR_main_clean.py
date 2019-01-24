@@ -362,14 +362,15 @@ def gauss(y, ksi):
 def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Use convolution defined in Behroozi et al 2010"""
     log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-    # if params['smf_name'] == 'cosmos_schechter':
-    dx = np.mean(logMs[1:] - logMs[:-1])
-    # else:
-    #     print('Warning, the step between two mass bins in not defined in this case.')
+    if params['smf_name'] == 'cosmos_schechter':
+        dx = np.mean(logMs[1:] - logMs[:-1])
+    else:
+        print('Warning, the step between two mass bins in not defined in this case.')
     u = np.arange(0, 10*ksi, dx)
     x = np.concatenate((-np.flip(u, 0)[:-1], u)) # kepp the zero at the center of the array
     gaussian = 1. / (ksi * np.sqrt(2 * np.pi)) * np.exp(- 1/2 * (x / ksi)**2) * dx
     # return np.log10(signal.convolve(10**log_phi_dir, gaussian, mode='same'))
+    # gaussian will give a log-normal distribution on the variable Ms, because logMs will folow a gaussian distribution.
 
     """Make an extension of the array on the left side to avoid convolution border effects"""
     n_ext = x.shape[0] // 2
@@ -1101,7 +1102,8 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.ylim(11, 15)
         plt.xlim(9, 12)
         for idx_z in np.arange(6):
-            plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
+            if idx_z==2:
+                plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
             plt.plot(logMs[idx_z], med_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
         plt.xlabel('$\mathrm{log}(M_{*}/M_{\odot})$', size=17)
         plt.ylabel('$\mathrm{log}(M_{\mathrm{h}}/M_{\odot})$', size=17)
@@ -1114,8 +1116,9 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.figure()
         plt.ylim(11, 15)
         plt.xlim(9, 12)
-        for idx_z in np.arange(4)+6:
-            plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
+        for idx_z in np.arange(4) + 6:
+            if idx_z == 6 or idx_z ==9:
+                plt.fill_between(logMs[idx_z], conf_min_logMh[idx_z], conf_max_logMh[idx_z], color="C{}".format(idx_z), alpha=0.3)
             plt.plot(logMs[idx_z], med_logMh[idx_z], label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
         plt.xlabel('$\mathrm{log}(M_{*}/M_{\odot})$', size=17)
         plt.ylabel('$\mathrm{log}(M_{\mathrm{h}}/M_{\odot})$', size=17)
@@ -1167,7 +1170,8 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
             # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
             yerr = [xerr[1], xerr[0]]
             # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
-            plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
+            if idx_z == 2:
+                plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
             plt.plot(x, y, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
         logspace = np.linspace(11, 16)
         # plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
@@ -1191,7 +1195,8 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
             # yerr = [y - conf_max_logMh[idx_z], conf_min_logMh[idx_z] - y]
             yerr = [xerr[1], xerr[0]]
             # plt.errorbar(x, y, yerr= yerr, xerr=xerr)
-            plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
+            if idx_z == 6 or idx_z == 9:
+                plt.fill_between(x, y - yerr[0], yerr[1] + y, alpha=0.3, color="C{}".format(idx_z))
             plt.plot(x, y, label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]), color="C{}".format(idx_z))
         logspace = np.linspace(11, 16)
         # plt.plot(logspace, np.max(Ms_max) - logspace, c='black', linestyle='--', label='$M_{*}= Max cut in stellar mass$')
