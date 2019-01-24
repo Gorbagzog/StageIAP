@@ -278,7 +278,7 @@ def analyse():
     # samples = sampler.get_chain()
     # filename = './fitBP15HMF/save190121_ndim3_samples'
     filename = './fitBP15HMF/save190123_ndim3_Msunh_samples'
-    # filename = './fitBP15HMF/samples'
+    # filename = './fitBP15HMF/save190123_ndim3_corectbyMsunh_samples'
     backend = emcee.backends.HDFBackend(filename + '.h5')
     samples = backend.get_chain()
     logprob = backend.get_log_prob()
@@ -328,7 +328,7 @@ def analyse():
     # best = [0.4752772505046221, 0.7532675208782209, 0.3520302943602699]
 
     # Best fit when we suppose universe machine gives masses in Msun, but correcting by Msun * h
-    best = [0.33090366262139637, 0.8311237426711129, 0.3512604117780071]
+    # best = [0.33090366262139637, 0.8311237426711129, 0.3512604117780071]
 
     hmf, redshifts = load_um_hmf()
     mass_min = 11
