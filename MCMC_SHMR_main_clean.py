@@ -838,7 +838,7 @@ def readAndAnalyseBin(directory, idx_z):
     # with open(directory + "/Results.txt", "a") as myfile:
     #     myfile.write(r'Print mean value, 68% lower and 68% upper limits')
     #     myfile.write('M1, Ms0, beta, delta, gamma, ksi')
-    save_results(directory, samples, idx_z, params)
+    # save_results(directory, samples, idx_z, params)
 
 
 """Plots"""
@@ -930,7 +930,8 @@ def plotchain(directory, samples, idx_z, params):
 def plotdist(directory, samples, idx_z, params):
     figname = directory + "/Plots/GetDist_z" + str(idx_z)
     names = ['$M_{1}$', '$M_{s,0}$', '$\\beta$', '$\delta$', '$\gamma$', r'$\xi$']
-    samples = MCSamples(samples=samples, names=names,
+    labels = ['M_{1}', 'M_{*,0}', '\\beta', '\delta', '\gamma', r'\xi']
+    samples = MCSamples(samples=samples, names=names, labels=labels,
         ranges = dict(zip(names, np.transpose(np.array([params['minbound'][idx_z],
         params['maxbound'][idx_z]])))))
     g = plots.getSubplotPlotter()
