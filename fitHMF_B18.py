@@ -320,7 +320,7 @@ def analyse():
     fig = corner.corner(flat_samples, labels=labels)
 
 
-    # Best fit when we suppose universe machine gives masses in Msun
+    # Best fit when we suppose universe machine gives masses in Msun, but correcting by Msun/h (wrong)
     # best = np.array(
     #     [0.682451203557801, 0.6805870483767835, 0.3530677251620634])
 
