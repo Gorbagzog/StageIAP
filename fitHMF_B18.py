@@ -1,6 +1,5 @@
 # -*-coding:Utf-8 -*
 
-from IPython.display import display, Math
 """
 Fit a HMF function to the data outputs of Bolshoi-Planck15 given by Behroozi et al. 18 in the Universe machine code.
 This is in scope of using th epeak halo mass of the halo as the HMF inour SHAM code.
@@ -19,6 +18,11 @@ from colossus.cosmology import cosmology
 import emcee
 import corner
 from multiprocessing import Pool
+from matplotlib.backends.backend_pdf import PdfPages
+from IPython.display import display, Math
+
+
+
 cosmology.setCosmology('planck15')
 
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -163,7 +167,7 @@ def modelDespali16_fit(theta, M, z, deltac_args={'corrections': True}):
 
 
 def loglike(theta, hmf, selected_redshifts, mass_min):
-    """Compute tthe chi2 between the BP HMF and he despali HMF
+    """Compute the chi2 between the BP HMF and he despali HMF
     Returns
         logike = log likelikelihood """
 
@@ -267,44 +271,54 @@ def fitemcee():
 
 
 def analyse():
+    plt.close('all')
     # burnin = 0
     # thin = 1
     # samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
     # samples = sampler.get_chain()
-    # filename = './fitBP15HMF/save190121_ndim3_samples.h5'
-    # filename = './fitBP15HMF/save190123_ndim3_Msunh_samples.h5'
-    filename = './fitBP15HMF/samples.h5'
-    backend = emcee.backends.HDFBackend(filename)
+    # filename = './fitBP15HMF/save190121_ndim3_samples'
+    filename = './fitBP15HMF/save190123_ndim3_Msunh_samples'
+    # filename = './fitBP15HMF/samples'
+    backend = emcee.backends.HDFBackend(filename + '.h5')
     samples = backend.get_chain()
     logprob = backend.get_log_prob()
     mean_logprob = np.mean(backend.get_log_prob(), axis=1)
-    plt.semilogy(-mean_logprob)
+    # plt.semilogy(-mean_logprob)
+    labels = ['A', 'a', 'p']
 
     plt.figure()
+    plt.title('Log-probability')
+    plt.xlabel('Iterations')
+    plt.ylabel('$\chi^2/2$')
     for i in range(250):
         plt.semilogy(-logprob[:, i])
 
-    ndim = samples.shape[-1]
-    for i in range(ndim):
-        plt.figure()
-        for j in range(250):
-            plt.plot(samples[:, j, i])
-    plt.show()
-
-    samp = backend.get_last_sample().coords
-
-    labels = ['A', 'a', 'p']
     flat_samples = backend.get_chain(discard=150, thin=15, flat=True)
-    fig = corner.corner(flat_samples, labels=['A', 'a', 'p'])
 
     ndim = flat_samples.shape[-1]
+    best = np.zeros(ndim)
     for i in range(ndim):
         mcmc = np.percentile(flat_samples[:, i], [16, 50, 84])
+        best[i] = mcmc[1]
         q = np.diff(mcmc)
         print(labels[i] + ' = ' + str(mcmc[1]))
         txt = "\mathrm{{{3}}} = {0:.3f}_{{-{1:.3f}}}^{{{2:.3f}}}"
         txt = txt.format(mcmc[1], q[0], q[1], labels[i])
         display(Math(txt))
+
+    for i in range(ndim):
+        plt.figure()
+        plt.title('Parameter fit:' + str(best[i]))
+        plt.ylabel(labels[i])
+        plt.xlabel('Iterations')
+        for j in range(250):
+            plt.plot(samples[:, j, i])
+    # plt.show()
+
+    # samp = backend.get_last_sample().coords
+
+    fig = corner.corner(flat_samples, labels=labels)
+
 
     # Best fit when we suppose universe machine gives masses in Msun
     # best = np.array(
@@ -322,6 +336,17 @@ def analyse():
     selected_redshifts = selected_redshifts[selected_redshifts < 5]
     for z in selected_redshifts[::10]:
         plot_model(best, hmf, z, mass_min, mdef='vir')
+
+    multipage(filename + 'multipage.pdf')
+
+
+def multipage(filename, figs=None, dpi=200):
+    pp = PdfPages(filename)
+    if figs is None:
+        figs = [plt.figure(n) for n in plt.get_fignums()]
+    for fig in figs:
+        fig.savefig(pp, format='pdf')
+    pp.close()
 
 
 if __name__ == "__main__":

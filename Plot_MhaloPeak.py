@@ -375,5 +375,4 @@ if __name__ == '__main__':
 # The one used in the article
 # python3 Plot_MhaloPeak.py MCMC_2018-9-6T19-35 SchtFit Bocquet16 MCMC_2018-9-6T19-30 SchtFit Tinker08 MCMC_2018-9-6T16-32 SchtFit Despali16 MCMC_2019-1-23T11-58-38 SchtFit Despali16_Bolshoifit MCMC_2018-9-6T19-34 SchtFit Watson13 MCMC_2018-9-6T19-38 SchtFit Bhattacharya11
 
-
 # python3 Plot_MhaloPeak.py MCMC_2019-1-23T11-58-38 SchtFit Despali16_Bolshoifit
