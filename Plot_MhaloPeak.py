@@ -171,7 +171,7 @@ def plotLiterrature():
     x = np.linspace(0.1, 5)
     plt.plot(x, MhaloPeakB13_Planck_f(x), color='limegreen',  linestyle='-.',
         label='B+13')
-    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='orange', linestyle='-',
+    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='darkgreen', linestyle='-',
         label='B+18')
     # plt.fill_between(
     #     redshiftM1Moster13,
@@ -217,6 +217,8 @@ def plotLiterrature():
         redshiftHarikane, MhaloPeakHarikane, c='brown', fmt='p', marker=r'$\uparrow$',
         markersize=15, capsize=0, elinewidth=0, label='H+18, lower limit')
 
+    plt.scatter(redshiftMoster18, MhaloPeakMoster18, marker='<', s=50,
+                color='dodgerblue', facecolor='white', label='M+18')
 
 
     # plt.errorbar(redshiftYang12, MhaloPeakYang12, yerr= MhaloSigmaYang12, markersize=5, elinewidth=1,

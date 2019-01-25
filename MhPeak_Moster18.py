@@ -1,6 +1,12 @@
 # -*-coding:Utf-8 -*
 
-"""Some code to compute the MhaloPeak with the Moster 2018 relation"""
+"""Some code to compute the MhaloPeak with the Moster 2018 relation
+
+The table 6 with the redshift evolution is valid only for the instantaneous efficiency,
+not the integrated efficiency we are interested in.
+So I can only use the points given in table 8, but the integrated efficiency is fitted by a
+double power law as the instantaneous efficiency, so we use equation 5 and 6 as well to get the peak halo mass.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,8 +17,6 @@ import time
 z = np.array([0.1, 0.5, 1.0, 2.0, 4.0, 8.0])
 
 M1 = np.array([11.80, 11.85, 11.95, 12.00, 12.05, 12.10])
-
-deltaM1 = np.aaray([])
 
 beta = np.array([1.75, 1.70, 1.60, 1.55, 1.50, 1.30])
 
