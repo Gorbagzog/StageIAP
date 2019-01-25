@@ -267,7 +267,8 @@ def load_hmf(params):
             print(hmf_name)
             mdef='fof'
         else:
-            mdef = '200m'
+            # mdef = '200m'
+            mdef = 'vir'
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = params['redshiftsbin']
