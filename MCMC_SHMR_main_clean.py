@@ -823,6 +823,12 @@ def readAndAnalyseBin(directory, idx_z):
     thin = int(0.5*np.nanmin(tau))
     samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
     print(samples.shape)
+
+    reader = emcee.backends.HDFBackend(filename, read_only=True)
+    length = reader.get_chain().shape[0]
+    print('Number of steps per walker: ' + str(length))
+    print('Average acceptance fraction (should be between 0.2 and 0.5): ' +str(np.mean(reader.accepted) / length))
+
     # Plot all relevant figures
     # plt.close('all')
     # plotchain(directory, samples, idx_z, params)
