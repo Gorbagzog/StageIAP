@@ -268,7 +268,10 @@ def load_hmf(params):
             mdef='fof'
         elif hmf_name == 'bocquet16':
             mdef = '200m'
-        else:
+        elif hmf_name == 'tinker08':
+            # Cannot use Mvir for tinker becasue the threshold cannont be lower than 200*rho_m
+            mdef = '200m'
+        elif hmf_name == 'despali16':
             mdef = 'vir'
         print('Use ' + mdef + ' for the SO defintion in ' + hmf_name)
         cosmo = cosmology.setCosmology('planck15')
