@@ -114,7 +114,6 @@ tmp = np.loadtxt('MhaloPeakMoster.txt')
 redshiftMoster13 = tmp[0]
 MhaloPeakMoster13 = tmp[1]
 
-
 # Load M1 from Moster et al. 2013
 # File provided by Iary by graphic reading of the Figure 4
 # Use it as a proxy of the error on Mpeak as it is proportional to M1.
@@ -122,6 +121,11 @@ MhaloPeakMoster13 = tmp[1]
 tmp = np.transpose(np.loadtxt('Fits_from_Iary/moster13_M1fit.txt'))
 redshiftM1Moster13 = tmp[0, :-1]
 M1Moster13 = tmp[1:, :-1]
+
+
+# Load the data points from Aldo Rodriguez-Puebla 2017, sent by mail on Novemrber 2nd 2018
+redshiftRodriguez2017, MhaloPeakRodriguez2017, M50Rodriguez2017 = np.transpose(np.loadtxt('Rodriguez_Mvir_peak.dat'))
+
 
 # Select the positions of the MhaloPeakMoster corresponding to the redshifts of Iary
 index_M13z = np.argmin(
@@ -181,6 +185,12 @@ def plotLiterrature():
     plt.plot(redshiftMoster13, MhaloPeakMoster13, color='royalblue', linestyle='--',
         label='M+13')
 
+    plt.plot(redshiftRodriguez2017, MhaloPeakRodriguez2017, color='orangered', linestyle=':', markersize=8,
+        markerfacecolor='white', label='R+17')
+
+    # plt.plot(redshiftRodriguez2017, M50Rodriguez2017, 'g:', markersize=8,
+    #     markerfacecolor='white', label='R+17 M50')
+
     # plt.errorbar(
     #     redshiftHarikane, MhaloPeakHarikane,
     #     yerr=0.1, elinewidth=1,
@@ -199,7 +209,7 @@ def plotLiterrature():
                 markersize=5)
     plt.errorbar(redshiftMartinezManso2014, MhaloPeakMartinezManso2014, elinewidth=1,
                 yerr=MhaloSigmaMartinezManso2014, markersize=5,
-                fmt='D', c='purple', markerfacecolor='white', capsize=2, label='M+15')
+                fmt='D', c='purple', markerfacecolor='white', capsize=2, label='MM+15')
 
     plt.errorbar(redshiftCowley17, MhaloPeakCowley17, yerr=MhaloSigmaCowley17, markersize=6,
                 fmt='p', c='fuchsia', markerfacecolor='white', capsize=2, label='C+18',
@@ -212,6 +222,8 @@ def plotLiterrature():
     plt.plot(
         redshiftBS15, MhaloPeakBS15_newfit, 'r*', markersize=8,
         markerfacecolor='white', label='B+15')
+
+
 
     plt.errorbar(
         redshiftHarikane, MhaloPeakHarikane, c='brown', fmt='p', marker=r'$\uparrow$',
