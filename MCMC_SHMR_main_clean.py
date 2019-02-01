@@ -266,8 +266,9 @@ def load_hmf(params):
         if hmf_name == 'watson13' or hmf_name =='bhattacharya11':
             print(hmf_name)
             mdef='fof'
+        elif hmf_name == 'bocquet16':
+            mdef = '200m'
         else:
-            # mdef = '200m'
             mdef = 'vir'
         print('Use '+mdef+' for the SO defintion.')
         cosmo = cosmology.setCosmology('planck15')
