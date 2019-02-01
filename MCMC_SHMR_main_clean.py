@@ -264,13 +264,13 @@ def load_hmf(params):
         """Use the Colossus module for the HMF"""
         print('Use '+hmf_name+' HMF in Planck15 cosmo from Colossus module')
         if hmf_name == 'watson13' or hmf_name =='bhattacharya11':
-            print(hmf_name)
+            # print(hmf_name)
             mdef='fof'
         elif hmf_name == 'bocquet16':
             mdef = '200m'
         else:
             mdef = 'vir'
-        print('Use '+mdef+' for the SO defintion.')
+        print('Use ' + mdef + ' for the SO defintion in ' + hmf_name)
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = params['redshiftsbin']
         M = 10**np.arange(8.0, 20, 0.01) # Mass in Msun / h
