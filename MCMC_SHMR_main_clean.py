@@ -1300,9 +1300,9 @@ def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     plt.plot(logMs, logphitrue)
     plt.show()
 
-def plotCosmosSMF_HMF():
+def plotCosmosSMF_HMF(directory):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
-    paramfile = 'MCMC_param.ini'
+    paramfile = directory + '/MCMC_param.ini'
     global params
     params = load_params(paramfile)
     global smf
