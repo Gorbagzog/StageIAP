@@ -1300,6 +1300,39 @@ def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     plt.plot(logMs, logphitrue)
     plt.show()
 
+def plotCosmosSMF_HMF():
+    """Good version to use to plot the SHMR and the Ms(Mh)"""
+    paramfile = 'MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    plt.close('all')
+    plt.figure()
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10 ** 9, 10 ** 15)
+    plt.ylim(10 ** -6, 1)
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    for idx_z in range(10):
+        plt.plot(10 ** smf[idx_z][:, 0], 10 ** smf[idx_z][:, 1], color=colors[idx_z],
+                 label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+        # plt.errorbar(smf[idx_z][:, 0], smf[idx_z][:, 1],
+        #     yerr=[smf[idx_z][:, 3], smf[idx_z][:, 2]], fmt='o')
+        plt.fill_between(10**smf[idx_z][:, 0],  10**(smf[idx_z][:, 1] -  smf[idx_z][:, 3]),
+                         10**(smf[idx_z][:, 2] + smf[idx_z][:, 1]), color=colors[idx_z], alpha=0.3)
+        plt.plot(10 ** hmf[idx_z][:, 0], 10 ** hmf[idx_z][:, 1], color=colors[idx_z])
+    plt.xlabel('stellar or halo mass [$M_\odot$]', size=17)
+    plt.ylabel('mass function [$\mathrm{Mpc}^{-3} \mathrm{dex}^{-1}$]', size=17)
+    plt.tick_params(axis='both', which='major', labelsize=13)
+    # plt.legend(prop={'size': 12})
+    plt.legend(frameon=False, ncol=2, prop={'size': 11}, loc=1)
+    plt.tight_layout()
+    plt.show()
+
+
 
 def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
     paramfile = directory + '/MCMC_param.ini'
