@@ -114,6 +114,34 @@ def load_smf(params):
             #             )
             #         ), :][0]
 
+        elif smf_name == 'cosmos_schechter_shifted':
+            """Shift values of the smf vertically of + 1 sigma to see the impact of the uncertainty in the MhaloPeak"""
+            print('Use the COSMOS Schechter fit SMF, shifted by 1sigma')
+            for i in range(params['numzbin']):
+                tmp.append(np.loadtxt(
+                    '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
+                    + str(i) + '.dat')
+                )
+                # Do not take points that are below -1000
+                smf.append(
+                    tmp[i][np.where(
+                        np.logical_and(
+                            np.logical_and(
+                                tmp[i][:, 1] > -1000,
+                                tmp[i][:, 2] > -1500),
+                            tmp[i][:, 3] > -1000),
+                    ), :][0])
+                temp = smf[i][:, 1] - smf[i][:, 2]
+                smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
+                smf[i][:, 3] = temp
+                # Shift the smf values of + 1 sigma
+                smf[i][:, 1] += smf[0][:, 2]
+
+            if params['do_sm_cut']:
+                params['SM_cut_min'] = np.log10(
+                    6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7)
+                print('Use D17 relation for minimal stellar mass: Ms_min=' +
+                      str(params['SM_cut_min']))
 
         """Adapt SMF to match the Planck Cosmology"""
         # Davidzon+17 SMF cosmo : (flat LCDM)
@@ -1220,6 +1248,29 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.tight_layout()
         # plt.show()
         plt.savefig(directory + '/Plots/DeltaSMHM_789.pdf')
+
+
+def test_MS_evolution(directory):
+    """Test teh consistency of stellar mass evolution compared to the evolution of hao mass,
+    as asked by the refereee comment number 13."""
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
+    print(Ms_min)
+    Ms_max = params['SM_cut_max']
+    numpoints = 100
+    logMs, av_logMh, med_logMh, conf_min_logMh, conf_max_logMh = save_load_smhm(
+        directory, Ms_min, Ms_max, numpoints, load, selected_redshifts)
+    idxMh13 = np.argmin(np.abs(med_logMh - 13), axis=1)
+    idxMh135 = np.argmin(np.abs(med_logMh - 13.5), axis=1)
+    # Stellar Mass of a galxy in a halo of 10^13 Msun at z=4
+    logMs_z4_Mh13 = logMs[8, idxMh13[8]]
+    logMs_z25_Mh135 = logMs[5, idxMh13[5]]
 
 
 def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
