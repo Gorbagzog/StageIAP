@@ -114,7 +114,7 @@ def load_smf(params):
             #             )
             #         ), :][0]
 
-        elif smf_name == 'cosmos_schechter_shifted':
+        elif smf_name == 'cosmos_schechter_shifted_minus' or smf_name == 'cosmos_schechter_shifted_plus':
             """Shift values of the smf vertically of + 1 sigma to see the impact of the uncertainty in the MhaloPeak"""
             print('Use the COSMOS Schechter fit SMF, shifted by 1sigma')
             for i in range(params['numzbin']):
@@ -135,7 +135,10 @@ def load_smf(params):
                 smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
                 smf[i][:, 3] = temp
                 # Shift the smf values of + 1 sigma
-                smf[i][:, 1] += smf[i][:, 2]
+                if smf_name == 'cosmos_schechter_shifted_plus':
+                    smf[i][:, 1] += smf[i][:, 2]
+                elif smf_name == 'cosmos_schechter_shifted_minus':
+                    smf[i][:, 1] -= smf[i][:, 3]
 
             if params['do_sm_cut']:
                 params['SM_cut_min'] = np.log10(
