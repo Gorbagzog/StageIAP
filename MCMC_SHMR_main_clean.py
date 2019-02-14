@@ -47,7 +47,7 @@ import fitHMF_B18 as fitdespali16
 def load_smf(params):
     """Load the SMF."""
     smf_name = params['smf_name']
-    if smf_name == 'cosmos' or smf_name == 'cosmos_schechter':
+    if smf_name == 'cosmos' or smf_name == 'cosmos_schechter' or smf_name == 'cosmos_schechter_shifted':
 
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
@@ -114,6 +114,34 @@ def load_smf(params):
             #             )
             #         ), :][0]
 
+        elif smf_name == 'cosmos_schechter_shifted':
+            """Shift values of the smf vertically of + 1 sigma to see the impact of the uncertainty in the MhaloPeak"""
+            print('Use the COSMOS Schechter fit SMF, shifted by 1sigma')
+            for i in range(params['numzbin']):
+                tmp.append(np.loadtxt(
+                    '../Data/Davidzon/Davidzon+17_SMF_v3.0/mf_mass2b_fl5b_tot_VmaxFit2D'
+                    + str(i) + '.dat')
+                )
+                # Do not take points that are below -1000
+                smf.append(
+                    tmp[i][np.where(
+                        np.logical_and(
+                            np.logical_and(
+                                tmp[i][:, 1] > -1000,
+                                tmp[i][:, 2] > -1500),
+                            tmp[i][:, 3] > -1000),
+                    ), :][0])
+                temp = smf[i][:, 1] - smf[i][:, 2]
+                smf[i][:, 2] = smf[i][:, 3] - smf[i][:, 1]
+                smf[i][:, 3] = temp
+                # Shift the smf values of + 1 sigma
+                smf[i][:, 1] += smf[i][:, 2]
+
+            if params['do_sm_cut']:
+                params['SM_cut_min'] = np.log10(
+                    6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7)
+                print('Use D17 relation for minimal stellar mass: Ms_min=' +
+                      str(params['SM_cut_min']))
 
         """Adapt SMF to match the Planck Cosmology"""
         # Davidzon+17 SMF cosmo : (flat LCDM)
@@ -264,12 +292,16 @@ def load_hmf(params):
         """Use the Colossus module for the HMF"""
         print('Use '+hmf_name+' HMF in Planck15 cosmo from Colossus module')
         if hmf_name == 'watson13' or hmf_name =='bhattacharya11':
-            print(hmf_name)
+            # print(hmf_name)
             mdef='fof'
-        else:
-            # mdef = '200m'
+        elif hmf_name == 'bocquet16':
+            mdef = '200m'
+        elif hmf_name == 'tinker08':
+            # Cannot use Mvir for tinker becasue the threshold cannont be lower than 200*rho_m
+            mdef = '200m'
+        elif hmf_name == 'despali16':
             mdef = 'vir'
-        print('Use '+mdef+' for the SO defintion.')
+        print('Use ' + mdef + ' for the SO defintion in ' + hmf_name)
         cosmo = cosmology.setCosmology('planck15')
         redshift_haloes = params['redshiftsbin']
         M = 10**np.arange(8.0, 20, 0.01) # Mass in Msun / h
@@ -363,7 +395,7 @@ def gauss(y, ksi):
 def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Use convolution defined in Behroozi et al 2010"""
     log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-    if params['smf_name'] == 'cosmos_schechter':
+    if params['smf_name'] == 'cosmos_schechter' or params['smf_name'] == 'cosmos_schechter_shifted':
         dx = np.mean(logMs[1:] - logMs[:-1])
     else:
         print('Warning, the step between two mass bins in not defined in this case.')
@@ -823,6 +855,12 @@ def readAndAnalyseBin(directory, idx_z):
     thin = int(0.5*np.nanmin(tau))
     samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
     print(samples.shape)
+
+    reader = emcee.backends.HDFBackend(filename, read_only=True)
+    length = reader.get_chain().shape[0]
+    print('Number of steps per walker: ' + str(length))
+    print('Average acceptance fraction (should be between 0.2 and 0.5): ' +str(np.mean(reader.accepted) / length))
+
     # Plot all relevant figures
     # plt.close('all')
     # plotchain(directory, samples, idx_z, params)
@@ -1212,6 +1250,29 @@ def plotSHMR_delta(directory, load=True, selected_redshifts=np.arange(10)):
         plt.savefig(directory + '/Plots/DeltaSMHM_789.pdf')
 
 
+def test_MS_evolution(directory):
+    """Test teh consistency of stellar mass evolution compared to the evolution of hao mass,
+    as asked by the refereee comment number 13."""
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
+    print(Ms_min)
+    Ms_max = params['SM_cut_max']
+    numpoints = 100
+    logMs, av_logMh, med_logMh, conf_min_logMh, conf_max_logMh = save_load_smhm(
+        directory, Ms_min, Ms_max, numpoints, load, selected_redshifts)
+    idxMh13 = np.argmin(np.abs(med_logMh - 13), axis=1)
+    idxMh135 = np.argmin(np.abs(med_logMh - 13.5), axis=1)
+    # Stellar Mass of a galxy in a halo of 10^13 Msun at z=4
+    logMs_z4_Mh13 = logMs[8, idxMh13[8]]
+    logMs_z25_Mh135 = logMs[5, idxMh13[5]]
+
+
 def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Good version to use to plot the SHMR and the Ms(Mh)"""
     paramfile = 'MCMC_param.ini'
@@ -1238,6 +1299,39 @@ def testSMF(idx_z, M1, Ms0, beta, delta, gamma, ksi):
     logphitrue = np.log10(phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi))
     plt.plot(logMs, logphitrue)
     plt.show()
+
+def plotCosmosSMF_HMF(directory):
+    """Good version to use to plot the SHMR and the Ms(Mh)"""
+    paramfile = directory + '/MCMC_param.ini'
+    global params
+    params = load_params(paramfile)
+    global smf
+    global hmf
+    smf = load_smf(params)
+    hmf = load_hmf(params)
+    plt.close('all')
+    plt.figure()
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10 ** 9, 10 ** 15)
+    plt.ylim(10 ** -6, 1)
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    for idx_z in range(10):
+        plt.plot(10 ** smf[idx_z][:, 0], 10 ** smf[idx_z][:, 1], color=colors[idx_z],
+                 label=str(params['redshifts'][idx_z])+'<z<'+str(params['redshifts'][idx_z+1]))
+        # plt.errorbar(smf[idx_z][:, 0], smf[idx_z][:, 1],
+        #     yerr=[smf[idx_z][:, 3], smf[idx_z][:, 2]], fmt='o')
+        plt.fill_between(10**smf[idx_z][:, 0],  10**(smf[idx_z][:, 1] -  smf[idx_z][:, 3]),
+                         10**(smf[idx_z][:, 2] + smf[idx_z][:, 1]), color=colors[idx_z], alpha=0.3)
+        plt.plot(10 ** hmf[idx_z][:, 0], 10 ** hmf[idx_z][:, 1], color=colors[idx_z])
+    plt.xlabel('stellar or halo mass [$M_\odot$]', size=17)
+    plt.ylabel('mass function [$\mathrm{Mpc}^{-3} \mathrm{dex}^{-1}$]', size=17)
+    plt.tick_params(axis='both', which='major', labelsize=13)
+    # plt.legend(prop={'size': 12})
+    plt.legend(frameon=False, ncol=2, prop={'size': 11}, loc=1)
+    plt.tight_layout()
+    plt.show()
+
 
 
 def plotMsMh_fixedMh(directory, load=True, selected_redshifts=np.arange(10)):
