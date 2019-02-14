@@ -47,7 +47,8 @@ import fitHMF_B18 as fitdespali16
 def load_smf(params):
     """Load the SMF."""
     smf_name = params['smf_name']
-    if smf_name == 'cosmos' or smf_name == 'cosmos_schechter' or smf_name == 'cosmos_schechter_shifted':
+    if (smf_name == 'cosmos' or smf_name == 'cosmos_schechter' or
+        smf_name == 'cosmos_schechter_shifted_minus' or smf_name == 'cosmos_schechter_shifted_plus'):
 
         """Load the SMF from Iary Davidzon+17"""
         # redshifts of the Iari SMF
@@ -398,7 +399,9 @@ def gauss(y, ksi):
 def phi_true(logMs, idx_z, M1, Ms0, beta, delta, gamma, ksi):
     """Use convolution defined in Behroozi et al 2010"""
     log_phidirect = log_phi_direct(logMs, idx_z, M1, Ms0, beta, delta, gamma)
-    if params['smf_name'] == 'cosmos_schechter' or params['smf_name'] == 'cosmos_schechter_shifted':
+    if (params['smf_name'] == 'cosmos_schechter' or params['smf_name'] == 'cosmos_schechter_shifted' or
+        params['smf_name'] == 'cosmos_schechter_shifted_minus' or
+        params['smf_name'] == 'cosmos_schechter_shifted_plus'):
         dx = np.mean(logMs[1:] - logMs[:-1])
     else:
         print('Warning, the step between two mass bins in not defined in this case.')
