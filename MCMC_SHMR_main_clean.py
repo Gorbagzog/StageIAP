@@ -1264,6 +1264,7 @@ def test_MS_evolution(directory):
     params = load_params(paramfile)
     global smf
     global hmf
+    selected_redshifts = np.arange(10)
     smf = load_smf(params)
     hmf = load_hmf(params)
     Ms_min = np.maximum(np.log10(6.3 * 10**7 * (1 + params['redshiftsbin'])**2.7), np.full(params['numzbin'], 9))
