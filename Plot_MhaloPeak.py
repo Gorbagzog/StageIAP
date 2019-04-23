@@ -266,7 +266,8 @@ def plotLiterrature_several():
                 markersize=markersize,
                 fmt='p', c='fuchsia', markerfacecolor='white', capsize=2,
                 elinewidth=1,)
-    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18, color='orange', linestyle='-')
+    plt.plot(redshiftBehroozi18, MhaloPeakBehroozi18,
+             color='darkgreen', linestyle='-')
 
     plt.xticks(np.arange(0, 5.5, 0.5))
     plt.xlabel('redshift', fontsize=16, labelpad=5)
